@@ -12,29 +12,28 @@
 
 #ifdef TEST
 #define BLK_TOREAD 		1000
-/* #define FILENAME      "MyTestFile.txt" */
-#define FILENAME      "ShortTestFile.txt"
+#define FILENAME      		"ShortTestFile.txt"
 #else
-#define BLK_TOREAD    50000000
-#define FILENAME      "AllNYSVoters_20190903.txt"
+#define BLK_TOREAD    		50000000
+#define FILENAME      		"AllNYSVoters_20190903.txt"
 #endif
 
 #define BLK_TOTEST		5000
 
-#define NUM_COUNTIES 	63
-#define NUM_DESC 			38
+#define NUM_COUNTIES 		63
+#define NUM_DESC 		38
 
 #define ASCII_YELLOW 		"\033[33m"
-#define ASCII_B_BLACK 	"\033[30;1m"
+#define ASCII_B_BLACK 		"\033[30;1m"
 #define ASCII_B_RED 		"\033[31;1m"
 #define ASCII_B_GREEN		"\033[32;1m"
-#define ASCII_B_YELLOW 	"\033[33;1m"
+#define ASCII_B_YELLOW 		"\033[33;1m"
 #define ASCII_B_BLUE 		"\033[34;1m"
-#define ASCII_B_MAGENTA "\033[35;1m"
+#define ASCII_B_MAGENTA 	"\033[35;1m"
 #define ASCII_B_CYAN 		"\033[36;1m"
-#define ASCII_B_WHITE 	"\033[37;1m"
+#define ASCII_B_WHITE 		"\033[37;1m"
 
-#define ASCII_BB_RED 			"\033[41;1m"
+#define ASCII_BB_RED 		"\033[41;1m"
 #define ASCII_BB_GREEN 		"\033[42;1m"
 #define ASCII_BB_YELLOW 	"\033[43;1m"
 #define ASCII_BB_BLUE 		"\033[44;1m"
@@ -42,113 +41,107 @@
 #define ASCII_BB_CYAN 		"\033[46;1m"
 #define ASCII_BB_WHITE	 	"\033[47;1m"
 
-#define ASCII_F_RED 			"\033[41;5m"
+#define ASCII_F_RED 	       	"\033[41;5m"
 #define ASCII_F_GREEN 		"\033[42;5m"
-#define ASCII_F_YELLOW 	"\033[43;5m"
+#define ASCII_F_YELLOW 		"\033[43;5m"
 #define ASCII_F_BLUE 		"\033[44;5m"
 #define ASCII_F_MAGENTA 	"\033[45;5m"
 #define ASCII_F_CYAN 		"\033[46;5m"
 #define ASCII_F_WHITE	 	"\033[47;5m"
 
-#define ASCII_RESET				"\033[0m"
+#define ASCII_RESET		"\033[0m"
 
+char *Counties[] = { "", "Albany", "Allegany", "Bronx", "Broome", "Cattaraugus", "Cayuga", "Chautauqua", "Chemung",
+		     "Chenango", "Clinton", "Columbia", "Cortland", "Delaware", "Dutchess", "Erie", "Essex", "Franklin", 
+		     "Fulton", "Genesee", "Greene", "Hamilton", "Herkimer", "Jefferson", "Kings", "Lewis", "Livingston", 
+		     "Madison", "Monroe", "Montgomery", "Nassau", "New York", "Niagara", "Oneida", "Onondaga", "Ontario", 
+		     "Orange", "Orleans", "Oswego", "Otsego", "Putnam", "Queens", "Rensselaer", "Richmond", "Rockland", 
+		     "Saratoga", "Schenectady", "Schoharie", "Schuyler", "Seneca", "St.Lawrence", "Steuben", "Suffolk", 
+		     "Sullivan", "Tioga", "Tompkins", "Ulster", "Warren", "Washington", "Wayne", "Westchester", "Wyoming", 
+		     "Yates" };
 
-char *Counties[] = {	"", "Albany", "Allegany", "Bronx", "Broome", "Cattaraugus", "Cayuga", "Chautauqua", "Chemung",
-			"Chenango", "Clinton", "Columbia", "Cortland", "Delaware", "Dutchess", "Erie", "Essex", "Franklin", 
-			"Fulton", "Genesee", "Greene", "Hamilton", "Herkimer", "Jefferson", "Kings", "Lewis", "Livingston", 
-			"Madison", "Monroe", "Montgomery", "Nassau", "New York", "Niagara", "Oneida", "Onondaga", "Ontario", 
-			"Orange", "Orleans", "Oswego", "Otsego", "Putnam", "Queens", "Rensselaer", "Richmond", "Rockland", 
-			"Saratoga", "Schenectady", "Schoharie", "Schuyler", "Seneca", "St.Lawrence", "Steuben", "Suffolk", 
-			"Sullivan", "Tioga", "Tompkins", "Ulster", "Warren", "Washington", "Wayne", "Westchester", "Wyoming", 
-			"Yates" };
-										
-
-char *Description[] = { 	"Yes", "No", "Democratic", "Republican", "Conservative", "Working Families", "Green", "Libertarian", 
-				"Independence", "Serve America Mvmnt", "Other", "No party affiliation", "Women's Equality Party", 
-				"Reform", "Agency", "County Board of Elections", "Department of Motor Vehicle", "Local Registrar", 
-				"Mail-in through USPS", "School", "Active", "Active Military", "Active Special Federal", 
-				"Active Special Presidential", "Active UOCAVA", "Inactive", "Purged", "Prereg - 17 Year Olds",
-				"Adjudged Incompetent", "Death", "Duplicate", "Felon", "Mail Check", "Moved out of County", 
-				"NCOA","NVRA", "Returned Mail", "Voter Request" };
-											
-											
-											
-char *Abbreviation[] = { 	"Y", "N", "DEM", "REP", "CON", "WOR", "GRE", "LBT", "IND", "SAM", "OTH", "BLK", "WEP", "REF",
-				"AGCY", "CBOE", "DMV", "LOCALREG", "MAIL", "SCHOOL", "A", "AM", "AF", "AP", "AU", "I", "P", "17", 
-				"ADJ-INCOMP", "DEATH", "DUPLICATE", "FELON", "MAIL-CHECK", "MOVED", "NCOA", "NVRA", "RETURN-MAIL", 
-				"VOTER-REQ" };
-
+char *Description[] = { "Yes", "No", "Democratic", "Republican", "Conservative", "Working Families", "Green", "Libertarian", 
+			"Independence", "Serve America Mvmnt", "Other", "No party affiliation", "Women's Equality Party", 
+			"Reform", "Agency", "County Board of Elections", "Department of Motor Vehicle", "Local Registrar", 
+			"Mail-in through USPS", "School", "Active", "Active Military", "Active Special Federal", 
+			"Active Special Presidential", "Active UOCAVA", "Inactive", "Purged", "Prereg - 17 Year Olds",
+			"Adjudged Incompetent", "Death", "Duplicate", "Felon", "Mail Check", "Moved out of County", 
+			"NCOA","NVRA", "Returned Mail", "Voter Request" };
+										    											
+char *Abbreviation[] = { "Y", "N", "DEM", "REP", "CON", "WOR", "GRE", "LBT", "IND", "SAM", "OTH", "BLK", "WEP", "REF",
+			 "AGCY", "CBOE", "DMV", "LOCALREG", "MAIL", "SCHOOL", "A", "AM", "AF", "AP", "AU", "I", "P", "17", 
+			 "ADJ-INCOMP", "DEATH", "DUPLICATE", "FELON", "MAIL-CHECK", "MOVED", "NCOA", "NVRA", "RETURN-MAIL", 
+			 "VOTER-REQ" };
 													
-char *Usages[] = { 	"LASTNAME", "FIRSTNAME", "MIDDLENAME", "NAMESUFFIX", "RADDNUMBER", 
-			"RHALFCODE", "RAPARTMENT", "RPREDIRECTION", "RSTREETNAME", "RPOSTDIRECTION",
-			"RCITY", "RZIP5", "RZIP4", "MAILADD1", "MAILADD2", "MAILADD3", "MAILADD4", "DOB",
-			"GENDER", "ENROLLMENT", "OTHERPARTY", "COUNTYCODE", "ED", "LD", "TOWNCITY",	
-			"WARD", "CD", "SD", "AD", "LASTVOTEDDATE", "PREVYEARVOTED", "PREVCOUNTY",
-			"PREVADDRESS", "PREVNAME", "COUNTYVRNUMBER", "REGDATE", "VRSOURCE", 		
-			"IDREQUIRED", "IDMET", "STATUS", "REASONCODE", "INACT_DATE", "PURGE_DATE", 		
-			"SBOEID", "VoterHistory" };
-										
+char *Usages[] = { "LASTNAME", "FIRSTNAME", "MIDDLENAME", "NAMESUFFIX", "RADDNUMBER", 
+		   "RHALFCODE", "RAPARTMENT", "RPREDIRECTION", "RSTREETNAME", "RPOSTDIRECTION",
+		   "RCITY", "RZIP5", "RZIP4", "MAILADD1", "MAILADD2", "MAILADD3", "MAILADD4", "DOB",
+		   "GENDER", "ENROLLMENT", "OTHERPARTY", "COUNTYCODE", "ED", "LD", "TOWNCITY",	
+		   "WARD", "CD", "SD", "AD", "LASTVOTEDDATE", "PREVYEARVOTED", "PREVCOUNTY",
+		   "PREVADDRESS", "PREVNAME", "COUNTYVRNUMBER", "REGDATE", "VRSOURCE", 		
+		   "IDREQUIRED", "IDMET", "STATUS", "REASONCODE", "INACT_DATE", "PURGE_DATE", 		
+		   "SBOEID", "VoterHistory" };
+							
 typedef struct node {
   char *val;
   struct node *next;
 } node_t;
 
-
 typedef struct VoterList  {				
-  char *LASTNAME; 			// 1	50 		LASTNAME 				CHARACTER Last name 
-  char *FIRSTNAME; 			// 2 	50 		FIRSTNAME 			CHARACTER First name 
-  char *MIDDLENAME; 		// 3 	50 		MIDDLENAME 			CHARACTER Middle Name 
-  char *NAMESUFFIX; 		// 4 	10 		NAMESUFFIX 			CHARACTER Name suffix  Jr, Sr, I, II,, 1, 2, etc 
-  char *RADDNUMBER; 		// 5 	10 		RADDNUMBER 			CHARACTER Residence House Number Hyphenated numbers allowed  
-  char *RHALFCODE; 			// 6 	10 		RHALFCODE 			CHARACTER Residence Fractional Address ., 1/3, etc. 
-  char *RAPARTMENT; 		// 7 	15 		RAPARTMENT 			CHARACTER Residence Apartment 
-  char *RPREDIRECTION; 	// 8 	10 		RPREDIRECTION 	CHARACTER Residence Pre Street Direction (e.g.. the 'E' in 52 E Main St) 
-  char *RSTREETNAME; 		// 9 	70 		RSTREETNAME 		CHARACTER Residence Street Name 
-  char *RPOSTDIRECTION; // 10 10 		RPOSTDIRECTION 	CHARACTER Residence Post Street Direction (e.g. the 'SW' in 1200 Pecan Blvd SW ) 
-  char *RCITY; 					// 11 50 		RCITY 					CHARACTER Residence City 
-  char *RZIP5; 					// 12 5 		RZIP5 					CHARACTER Residence Zip Code 5 
-  char *RZIP4; 					// 13 4 		RZIP4 					CHARACTER Zip code plus 4 
-  char *MAILADD1; 			// 14 100 	MAILADD1 				CHARACTER Mailing Address 1 Free Form address 
-  char *MAILADD2; 			// 15 100 	MAILADD2 				CHARACTER Mailing Address 2 Free Form address 
-  char *MAILADD3; 			// 16 100 	MAILADD3 				CHARACTER Mailing Address 3 Free Form address
-  char *MAILADD4; 			// 17 100 	MAILADD4 				CHARACTER Mailing Address 4 Free Form address
-  char *DOB; 						// 18 8 		DOB 						CHARACTER Date of Birth YYYYMMDD	  
-  char *GENDER; 				// 19 1 		GENDER 					CHARACTER Gender M = Male F = Female OPTIONAL 
-  char *ENROLLMENT; 		// 20 3 		ENROLLMENT 			CHARACTER Political Party 
-  char *OTHERPARTY; 		// 21 30 		OTHERPARTY 			CHARACTER Name or Party if Voter Checks 'Other' on registration form. 														
-  char *COUNTYCODE; 		// 22 2 		COUNTYCODE 			NUMBER 		County code 2 Digit County Code see countycodes below 
-  char *ED; 						// 23 3 		ED 							NUMBER 		Election district LOCAL  
-  char *LD; 						// 24 3 		LD 							NUMBER 		Legislative district LOCAL 
-  char *TOWNCITY; 			// 25 30	 	TOWNCITY 				CHARACTER Town/City LOCAL 
-  char *WARD; 					// 26 3 		WARD 						CHARACTER Ward LOCAL 
-  char *CD;					 		// 27 3 		CD 							NUMBER 		Congressional district 
-  char *SD; 						// 28 3 		SD 							NUMBER 		Senate district 
-  char *AD; 						// 29 3 		AD 							NUMBER 		Assembly district 
-  char *LASTVOTEDDATE; 	// 30 8 		LASTVOTEDDATE 	CHARACTER Last date voted YYYYMMDD 
-  char *PREVYEARVOTED; 	// 31 4 		PREVYEARVOTED 	CHARACTER Last year voted (from registration form) Optional 
-  char *PREVCOUNTY; 		// 32 2 		PREVCOUNTY 			CHARACTER Last county voted in (from registration form ). Optional 
-  char *PREVADDRESS; 		// 33 100 	PREVADDRESS 		CHARACTER Last registered address Optional 
-  char *PREVNAME; 			// 34 150 	PREVNAME 				CHARACTER Last registered name (if different) Optional Field Position Field Size (Maximum) SBOE Field Name/Type Description Notes  
-  char *COUNTYVRNUMBER; // 35 50 		COUNTYVRNUMBER 	CHARACTER County Voter Registration Number. Assigned County 
-  char *REGDATE;				// 36 8 		REGDATE 				CHARACTER Application Date YYYYMMDD (date application was received or postmarked) 
-  char *VRSOURCE;			// 37 10 		VRSOURCE 				CHARACTER Application Source  														
-  char *IDREQUIRED; 		// 38 1 		IDREQUIRED 			CHARACTER Identification Required Flag. 															
-  char *IDMET; 					// 39 1 		IDMET 					CHARACTER Identification Verification Requirement Met Flag. Indicates verification requirements (SSN, Driver ID verified or other acceptable ID) 
-  char *STATUS; 				// 40 10 		STATUS 					CHARACTER Voter Status Codes.  
-  char *REASONCODE; 		// 41 15 		REASONCODE 			CHARACTER Status Reason Codes 
-  char *INACT_DATE; 		// 42 8 		INACT_DATE 			CHARACTER Date Voter made 'Inactive' YYYYMMDD 
-  char *PURGE_DATE; 		// 43 8 		PURGE_DATE			CHARACTER Date voter was 'Purged' YYYYMMDD 
-  char *SBOEID;					// 44 50 		SBOEID 					CHARACTER Unique NYS Voter ID 
-  char *VoterHistory; 	// 45 1200 	VoterHistory 		CHARACTER Voter History Last 5 years voting history separated by semicolons 
+  char *LASTNAME; 	// 1 50 	LASTNAME 	CHARACTER Last name 
+  char *FIRSTNAME; 	// 2 50 	FIRSTNAME 	CHARACTER First name 
+  char *MIDDLENAME; 	// 3 50 	MIDDLENAME 	CHARACTER Middle Name 
+  char *NAMESUFFIX; 	// 4 10 	NAMESUFFIX 	CHARACTER Name suffix  Jr, Sr, I, II,, 1, 2, etc 
+  char *RADDNUMBER; 	// 5 10 	RADDNUMBER 	CHARACTER Residence House Number Hyphenated numbers allowed  
+  char *RHALFCODE; 	// 6 10 	RHALFCODE 	CHARACTER Residence Fractional Address ., 1/3, etc. 
+  char *RAPARTMENT; 	// 7 15 	RAPARTMENT 	CHARACTER Residence Apartment 
+  char *RPREDIRECTION; 	// 8 10 	RPREDIRECTION 	CHARACTER Residence Pre Street Direction (e.g.. the 'E' in 52 E Main St) 
+  char *RSTREETNAME; 	// 9 70 	RSTREETNAME 	CHARACTER Residence Street Name 
+  char *RPOSTDIRECTION; // 10 10 	RPOSTDIRECTION 	CHARACTER Residence Post Street Direction (e.g. the 'SW' in 1200 Pecan Blvd SW ) 
+  char *RCITY; 		// 11 50 	RCITY 		CHARACTER Residence City 
+  char *RZIP5; 		// 12 5 	RZIP5 		CHARACTER Residence Zip Code 5 
+  char *RZIP4; 		// 13 4 	RZIP4 		CHARACTER Zip code plus 4 
+  char *MAILADD1; 	// 14 100 	MAILADD1 	CHARACTER Mailing Address 1 Free Form address 
+  char *MAILADD2; 	// 15 100 	MAILADD2 	CHARACTER Mailing Address 2 Free Form address 
+  char *MAILADD3; 	// 16 100 	MAILADD3 	CHARACTER Mailing Address 3 Free Form address
+  char *MAILADD4; 	// 17 100 	MAILADD4 	CHARACTER Mailing Address 4 Free Form address
+  char *DOB; 		// 18 8 	DOB 		CHARACTER Date of Birth YYYYMMDD	  
+  char *GENDER; 	// 19 1 	GENDER 		CHARACTER Gender M = Male F = Female OPTIONAL 
+  char *ENROLLMENT; 	// 20 3 	ENROLLMENT 	CHARACTER Political Party 
+  char *OTHERPARTY; 	// 21 30 	OTHERPARTY 	CHARACTER Name or Party if Voter Checks 'Other' on registration form.
+  char *COUNTYCODE; 	// 22 2 	COUNTYCODE 	NUMBER	County code 2 Digit County Code see countycodes below 
+  char *ED; 		// 23 3 	ED 		NUMBER	Election district LOCAL  
+  char *LD; 		// 24 3 	LD 		NUMBER	Legislative district LOCAL 
+  char *TOWNCITY; 	// 25 30	TOWNCITY 	CHARACTER Town/City LOCAL 
+  char *WARD; 		// 26 3 	WARD 		CHARACTER Ward LOCAL 
+  char *CD;		// 27 3 	CD 		NUMBER	Congressional district 
+  char *SD; 		// 28 3 	SD 		NUMBER	Senate district 
+  char *AD; 		// 29 3 	AD 		NUMBER	Assembly district 
+  char *LASTVOTEDDATE; 	// 30 8 	LASTVOTEDDATE 	CHARACTER Last date voted YYYYMMDD 
+  char *PREVYEARVOTED; 	// 31 4 	PREVYEARVOTED 	CHARACTER Last year voted (from registration form) Optional 
+  char *PREVCOUNTY; 	// 32 2 	PREVCOUNTY 	CHARACTER Last county voted in (from registration form ). Optional 
+  char *PREVADDRESS; 	// 33 100 	PREVADDRESS 	CHARACTER Last registered address Optional 
+  char *PREVNAME; 	// 34 150 	PREVNAME 	CHARACTER Last registered name (if different) Optional Field Position Field Size (Maximum)
+                        //                                        SBOE Field Name/Type Description Notes  
+  char *COUNTYVRNUMBER; // 35 50 	COUNTYVRNUMBER 	CHARACTER County Voter Registration Number. Assigned County 
+  char *REGDATE;	// 36 8 	REGDATE 	CHARACTER Application Date YYYYMMDD (date application was received or postmarked) 
+  char *VRSOURCE;	// 37 10 	VRSOURCE 	CHARACTER Application Source
+  char *IDREQUIRED; 	// 38 1 	IDREQUIRED 	CHARACTER Identification Required Flag.
+  char *IDMET; 		// 39 1 	IDMET 		CHARACTER Identification Verification Requirement Met Flag.
+                        //                                        Indicates verification requirements (SSN, Driver ID verified or other acceptable ID) 
+  char *STATUS; 	// 40 10 	STATUS 		CHARACTER Voter Status Codes.  
+  char *REASONCODE; 	// 41 15 	REASONCODE 	CHARACTER Status Reason Codes 
+  char *INACT_DATE; 	// 42 8 	INACT_DATE 	CHARACTER Date Voter made 'Inactive' YYYYMMDD 
+  char *PURGE_DATE; 	// 43 8 	PURGE_DATE	CHARACTER Date voter was 'Purged' YYYYMMDD 
+  char *SBOEID;		// 44 50 	SBOEID 		CHARACTER Unique NYS Voter ID 
+  char *VoterHistory; 	// 45 1200 	VoterHistory 	CHARACTER Voter History Last 5 years voting history separated by semicolons 
   struct VoterList *next;
 } VoterList; 
-									
 
 // "SEXTON","COLLEEN","M","","703","","","","WURLITZER DR","","N TONAWANDA","14120","1948","",
 // "","","","19710331","F","DEM","","32","6","9","N Tonawanda","003","26","62","140","20121106",
 // "","  ","","","M098132","19890413","CBOE","N","Y","PURGED","MOVED","","20140611","NY000000000003306194",
 //"2012 General Election;2010 General Election;2008 General Election"
-
 
 int push(node_t **, node_t **, char *);
 void PushVoterList(VoterList *, char *, int);
@@ -209,8 +202,7 @@ int main(void) {
 	
   // printf("Getting VoterHead:\t%p\n", VotersHead);
   // printf("Getting VoterStart:\t%p\n", VotersStart);
-
-	
+  
   // This is to open the file
   fptr = fopen(FILENAME, "r");
   TextFile = malloc ((BLK_TOREAD + 1) * sizeof(char));
@@ -219,7 +211,7 @@ int main(void) {
     exit(1);		
   }
 	
-  //while (	! feof(fptr) ) {	
+  //while ( ! feof(fptr) ) {	
   while ((total_size_read = fread((TextFile + SizeLeftOver), 1, BLK_TOREAD, fptr)) ) {	
 	   
     pTextFile = TextFile;
@@ -325,15 +317,14 @@ int main(void) {
   }
 	
   printf("THIS IS THE END LEFT OVER TO DEAL WITH: %s\n", pLeftOver);
-	
   printf("VoterStart: %p\n", VotersStart);
-	
+  
   printf("\n");
   printf("\nVoter List\n");
   PrintVoterList(VotersList->next);
   printf("Done\n");
   //print_ASCII(ByASCIICode);
-  //print_list(head);	
+  //print_list(head);
 }
 
 int PrintValue(char *pStoredValue, int debug) {
@@ -486,12 +477,12 @@ void PrintVoterList(VoterList *Voters) {
 	
   while (Voter->next != NULL ) { 		
     printf("Getting Begin address: %p\n", Voter);
-    if ( Voter->LASTNAME != NULL) { printf("\tLASTNAME:\t" ASCII_B_MAGENTA"%p\t" ASCII_RESET ASCII_B_BLUE  "#" ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->LASTNAME,Voter->LASTNAME); } 
-    if ( Voter->FIRSTNAME != NULL) { printf("\tFIRSTNAME:\t" ASCII_B_MAGENTA"%p\t" ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->FIRSTNAME,Voter->FIRSTNAME); } 
-    if ( Voter->MIDDLENAME != NULL) { printf("\tMIDDLENAME:\t" ASCII_B_MAGENTA"%p\t" ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->MIDDLENAME, Voter->MIDDLENAME); } 
-    if ( Voter->NAMESUFFIX != NULL) { printf("\tNAMESUFFIX:\t" ASCII_B_MAGENTA"%p\t" ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->NAMESUFFIX, Voter->NAMESUFFIX); } 
-    if ( Voter->RADDNUMBER != NULL) { printf("\tRADDNUMBER:\t" ASCII_B_MAGENTA"%p\t" ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->RADDNUMBER, Voter->RADDNUMBER); } 
-    if ( Voter->RHALFCODE != NULL) { printf("\tRHALFCODE:\t" ASCII_B_MAGENTA"%p\t" ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->RHALFCODE, Voter->RHALFCODE); } 
+    if ( Voter->LASTNAME != NULL) { printf("\tLASTNAME:\t"ASCII_B_MAGENTA"%p\t"ASCII_RESET ASCII_B_BLUE"#" ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->LASTNAME,Voter->LASTNAME); } 
+    if ( Voter->FIRSTNAME != NULL) { printf("\tFIRSTNAME:\t"ASCII_B_MAGENTA"%p\t"ASCII_RESET ASCII_B_BLUE"#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->FIRSTNAME,Voter->FIRSTNAME); } 
+    if ( Voter->MIDDLENAME != NULL) { printf("\tMIDDLENAME:\t"ASCII_B_MAGENTA"%p\t"ASCII_RESET ASCII_B_BLUE"#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->MIDDLENAME, Voter->MIDDLENAME); } 
+    if ( Voter->NAMESUFFIX != NULL) { printf("\tNAMESUFFIX:\t"ASCII_B_MAGENTA"%p\t"ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->NAMESUFFIX, Voter->NAMESUFFIX); } 
+    if ( Voter->RADDNUMBER != NULL) { printf("\tRADDNUMBER:\t"ASCII_B_MAGENTA"%p\t"ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->RADDNUMBER, Voter->RADDNUMBER); } 
+    if ( Voter->RHALFCODE != NULL) { printf("\tRHALFCODE:\t"ASCII_B_MAGENTA"%p\t"ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->RHALFCODE, Voter->RHALFCODE); } 
     if ( Voter->RAPARTMENT != NULL) { printf("\tRAPARTMENT:\t" ASCII_B_MAGENTA"%p\t" ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->RAPARTMENT, Voter->RAPARTMENT); } 
     if ( Voter->RPREDIRECTION != NULL) { printf("\tRPREDIRECTION:\t" ASCII_B_MAGENTA"%p\t" ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->RPREDIRECTION, Voter->RPREDIRECTION); } 
     if ( Voter->RSTREETNAME != NULL) { printf("\tRSTREETNAME:\t" ASCII_B_MAGENTA"%p\t" ASCII_RESET ASCII_B_BLUE  "#"ASCII_RESET "%s" ASCII_B_BLUE  "#" ASCII_RESET "\n", Voter->RSTREETNAME, Voter->RSTREETNAME); } 
