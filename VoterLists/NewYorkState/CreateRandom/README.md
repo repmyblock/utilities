@@ -9,3 +9,7 @@ To use, download the C file and then run gcc GenerateRandom.c -o GenerateRandom 
 state BOE File to run it.)
 
 To request it, go to the State of New York BOE website.
+
+# Working with user data
+Please do link the working file from a location your Github file to avoid to accidently 
+uploading the real data file to github.
