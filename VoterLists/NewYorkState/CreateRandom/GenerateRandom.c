@@ -149,7 +149,7 @@ void PrintVoterList(VoterList *);
 void print_ASCII(node_t **);
 void print_list(node_t *);
 int PrintValue(char *, int);
-char *CheckDup(node_t *, node_t **, char *);
+char *CheckDup(node_t *, node_t **, char **);
 int *AssignVoterToNode();
 
 int main(void) {
@@ -180,14 +180,19 @@ int main(void) {
 
   // This is the node where to store the links	
   node_t *head = NULL;
-  node_t *ByASCIICode[128] = { NULL };  // THis is by ASCII code .. 32 to 126
+  
+  // This is to store the upper bound and lower bound of pointer to each letters.
+  // This is needed to traverse only the names starting by the same letter.
+  // This allow to speed the search of duplicates. 0-127 is the lower_bound of a letter, 128-256 is the upper bound.
+  node_t *ByASCIICode[256] = { NULL };  
+  
   head = malloc(sizeof(node_t));
   if (head == NULL) { 
     printf("Error at malloc\n");
     exit(1);	
   }		
   head->next = NULL;
-	
+  
   // This is to assign the Voter to the node
   VoterList *VotersHead = NULL;
   VotersHead = malloc(sizeof(VoterList));
@@ -239,7 +244,10 @@ int main(void) {
 		
     int SizeMarker = 0;
 
-    do {	
+    do {
+
+      printf("\n************************************************ START DO LOOP ******************************************\n");
+      
       pBegMarker = strstr(pTextFile, "\"");		
       pBegMarker++;
 			
@@ -262,26 +270,44 @@ int main(void) {
 	SizeMarker = pEndMarker - pBegMarker - 3;					
 	// Here we add a verification for the \"		
 	pStoredValue = NULL; // To make points to NULL
+
 	
-	if ( SizeMarker > 0) {			
+	if ( SizeMarker > 0) {
+
+	  printf("Main: SizeMarker: %d\n", SizeMarker);
+	  
 	  if (pNewLineLoc != NULL && StringSegmentCounter > 43) {						
 	    SizeMarker = pNewLineLoc - pBegMarker;
 	    // SizeMarker += 3;
-	  }	
-					
-	  pStoredValue = malloc ((SizeMarker + 1) * sizeof(char));
-	  if (pStoredValue == NULL) { printf("Error at malloc\n"); exit(1); }
-	  strncpy(pStoredValue, pBegMarker, SizeMarker);
-	  pStoredValue[SizeMarker] = '\0';			
-					
-	  pReturnValue = CheckDup(head, ByASCIICode, pStoredValue);
-	  if (pReturnValue != pStoredValue && pStoredValue != NULL) {
-	    push(&head, ByASCIICode, pReturnValue);
-	  }			
-	} 			
+	  }
+
+ 	  printf("Main: SizeMarker: %d after pNewLineLoc\n", SizeMarker);
+
+	  if ( SizeMarker > 0) {
+	    
+	    pStoredValue = malloc ((SizeMarker + 1) * sizeof(char));
+	    if (pStoredValue == NULL) { printf("Error at malloc\n"); exit(1); }
+	    strncpy(pStoredValue, pBegMarker, SizeMarker);
+	    pStoredValue[SizeMarker] = '\0';
+
+	    printf("Main: pStoredValue: #%s# %p\tSizeMarker: %d" ASCII_B_RED " <- BEFORE CHECKDUP" ASCII_RESET "\n", pStoredValue, pStoredValue, SizeMarker);
+	    pReturnValue = CheckDup(head, ByASCIICode, &pStoredValue);
+    	    printf("Main: pStoredValue: #%s# %p\tSizeMarker: %d" ASCII_B_RED " <- AFTER CHECKDUP" ASCII_RESET "\n", pStoredValue, pStoredValue, SizeMarker);
+	    printf("Main: pReturnValue: #%s# %p\tSizeMarker: %d" ASCII_B_RED " <- AFTER CHECKDUP" ASCII_RESET "\n", pReturnValue, pReturnValue, SizeMarker);
+	    
+	    if (pReturnValue == pStoredValue && pStoredValue != NULL) {
+	      push(&head, ByASCIICode, pReturnValue);
+	    }
+	  
+	    // print_list(head);
+	  }
+	} else {
+	  printf("pTextFile: " ASCII_B_GREEN "%s" ASCII_RESET "\n", pTextFile);
+	}
+
+
 				
-	// Chunk dealing with storing the data			
-				
+	// Chunk dealing with storing the data				
 	if ( StringSegmentCounter == 0) {
 	  VotersList = malloc(sizeof(VoterList));
 	  if (VotersList == NULL) { printf("Error at malloc\n"); exit(1); }
@@ -289,7 +315,8 @@ int main(void) {
 	  VotersHead = VotersList;
 	}				
 				
-	PushVoterList(VotersList, pStoredValue, StringSegmentCounter);
+	PushVoterList(VotersList, pReturnValue, StringSegmentCounter);
+	pReturnValue = NULL;
 	// End of Chunk
 				
 	pTextFile += SizeMarker + 3;
@@ -298,7 +325,9 @@ int main(void) {
 			
       if ( StringSegmentCounter > 44) {
 	StringSegmentCounter = 0;
-      }			
+      }
+
+      printf("\n************************************************ END DO LOOP ********************************************\n");
     } while (pTextFile < TextFileMax && pEndMarker != NULL );	
 			
     // it ended the copy. Whatever is left get copied to another string
@@ -344,9 +373,9 @@ void print_ASCII(node_t **ASCII) {
 	
   for (i = 32; i < 126; i++) {
     if ( (ASCII[i]) != NULL) {
-      printf("ASCII[%c - %d]: %s\t%p\n", i, i, (ASCII[i])->val, (ASCII[i]));
+      printf("\tASCII[" ASCII_B_RED "%c - %3d" ASCII_RESET "]: %s\t" ASCII_B_BLUE "%p %p" ASCII_RESET "\n", i, i, (ASCII[i])->val, (ASCII[i]), (ASCII[i+127]));
     } else {
-      printf("ASCII[%c - %d]: %s\t%p\n", i, i, "NON EXISTANT", (ASCII[i]));
+      // printf("\tASCII[" ASCII_B_RED "%c - %3d" ASCII_RESET "]: %s\t" ASCII_B_BLUE "%p %p" ASCII_RESET "\n", i, i, "NON EXISTANT", (ASCII[i]), (ASCII[i+127]));
     }
   }
 }
@@ -358,39 +387,48 @@ void print_list(node_t *head) {
   printf("START HEAD: %p\n", current);
 
   while (current->next != NULL) {
-    printf("%d NODE VAL:\t%s\t-> %p\tCURRENT: %p\tNEXT: %p\n", counter++, current->val, current->val, current, current->next); 		
+    printf("\t%5d\tNODE VAL:\t%s\t-> %p\tCURRENT: %p\tNEXT: %p\n", counter++, current->val, current->val, current, current->next); 		
     current = current->next;
   } 
   
   printf("Counter: %d\n", counter);
 }
 	
-char *CheckDup(node_t *head, node_t **ASCII, char *val) {
-	
-  if ( val == NULL ) { return val; }
-	
-  node_t *current = head;
-  printf(ASCII_B_RED "Starting CheckDup: %p %s" ASCII_RESET "\n", val, val);
+char *CheckDup(node_t *head, node_t **ASCII, char **val) {
 
-  // SINCE THEY ARE NOT IN ORDER, THE ADDRESS IS WRONG.
-  // THIS IS A BUG NEED TO FIGURE OUT 
-  // ON HOW TO STOP THE SEARCH.
-  int upper_bound = 0;																					 
-  for ( upper_bound = (*val); upper_bound < 126 && (ASCII[upper_bound]) == NULL; upper_bound++)
-    ;
-																						 
-  while (current->next != NULL && current->next == ASCII[upper_bound]) {	
-  	
-    printf(ASCII_B_RED "CheckDup:" ASCII_RESET "VAL: %p %s - CURRENT VAL: %p %s\n", val, val, current->val, current->val);	
-	  		
-    if ( ! strcmp(val, current->val)) {
-      free(val);
-      return current->val;
-    }	 	   
-    current = current->next;
-  }  	
-    
-  return val;
+  printf(ASCII_B_CYAN "\nSTART *********************************************************************************\n");
+  printf(ASCII_B_RED "Starting CheckDup: %p " ASCII_RESET ASCII_B_CYAN "#" ASCII_RESET ASCII_B_BLUE "%s" ASCII_RESET ASCII_B_CYAN "# (%d)" ASCII_RESET "\n", val, *val, **val);
+  if ( *val == NULL ) { return NULL; }  
+
+  node_t *current = ASCII[**val];
+  int upper_bound = **val;
+  
+  printf(ASCII_B_BLUE "ASCII Upper Bound: %d - %c: " ASCII_RESET " %p %p\n", upper_bound, upper_bound, ASCII[upper_bound], ASCII[upper_bound+127]);
+  if ( current != NULL ) {
+    while ( current->next != NULL  ) {
+      printf(ASCII_B_GREEN "Current->next: %p - Current: %p\n", current->next, current); 
+      printf(ASCII_B_RED "Looking CheckDup:" ASCII_RESET " VAL: %p %s - CURRENT VAL: %p %s - Current NEXT: %p\n", *val, *val, current->val, current->val, current->next);
+      printf("VAL: " ASCII_B_MAGENTA "%s" ASCII_RESET " - CURRENT->VAL: " ASCII_B_CYAN "%s\n" ASCII_RESET, *val, current->val);
+      if ( ! strcmp(*val, current->val)) {
+	free(*val);
+	*val = NULL;
+	printf(ASCII_B_CYAN "END Returning current->val: " ASCII_RESET ASCII_B_BLUE "%s %p" ASCII_RESET " ************\n\n", current->val, current->val);
+	return current->val;
+      }	 	   
+
+      if ( current == ASCII[upper_bound+127] ) {
+	printf("I am breaking\n");
+	break;
+      }
+
+      current = current->next;
+      printf(ASCII_B_MAGENTA "Looking CheckDup:" ASCII_RESET " VAL: %p %s - CURRENT VAL: %p %s - Current NEXT: %p\n", *val, *val, current->val, current->val, current->next);	    
+      printf(ASCII_B_GREEN "Current->next: %p - Current: %p\n", current->next, current);
+      printf("\n");
+    } 
+  }
+  printf(ASCII_B_CYAN "END Returning val: " ASCII_RESET ASCII_B_BLUE "%s %p" ASCII_RESET " ************\n\n", *val, *val);
+  return *val;
 }
 
 	
@@ -416,41 +454,70 @@ int push(node_t **head, node_t **ASCII, char *val) {
   // If ASCII is null it means it was not used so we need to use it		
   // It's where the next goes that is important.
   if ( ASCII[*val] != NULL ) {	
-		
     existing_node = (ASCII[*val])->next;
     (ASCII[*val])->next = new_node;
+    if ( ASCII[(*val)] == ASCII[(*val)+127] ) { ASCII[(*val)+127] = new_node; }
     new_node->next = existing_node;
+
 				
   } else {
     // Verify each of the ASCII to make sure they are added in order.
     // Search the next one up with a value not null
-    for ( lower_bound = (*val); lower_bound > 32 && (ASCII[lower_bound]) == NULL; lower_bound--);
-    for ( upper_bound = (*val); upper_bound < 126 && (ASCII[upper_bound]) == NULL; upper_bound++);
+    for ( lower_bound = (*val); lower_bound > 31 && (ASCII[lower_bound]) == NULL; lower_bound--);
+    for ( upper_bound = (*val); upper_bound < 127 && (ASCII[upper_bound]) == NULL; upper_bound++);
     ASCII[*val] = new_node;
 	
     if (ASCII[lower_bound] == NULL) {
+
+      printf("System in ASCII Lower Bound == NULL\n");
+
+      printf(ASCII_B_GREEN "\tPUSH Lower:" ASCII_RESET " ASCII[%3d - %c]: "  ASCII_B_MAGENTA "%p %p" ASCII_RESET "\n", lower_bound, lower_bound, ASCII[lower_bound],ASCII[lower_bound+127] );
+      printf(ASCII_B_GREEN "\tPUSH Upper:" ASCII_RESET " ASCII[%3d - %c]: "  ASCII_B_MAGENTA "%p %p" ASCII_RESET "\n", upper_bound, upper_bound, ASCII[upper_bound],ASCII[upper_bound+127] );
+
+      // Need to move pointer to end of upper.
+      existing_node = ASCII[lower_bound];
+      if ( existing_node != NULL) {
+	while (existing_node->next != NULL) {
+	  printf("FIND VAL:\t%s\tCURRENT: %p\tNEXT: %p\n", existing_node->val, existing_node->val, existing_node->next); 		
+	  existing_node = existing_node->next;
+	} 
+      }
+      
       ASCII[(*val)] = new_node;
+      ASCII[(*val)+127] = new_node;
+      
       new_node->next = *head;
       *head = ASCII[(*val)];
-    }
-		
-    else if ( ASCII[lower_bound] != NULL) {
+
+    } else if ( ASCII[lower_bound] != NULL) {
+
+      printf("System in ASCII Lower Bound != NULL\n");
+      
       ASCII[(*val)] = new_node;
 			
       existing_node = ASCII[lower_bound];
-      last_node = ASCII[lower_bound];
-			
-      while (existing_node->next != NULL && ASCII[upper_bound] == last_node ) { 		
+      last_node = ASCII[lower_bound+127];
+
+      printf(ASCII_B_GREEN "\tPUSH Lower:" ASCII_RESET " ASCII[%3d - %c]: "  ASCII_B_MAGENTA "%p %p" ASCII_RESET "\n", lower_bound, lower_bound, ASCII[lower_bound],ASCII[lower_bound+127] );
+      printf(ASCII_B_GREEN "\tPUSH Upper:" ASCII_RESET " ASCII[%3d - %c]: "  ASCII_B_MAGENTA "%p %p" ASCII_RESET "\n", upper_bound, upper_bound, ASCII[upper_bound],ASCII[upper_bound+127] );
+      
+      while (existing_node->next != NULL && ASCII[upper_bound+127] == last_node ) { 		
 	last_node = existing_node;
 	existing_node = existing_node->next;
-      } 
+      }
+      
       swaped_node = last_node->next;
-      last_node->next = new_node;			
-      new_node->next = swaped_node;		
+      last_node->next = new_node;
+      ASCII[(*val)+127] = new_node;
+      new_node->next = swaped_node;
+
+
 			
     }
 		
   }
+
+  printf("\n");
 	
   return 1;	
 }
