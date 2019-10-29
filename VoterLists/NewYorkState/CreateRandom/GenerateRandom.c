@@ -186,15 +186,13 @@ int main(void) {
   // This is needed to traverse only the names starting by the same letter.
   // This allow to speed the search of duplicates. 0-127 is the lower_bound of a letter, 128-256 is the upper bound.
   node_t *ByASCIICode[256] = { NULL };  
-  
+
   head = malloc(sizeof(node_t));
-  if (head == NULL) { 
-    printf("Error at malloc\n");
-    exit(1);	
-  }		
+  if (head == NULL) { printf("Error at malloc\n"); exit(1); }		
   head->next = NULL;
   
   // This is to assign the Voter to the node
+  // Note: At the botton, VotersHead->next == NULL is checked to see if the first block is read so to advance pointer.
   VoterList *VotersHead = NULL;
   VotersHead = malloc(sizeof(VoterList));
   VoterList *VotersStart = VotersHead;
@@ -235,7 +233,6 @@ int main(void) {
 
     do {
       int OffSet = 3;
-
       printf("\n");
 
       printf(ASCII_BB_RED "pTextFile:" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pTextFile, pTextFile);
@@ -320,24 +317,23 @@ int main(void) {
 	}
 				
 	// Chunk dealing with storing the data				
-	if ( StringSegmentCounter == 0) {
+	if ( StringSegmentCounter == 0) {	  
+	  if ( VotersHead->next != NULL) { pTextFile++; } // This is to account for the new line by checking
 	  VotersList = malloc(sizeof(VoterList));
 	  if (VotersList == NULL) { printf("Error at malloc\n"); exit(1); }
 	  VotersList->next = VotersHead;
 	  VotersHead = VotersList;
-	  OffSet = 3;
-	  pTextFile++; // This is to account for the new line.
 	}				
 				
 	PushVoterList(VotersList, pReturnValue, StringSegmentCounter);
 	pReturnValue = NULL;
 	// End of Chunk
 
-	printf(ASCII_BB_MAGENTA "END OF THE LOOP pTextFile (before +%d):" ASCII_RESET " "  ASCII_BB_RED "%p" ASCII_RESET "%s\n", OffSet, pTextFile, pTextFile);	
+	printf(ASCII_BB_MAGENTA "END OF THE LOOP pTextFile (before +%d):" ASCII_RESET " "  ASCII_BB_RED "%p" ASCII_RESET " %s\n", OffSet, pTextFile, pTextFile);	
 				
 	pTextFile += SizeMarker + OffSet;
 
-	printf(ASCII_BB_BLUE "END OF THE LOOP pTextFile (after +%d):" ASCII_RESET " "  ASCII_BB_RED "%p" ASCII_RESET "%s\n", OffSet, pTextFile, pTextFile);	
+	printf(ASCII_BB_BLUE "END OF THE LOOP pTextFile (after +%d):" ASCII_RESET " "  ASCII_BB_RED "%p" ASCII_RESET " %s\n", OffSet, pTextFile, pTextFile);	
 	
 	StringSegmentCounter++;			
       } else {
