@@ -307,6 +307,9 @@ int main(void) {
     TextFile = malloc ((BLK_TOREAD + SizeLeftOver + 1) * sizeof(char));	
     if (TextFile == NULL) { printf("Error at malloc\n"); exit(1); }		       
   }
+
+  // Cleaning the big files.
+  free(TextFile);
 	
   printf("\n");
   printf("\nVoter List\n");
