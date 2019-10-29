@@ -186,15 +186,13 @@ int main(void) {
   // This is needed to traverse only the names starting by the same letter.
   // This allow to speed the search of duplicates. 0-127 is the lower_bound of a letter, 128-256 is the upper bound.
   node_t *ByASCIICode[256] = { NULL };  
-  
+
   head = malloc(sizeof(node_t));
-  if (head == NULL) { 
-    printf("Error at malloc\n");
-    exit(1);	
-  }		
+  if (head == NULL) { printf("Error at malloc\n"); exit(1); }		
   head->next = NULL;
   
   // This is to assign the Voter to the node
+  // Note: At the botton, VotersHead->next == NULL is checked to see if the first block is read so to advance pointer.
   VoterList *VotersHead = NULL;
   VotersHead = malloc(sizeof(VoterList));
   VoterList *VotersStart = VotersHead;
@@ -209,7 +207,7 @@ int main(void) {
   if (TextFile == NULL) { printf("Error at malloc\n"); exit(1); }
 	
   //while ( ! feof(fptr) ) {	
-  while ((total_size_read = fread((TextFile + SizeLeftOver), 1, BLK_TOREAD, fptr)) ) {	
+  while ((total_size_read = fread((TextFile + SizeLeftOver), 1, BLK_TOREAD, fptr)) ) {
     pTextFile = TextFile;		
     BlockNumber++;
 
@@ -234,82 +232,35 @@ int main(void) {
     int SizeMarker = 0;
 
     do {
-
-      printf("\n");
-
-      printf(ASCII_BB_RED "pTextFile:" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pTextFile, pTextFile);
-
+      int OffSet = 3;
       pBegMarker = strstr(pTextFile, "\"");
-
-      printf(ASCII_BB_RED "pBegMarker:" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pBegMarker, pBegMarker); 
-      
       pBegMarker++;
 
-      printf(ASCII_B_MAGENTA "pBegMarker++ " ASCII_RESET ASCII_BB_RED "pBegMarker:" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p"
-	     ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pBegMarker, pBegMarker); 
-			
       if (pBegMarker != NULL) {
-	printf(ASCII_B_CYAN "I am in:" ASCII_RESET " if (pBegMarker != NULL) " ASCII_B_CYAN "with next code " ASCII_RESET "pEndMarker = strstr(pBegMarker, \"\\\",\\\"\")\n");	
 	pEndMarker = strstr(pBegMarker, "\",\"");
-	printf(ASCII_BB_RED "pEndMarker:" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pEndMarker, pEndMarker); 
 	if ( pEndMarker != NULL) {
 	  pEndMarker += 3;
-	  printf(ASCII_B_CYAN "I am in pEndMarker != NULL and pEndMarker+= 3\n");
-	  printf(ASCII_BB_RED "pEndMarker:" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pEndMarker, pEndMarker); 
 	}
-
-	printf(ASCII_B_CYAN "Looking for New Line with" ASCII_RESET " pNewLineLoc = strstr(pBegMarker, \"\\r\\n\")\n");
 	pNewLineLoc = strstr(pBegMarker, "\"\r\n\"");
-	printf(ASCII_BB_RED "pNewLineLoc:" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pNewLineLoc, pNewLineLoc); 
-	
-      } else {
-	printf(ASCII_B_CYAN "I am in:" ASCII_RESET " if (pBegMarker == NULL)\n");
-      }
+      } 
 
-
-      printf(ASCII_BB_RED "pEndMarker (== NULL):" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pEndMarker, pEndMarker);
-      printf(ASCII_BB_RED "pNewLineLoc (!= NULL):" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pNewLineLoc, pNewLineLoc); 
       if (pEndMarker == NULL && pNewLineLoc != NULL) {
-	printf(ASCII_B_MAGENTA "I am in:" ASCII_RESET " if (pEndMarker == NULL && pNewLineLoc != NULL)\n");
 	pEndMarker = pNewLineLoc;
-      } else {
-	printf(ASCII_B_MAGENTA "I am in the else of:" ASCII_RESET " if (pEndMarker == NULL && pNewLineLoc != NULL)\n");
       }
-
-      printf(ASCII_BB_RED "pEndMarker (!= NULL):" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pEndMarker, pEndMarker);
 
       if (pEndMarker != NULL) {
-	printf(ASCII_B_RED "I am in:" ASCII_RESET " if (pEndMarker != NULL)\n");
-	SizeMarker = pEndMarker - pBegMarker - 3;
-	
-	printf(ASCII_B_MAGENTA "pEndMarker " ASCII_RESET ASCII_BB_RED "pEndMarker:" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p"
-	       ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pEndMarker, pEndMarker);
-	printf(ASCII_B_MAGENTA "pBegMarker " ASCII_RESET ASCII_BB_RED "pBegMarker:" ASCII_RESET " " ASCII_BB_YELLOW ASCII_B_BLUE "%p"
-	       ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pBegMarker, pBegMarker); 
-	printf(ASCII_B_RED "SizeMarker" ASCII_RESET " = pEndMarker: %p - pBegMarker: %p - 3 = " ASCII_B_RED "%d" ASCII_RESET "\tpEndMarker - pBegMarker = " ASCII_B_GREEN "%d" ASCII_RESET "\n",
-	       pEndMarker, pBegMarker, SizeMarker, (pEndMarker - pBegMarker));
-
-	printf("\n");
-	printf(ASCII_BB_WHITE ASCII_B_BLACK "SizeMarker > 0: " ASCII_B_RED "%d  " ASCII_RESET "\n", SizeMarker);
+	SizeMarker = pEndMarker - pBegMarker - OffSet;
 	if ( SizeMarker > 0) {	  
 	  pStoredValue = NULL;
-	  printf(ASCII_BB_CYAN "I am in: if (pNewLineLoc != NULL && StringSegmentCounter > 43)" ASCII_RESET "\n");
 	  if (pNewLineLoc != NULL && StringSegmentCounter > 43) {						
 	    SizeMarker = pNewLineLoc - pBegMarker;
 	  }
 
 	  if ( SizeMarker > 0) {
-	    printf(ASCII_B_YELLOW "%2d" ASCII_RESET " -> %s\n", StringSegmentCounter, pBegMarker);
-    	    printf(ASCII_B_GREEN "%2d" ASCII_RESET " -> %s\n", StringSegmentCounter, pEndMarker);
-	    printf(ASCII_B_RED "%2d" ASCII_RESET " -> %s\n", StringSegmentCounter, pNewLineLoc);
-	    
 	    pStoredValue = malloc ((SizeMarker + 1) * sizeof(char));
 	    if (pStoredValue == NULL) { printf("Error at malloc\n"); exit(1); }
 	    strncpy(pStoredValue, pBegMarker, SizeMarker);
 	    pStoredValue[SizeMarker] = '\0';
-
-	    printf("\n");
-	    printf(ASCII_BB_YELLOW ASCII_B_RED "Final Value:" ASCII_RESET " #" ASCII_B_BLUE "%s" ASCII_RESET "# " ASCII_B_RED "%p\n\n" ASCII_RESET, pStoredValue, pStoredValue);
 	    
 	    pReturnValue = CheckDup(head, ByASCIICode, &pStoredValue);
 	    if (pReturnValue == pStoredValue && pStoredValue != NULL) {
@@ -319,7 +270,8 @@ int main(void) {
 	}
 				
 	// Chunk dealing with storing the data				
-	if ( StringSegmentCounter == 0) {
+	if ( StringSegmentCounter == 0) {	  
+	  if ( VotersHead->next != NULL) { pTextFile++; } // This is to account for the new line by checking
 	  VotersList = malloc(sizeof(VoterList));
 	  if (VotersList == NULL) { printf("Error at malloc\n"); exit(1); }
 	  VotersList->next = VotersHead;
@@ -330,17 +282,10 @@ int main(void) {
 	pReturnValue = NULL;
 	// End of Chunk
 
-	printf(ASCII_BB_MAGENTA "END OF THE LOOP pTextFile (before +3):" ASCII_RESET " "  ASCII_BB_RED "%p" ASCII_RESET "%s\n", pTextFile, pTextFile);	
-				
-	pTextFile += SizeMarker + 3;
-
-	printf(ASCII_BB_BLUE "END OF THE LOOP pTextFile (after +3):" ASCII_RESET " "  ASCII_BB_RED "%p" ASCII_RESET "%s\n", pTextFile, pTextFile);	
-	
+	pTextFile += SizeMarker + OffSet;
 	StringSegmentCounter++;			
-      } else {
-	printf(ASCII_BB_RED "pEndMarker (== NULL):" ASCII_RESET " in the else " ASCII_BB_YELLOW ASCII_B_BLUE "%p" ASCII_RESET ASCII_B_BLUE " #" ASCII_RESET "%s" ASCII_B_BLUE "#" ASCII_RESET "\n", pEndMarker, pEndMarker);
       }
-			
+      
       if ( StringSegmentCounter > 44) {
 	StringSegmentCounter = 0;
       }
@@ -360,9 +305,9 @@ int main(void) {
     TextFile = malloc ((BLK_TOREAD + SizeLeftOver + 1) * sizeof(char));	
     if (TextFile == NULL) { printf("Error at malloc\n"); exit(1); }		       
   }
-	
-  printf("THIS IS THE END LEFT OVER TO DEAL WITH: %s\n", pLeftOver);
-  printf("VoterStart: %p\n", VotersStart);
+
+  // Cleaning the big files.
+  free(TextFile);
   
   printf("\n");
   printf("\nVoter List\n");
