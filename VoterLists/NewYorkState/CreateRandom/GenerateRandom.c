@@ -12,8 +12,7 @@
 
 #ifdef TEST
 #define BLK_TOREAD 		1000
-// #define FILENAME      		"MyTestFile.txt"
-#define FILENAME      		"ShortTestFile.txt"
+#define FILENAME      		"MyTestFile.txt"
 #else
 #define BLK_TOREAD    		50000000
 #define FILENAME      		"AllNYSVoters_20190903.txt"
@@ -224,11 +223,15 @@ int main(void) {
     char *TextFileMax = pTextFile + strlen(pTextFile);
 		
     // Need to figure out if the , and the " are outside or inside the system
-    // Need to check that the \" is not actually being escaped by \
-		
-    char *pSpecial = strstr(pTextFile, "\",\"");
+    // Need to check that the \" is not actually being escaped by
+    char *pSpecial;
+    
+    pSpecial = strstr(pTextFile, "\",\"");
     if (pSpecial == pTextFile) { pTextFile++; }
-		
+    
+    pSpecial = strstr(pTextFile, "\"\r\n\"");
+    if (pSpecial == pTextFile) { pTextFile += 2; }
+
     int SizeMarker = 0;
 
     do {
@@ -239,15 +242,15 @@ int main(void) {
       if (pBegMarker != NULL) {
 	pEndMarker = strstr(pBegMarker, "\",\"");
 	if ( pEndMarker != NULL) {
-	  pEndMarker += 3;
+	  pEndMarker += OffSet;
 	}
 	pNewLineLoc = strstr(pBegMarker, "\"\r\n\"");
-      } 
-
+      }
+      
       if (pEndMarker == NULL && pNewLineLoc != NULL) {
 	pEndMarker = pNewLineLoc;
       }
-
+      
       if (pEndMarker != NULL) {
 	SizeMarker = pEndMarker - pBegMarker - OffSet;
 	if ( SizeMarker > 0) {	  
@@ -260,8 +263,7 @@ int main(void) {
 	    pStoredValue = malloc ((SizeMarker + 1) * sizeof(char));
 	    if (pStoredValue == NULL) { printf("Error at malloc\n"); exit(1); }
 	    strncpy(pStoredValue, pBegMarker, SizeMarker);
-	    pStoredValue[SizeMarker] = '\0';
-	    
+	    pStoredValue[SizeMarker] = '\0';	    
 	    pReturnValue = CheckDup(head, ByASCIICode, &pStoredValue);
 	    if (pReturnValue == pStoredValue && pStoredValue != NULL) {
 	      push(&head, ByASCIICode, pReturnValue);
@@ -280,12 +282,12 @@ int main(void) {
 				
 	PushVoterList(VotersList, pReturnValue, StringSegmentCounter);
 	pReturnValue = NULL;
-	// End of Chunk
 
+	// End of Chunk
 	pTextFile += SizeMarker + OffSet;
 	StringSegmentCounter++;			
-      }
-      
+      } 
+			
       if ( StringSegmentCounter > 44) {
 	StringSegmentCounter = 0;
       }
@@ -308,7 +310,7 @@ int main(void) {
 
   // Cleaning the big files.
   free(TextFile);
-  
+	
   printf("\n");
   printf("\nVoter List\n");
   PrintVoterList(VotersList->next);
