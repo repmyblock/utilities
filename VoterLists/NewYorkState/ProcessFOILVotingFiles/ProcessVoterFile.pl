@@ -14,7 +14,7 @@ chomp($tabledate);
 close($fh);
 
 my $dbname = "NYSVoters";
-my $dbhost = "192.168.199.217";
+my $dbhost = "localhost";
 my $dbport = "3306";
 my $dbuser = "root";
 my $dbpass = "root";
