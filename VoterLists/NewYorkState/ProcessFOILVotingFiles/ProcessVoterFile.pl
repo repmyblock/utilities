@@ -16,8 +16,8 @@ close($fh);
 my $dbname = "NYSVoters";
 my $dbhost = "localhost";
 my $dbport = "3306";
-my $dbuser = "root";
-my $dbpass = "root";
+my $dbuser = "";
+my $dbpass = "";
 my $table = "Raw_Voter_" . $tabledate;
 
 my $dsn = "dbi:mysql:dbname=$dbname;host=$dbhost;port=$dbport;";
@@ -92,7 +92,7 @@ $sth->execute() or die "$! $DBI::errstr";
 my $file; # = shift or die "Usage: $0 file.csv";
 my $i = 0;
 
-my $PATH = "../WorkingFiles/";
+my $PATH = "/home/usracct/WorkingFiles/";
 opendir my $dh, $PATH  or die "Can't open $PATH: $!";
 
 my $cnt_gfs = 0;
