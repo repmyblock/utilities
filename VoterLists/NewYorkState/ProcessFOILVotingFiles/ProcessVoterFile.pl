@@ -86,6 +86,18 @@ my $CreateTable = "CREATE TABLE " . $table . " (" .
 								  "KEY `" . $table . "_Raw_Voter_ADED` (`Raw_Voter_AssemblyDistr`,`Raw_Voter_ElectDistr`)" . 
 									") ENGINE=InnoDB DEFAULT CHARSET=latin1 ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8"; 
 
+# KEY `Raw_Voter_20180117_LastName_IDX` (`Raw_Voter_LastName`),
+# KEY `Raw_Voter_20180117_UniqNYSVoterID_IDX` (`Raw_Voter_UniqNYSVoterID`),
+# KEY `Raw_Voter_20180117_ADED_IDX` (`Raw_Voter_AssemblyDistr`,`Raw_Voter_ElectDistr`),
+# KEY `Raw_Voter_20180117_Zipcode_IDX` (`Raw_Voter_ResZip`),
+# KEY `Raw_Voter_20180117_Party_Status` (`Raw_Voter_Status`,`Raw_Voter_EnrollPolParty`),
+# KEY `Raw_Voter_20180117_Party_Status_Assembly_Election` (`Raw_Voter_Status`,`Raw_Voter_EnrollPolParty`,`Raw_Voter_ElectDistr`),
+# KEY `Raw_Voter_20180117_Party_Status_ADED_IDX` (`Raw_Voter_Status`,`Raw_Voter_EnrollPolParty`,`Raw_Voter_ElectDistr`,`Raw_Voter_AssemblyDistr`),
+# KEY `idx_Raw_Voter_20190204_Raw_Voter_CountyCode` (`Raw_Voter_CountyCode`),
+# KEY `Raw_Voter_20190204_UniqNYSVoterID_Status_IDX` (`Raw_Voter_UniqNYSVoterID`,`Raw_Voter_Status`),
+# KEY `Raw_Voter_20190204_Congress_IDX` (`Raw_Voter_CongressDistr`)
+
+
 $sth = $dbh->prepare( $CreateTable );
 $sth->execute() or die "$! $DBI::errstr";
 
