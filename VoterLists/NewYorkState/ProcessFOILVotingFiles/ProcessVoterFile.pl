@@ -28,6 +28,20 @@ print "Going to work with table $tabledate (y/N)\n";
 chomp(my $answer = <STDIN>);
 exit if ((lc($answer) eq 'y') != 1);
 
+#### I need to check that the date table exist or not.
+# mysql> describe Raw_Voter_Dates;
+# Raw_Voter_Dates_ID   | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
+# Raw_Voter_Dates_Date | char(8)          | YES  |     | NULL    |                |
+
+$sth = $dbh->prepare( "SELECT Raw_Voter_Dates_ID FROM Raw_Voter_Dates WHERE Raw_Voter_Dates_Date = ?");
+$sth->execute($tabledate) or die "$! $DBI::errstr";
+my @row = $sth->fetchrow_array;
+
+if ( ! ($row[0] > 0) ) {
+	$sth = $dbh->prepare( "INSERT INTO Raw_Voter_Dates SET Raw_Voter_Dates_Date = ?");
+	$sth->execute($tabledate) or die "$! $DBI::errstr";
+}
+
 my $DropTable = "DROP TABLE IF EXISTS " . $table;
 $sth = $dbh->prepare( $DropTable );
 $sth->execute() or die "$! $DBI::errstr";
