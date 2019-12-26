@@ -5,11 +5,13 @@ package RepMyBlock;
 use strict;
 use warnings;
 
+our %CacheLastName = ();
 our %CacheFirstName = (); 
 our %CacheMiddleName = (); 
-our %CacheLastName = ();
 
 our @AddPoolLastNames;
+our @AddPoolFirstNames;
+our @AddPoolMiddleNames;
 
 our $DateTable;
 our $dbh;	

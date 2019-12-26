@@ -28,8 +28,9 @@ RepMyBlock::PrintCache(\%RepMyBlock::CacheLastName);
 
 #use Data::Dumper;
 ##print Dumper %RepMyBlock::Cache_LastName;
-print "Cache last name in main: " . $RepMyBlock::CacheLastName { "AABERG" } . "\n";	
-print "Cache last name in main: " . $RepMyBlock::CacheLastName { "AARNES" } . "\n";	
+print "Cache First name in main: " . $RepMyBlock::CacheFirstName { "THEO" } . "\n";	
+print "Cache Middle name in main: " . $RepMyBlock::CacheMiddleName { "BRUCE" } . "\n";	
+print "Cache Last name in main: " . $RepMyBlock::CacheLastName { "CHINO" } . "\n";	
 
 #$my $FullName = "Los Reyes de los cabos";
 #print "Full Name: $FullName\n";
