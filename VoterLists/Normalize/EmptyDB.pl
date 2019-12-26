@@ -17,6 +17,8 @@ my $DateTableID = RepMyBlock::DateDBID();
 
 RepMyBlock::InitCaches();
 RepMyBlock::EmptyDatabases("VotersLastName", 1);
+RepMyBlock::EmptyDatabases("VotersFirstName", 1);
+RepMyBlock::EmptyDatabases("VotersMiddleName", 1);
 
 
 
