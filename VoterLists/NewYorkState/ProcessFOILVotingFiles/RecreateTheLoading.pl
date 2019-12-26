@@ -5,6 +5,7 @@
 use strict;
 use DBI;
 use Text::CSV;
+use NYS_Normalize;
 
 print "Start the program\n";
 
@@ -15,16 +16,16 @@ my $tabledate = <$fh>;
 chomp($tabledate);
 close($fh);
 
-my $DateTable = $tabledate;
-#my $DateTable = "20151215";
+print "Using TABLEDATE: $tabledate\n";
 
+my $DateTable = $tabledate;
 
 ### NEED TO FIND THE ID of that table.
 my $dbname = "NYSVoters";
-my $dbhost = "192.168.199.217";
+my $dbhost = "localhost";
 my $dbport = "3306";
-my $dbuser = "root";
-my $dbpass = "root";
+my $dbuser = "";
+my $dbpass = "";
 
 my $dsn = "dbi:mysql:dbname=$dbname;host=$dbhost;port=$dbport;";
 my $dbh = DBI->connect($dsn, $dbuser, $dbpass) or die "Connection error: $DBI::errstr";
