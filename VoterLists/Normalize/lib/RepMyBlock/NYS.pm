@@ -57,13 +57,41 @@ sub TransferRawTables {
 				}
 			}
 		}
+		
 	}
 		
 	RepMyBlock::AddToDatabase("LastName", $Counters[0], \@RepMyBlock::AddPoolLastNames, \%RepMyBlock::CacheLastName);
 	RepMyBlock::AddToDatabase("FirstName", $Counters[1], \@RepMyBlock::AddPoolFirstNames, \%RepMyBlock::CacheFirstName);
 	RepMyBlock::AddToDatabase("MiddleName", $Counters[2], \@RepMyBlock::AddPoolMiddleNames, \%RepMyBlock::CacheMiddleName);
+}
+
+sub LoadTheIndexes {
+	my $DateTable = $_[0];
+	
+	my $Counter = 0;
+	my $sql = "";
+	my $stmt = "";
+	
+	### Last Name
+	$sql = "SELECT Raw_Voter_FirstName, Raw_Voter_MiddleName, Raw_Voter_LastName, Raw_Voter_Suffix, Raw_Voter_DOB, Raw_Voter_UniqNYSVoterID FROM " . $DateTable; # . " LIMIT 60";
+	$stmt = $RepMyBlock::dbh->prepare($sql);
+	$stmt->execute();
+	
+	while (my @row = $stmt->fetchrow_array) {
+		if ( defined ($row[0]) ) { $RepMyBlock::CacheIdxFirstName[$Counter] = $RepMyBlock::CacheFirstName { $row[0] }; };
+		if ( defined ($row[1]) ) { $RepMyBlock::CacheIdxMiddleName[$Counter] = $RepMyBlock::CacheMiddleName { $row[1] }; };
+		if ( defined ($row[2]) ) { $RepMyBlock::CacheIdxLastName[$Counter] =  $RepMyBlock::CacheLastName { $row[2] }; };
+		if ( defined ($row[3]) ) { $RepMyBlock::CacheIdxSuffix[$Counter] = $row[3]; };
+		if ( defined ($row[4]) ) { $RepMyBlock::CacheIdxDOB[$Counter] = $row[4]; };
+		if ( defined ($row[5]) ) { $RepMyBlock::CacheIdxCode[$Counter] = $row[5]; };
+		$Counter++;
+		if (( $Counter % 500000) == 0)  { print "Done $Counter \n"; }
+	}
+	
+	return $Counter;
 
 }
+
 
 sub InsideTheNormalize {
 	my $FieldContent = $_[0];

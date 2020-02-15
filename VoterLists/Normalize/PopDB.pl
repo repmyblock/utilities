@@ -1,8 +1,6 @@
 #!/usr/bin/perl
 
 ### Need to document what this file is about.
-
-
 use strict;
 use DBI;
 use Text::CSV;
@@ -13,17 +11,16 @@ use RepMyBlock::NYS;
 
 print "Start the program\n";
 
-my $dbh 				= RepMyBlock::InitDatabase();
-my $DateTable 	= RepMyBlock::InitTheVoter();
+my $dbh         = RepMyBlock::InitDatabase();
+my $DateTable   = RepMyBlock::InitTheVoter();
 my $DateTableID = RepMyBlock::DateDBID();
 RepMyBlock::InitCaches();
 
 my $TableDated = "Raw_Voter_" . $DateTable;
 RepMyBlock::NYS::TransferRawTables($TableDated);
 
-
 print "This is in the MAIN PROGRAM\n";
-RepMyBlock::PrintCache(\%RepMyBlock::CacheLastName);
+# RepMyBlock::PrintCache(\%RepMyBlock::CacheLastName);
 
 
 #use Data::Dumper;
@@ -42,3 +39,5 @@ print "Start Program\n";
 my $start = time();
 print "Set Variables\t";
 
+my $Counter = RepMyBlock::NYS::LoadTheIndexes($TableDated);
+RepMyBlock::ReplaceIdxDatabase($Counter);

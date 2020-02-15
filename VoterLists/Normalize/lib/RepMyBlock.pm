@@ -8,10 +8,18 @@ use warnings;
 our %CacheLastName = ();
 our %CacheFirstName = (); 
 our %CacheMiddleName = (); 
+our %CacheNYCVoterID = ();
 
 our @AddPoolLastNames;
 our @AddPoolFirstNames;
 our @AddPoolMiddleNames;
+
+our @CacheIdxLastName;
+our @CacheIdxFirstName;
+our @CacheIdxMiddleName;
+our @CacheIdxSuffix;
+our @CacheIdxDOB;
+our @CacheIdxCode;
 
 our $DateTable;
 our $dbh;	
@@ -31,8 +39,8 @@ sub InitDatabase {
 	my $dbname = "NYSVoters";
 	my $dbhost = "localhost";
 	my $dbport = "3306";
-	my $dbuser = "";
-	my $dbpass = "";
+	my $dbuser = "root";
+	my $dbpass = "root";
 
 	my $dsn = "dbi:mysql:dbname=$dbname;host=$dbhost;port=$dbport;";
 	$dbh = DBI->connect($dsn, $dbuser, $dbpass) or die "Connection error: $DBI::errstr";
@@ -59,9 +67,10 @@ sub ReturnCompressed {
 }
 
 ### Load Cache
-sub LoadLastNameCache { LoadCaches( \%CacheLastName, "VotersLastName", 0); }
-sub LoadFirstNameCache { LoadCaches( \%CacheFirstName, "VotersFirstName", 0); }
-sub LoadMiddleNameCache { LoadCaches( \%CacheMiddleName, "VotersMiddleName", 0); }
+sub LoadLastNameCache { LoadCaches( \%CacheLastName, "VotersLastName", 0, 0); }
+sub LoadFirstNameCache { LoadCaches( \%CacheFirstName, "VotersFirstName", 0, 0 ); }
+sub LoadMiddleNameCache { LoadCaches( \%CacheMiddleName, "VotersMiddleName", 0, 0); }
+sub LoadIndexCache { LoadCaches( \%CacheNYCVoterID, "VotersIndexes", 0, "VotersIndexes_UniqNYSVoterID"); }
 
 #%Cache_DataCity = LoadCaches("SELECT * FROM DataCity");
 ##Cache_DataCounty = LoadCaches("SELECT * FROM DataCounty");
@@ -73,8 +82,15 @@ sub LoadCaches {
 	my $rhOptions = $_[0];
 	my $tblname = $_[1];
 	my $tblid = $_[2];
-	
-	my $sql = "SELECT * FROM " . $tblname;
+	my $colcheck = $_[3];
+	my $Col = "*";
+
+	if ( $colcheck ) { 
+		$Col = $tblname . "_ID, " . $colcheck;
+		print "Just did $Col";
+	}
+ 	
+	my $sql = "SELECT $Col FROM " . $tblname;
 	if ( $tblid > 0) {
 		$sql .= " WHERE " . $tblname . "_ID >= " . $dbh->quote($tblid);
 	}
@@ -107,7 +123,50 @@ sub AddToDatabase {
 		}
 		$QueryDB = $dbh->prepare($sql);
 		$QueryDB->execute();		
-		LoadCaches( $rhOptions, "Voters" . $Name, $LastInsertID);
+		LoadCaches( $rhOptions, "Voters" . $Name, $LastInsertID, 0);
+	}
+}	
+
+
+sub ReplaceIdxDatabase {
+	my $Counter = $_[0];
+	
+	print "Counter: $Counter\n";
+	LoadIndexCache();
+
+	my $QueryDB; # = $dbh->prepare("TRUNCATE VotersIndexes");
+	#$QueryDB->execute();
+
+	#VotersIndexes_ID, VotersLastName_ID, VotersFirstName_ID, VotersMiddleName_ID, VotersIndexes_Suffix, VotersIndexes_DOB, VotersIndexes_UniqNYSVoterID
+
+	if ( $Counter > 0 ) {
+		my $sql = "";
+		my $first_time = 0;
+		my $whole_sql = "";
+		
+		for ( my $i = 0; $i < $Counter; $i++) {	
+			if ($first_time == 1) { $sql .= ","; } else { $first_time = 1; }
+			$sql .= "(null," . $dbh->quote($RepMyBlock::CacheIdxLastName[$i]) . "," .	$dbh->quote($RepMyBlock::CacheIdxFirstName[$i]) . "," .
+							$dbh->quote($RepMyBlock::CacheIdxMiddleName[$i]) . "," . $dbh->quote($RepMyBlock::CacheIdxSuffix[$i]) . "," .
+							$dbh->quote($RepMyBlock::CacheIdxDOB[$i]) . "," . $dbh->quote($RepMyBlock::CacheIdxCode[$i]) . ")";
+
+			if  ( (($i+1) % 50000) == 0 ) {
+				#print "Doing a new insert: $i - $sql\n";
+				$whole_sql = "INSERT INTO VotersIndexes VALUES " . $sql;
+				$QueryDB = $dbh->prepare($whole_sql);
+				$QueryDB->execute();		
+				$first_time = 0;
+				$sql = "";
+			}
+		}
+		
+		if ( $first_time == 1) {		
+			#print "Doing a last insert: - $sql\n";	
+			$whole_sql = "INSERT INTO VotersIndexes VALUES " . $sql;
+			$QueryDB = $dbh->prepare($whole_sql);
+			$QueryDB->execute();		
+			$sql = "";
+		}	
 	}
 }	
 
@@ -124,12 +183,12 @@ sub EmptyDatabases {
 	my $number = $_[1];
 	
 	if ( length ($tblname) > 0 && $number > 0) {
-		my $sql = "DELETE FROM " . $tblname;
+		my $sql = "TRUNCATE " . $tblname;
 		my $QueryDB = $dbh->prepare($sql);
 		$QueryDB->execute();		
-		$sql = "ALTER TABLE " . $tblname . " AUTO_INCREMENT=" . $number;
-		$QueryDB = $dbh->prepare($sql);
-		$QueryDB->execute();
+		#$sql = "ALTER TABLE " . $tblname . " AUTO_INCREMENT=" . $number;
+		#$QueryDB = $dbh->prepare($sql);
+		#$QueryDB->execute();
 	}
 }
  

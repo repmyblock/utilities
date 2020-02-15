@@ -9,11 +9,13 @@ use RepMyBlock;
 
 print "Start the Empty Database program\n";
 
-my $dbh 				= RepMyBlock::InitDatabase();
+my $dbh = RepMyBlock::InitDatabase();
 
 RepMyBlock::EmptyDatabases("VotersLastName", 1);
 RepMyBlock::EmptyDatabases("VotersFirstName", 1);
 RepMyBlock::EmptyDatabases("VotersMiddleName", 1);
+RepMyBlock::EmptyDatabases("VotersIndexes", 1);
+
 
 
 
