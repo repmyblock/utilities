@@ -3,6 +3,7 @@
 ### Need to document what this file is about.
 use strict;
 use DBI;
+use Config::Simple;
 
 use FindBin::libs;
 use RepMyBlock;

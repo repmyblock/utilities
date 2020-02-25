@@ -26,7 +26,7 @@ sub TransferRawTables {
 	$sql = "SELECT Raw_Voter_ID, Raw_Voter_LastName, Raw_Voter_FirstName, Raw_Voter_MiddleName FROM " . $DateTable; # . " LIMIT 60";
 	$stmt = $RepMyBlock::dbh->prepare($sql);
 	$stmt->execute();
-	while (my @row = $stmt->fetchrow_array) {
+	while ( my @row = $stmt->fetchrow_array) { #} or die "can't execute the query: " . $stmt->errstr ) {
 		
 		### Last Name
 		if ( defined ($row[1])) {		
@@ -77,7 +77,7 @@ sub LoadTheIndexes {
 	$stmt = $RepMyBlock::dbh->prepare($sql);
 	$stmt->execute();
 	
-	while (my @row = $stmt->fetchrow_array) {
+	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {
 		if ( defined ($row[0]) ) { $RepMyBlock::CacheIdxFirstName[$Counter] = $RepMyBlock::CacheFirstName { $row[0] }; };
 		if ( defined ($row[1]) ) { $RepMyBlock::CacheIdxMiddleName[$Counter] = $RepMyBlock::CacheMiddleName { $row[1] }; };
 		if ( defined ($row[2]) ) { $RepMyBlock::CacheIdxLastName[$Counter] =  $RepMyBlock::CacheLastName { $row[2] }; };
@@ -89,9 +89,7 @@ sub LoadTheIndexes {
 	}
 	
 	return $Counter;
-
 }
-
 
 sub InsideTheNormalize {
 	my $FieldContent = $_[0];
