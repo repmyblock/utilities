@@ -85,8 +85,6 @@ foreach my $key (keys %PartyCall) {
   
 }
 
-
-
 print "Adding into election\n";
 
 

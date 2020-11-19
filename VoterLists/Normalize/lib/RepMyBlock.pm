@@ -39,7 +39,9 @@ sub InitDatabase {
 	my $cfg = new Config::Simple('/home/usracct/.repmyblockdb');
 	
 	### NEED TO FIND THE ID of that table.
-	my $dbname = $cfg->param('dbname');
+	#dbname_voters: NYSVoters
+	#dbname_rmb: VoterData
+	my $dbname = $cfg->param('dbname_voters');
 	my $dbhost = $cfg->param('dbhost');
 	my $dbport = $cfg->param('dbport');
 	my $dbuser = $cfg->param('dbuser');
