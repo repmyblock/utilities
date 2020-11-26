@@ -9,7 +9,7 @@ use Text::CSV;
 
 use FindBin::libs;
 use RepMyBlock;
-use RepMyBlock::NYS;
+use RepMyBlock::NY;
 use RMBSchemas;
 
 print "Start the program\n";
@@ -34,9 +34,9 @@ RepMyBlock::LoadResState();
 
 print "Dealing with the names and adding them to the Cache and Database if new\n";
 print "Loading the Voter Data\n";
-my $VoterCounter = RepMyBlock::NYS::LoadAddressesFromRawData($TableDated);
+my $VoterCounter = RepMyBlock::NY::LoadAddressesFromRawData($TableDated);
 
 print "Starting to write the data to the database\n";
 RepMyBlock::BulkAddToShortDatabase("DataCity", scalar(@RepMyBlock::CacheVoter_City), \@RepMyBlock::CacheVoter_City, \%RepMyBlock::CacheCityName);
-RepMyBlock::BulkAddToShortDatabase("DataStreet", scalar(@RepMyBlock::CacheVoter_City), \@RepMyBlock::CacheVoter_Street, \%RepMyBlock::CacheStreetName);
+RepMyBlock::BulkAddToShortDatabase("DataStreet", scalar(@RepMyBlock::CacheVoter_Street), \@RepMyBlock::CacheVoter_Street, \%RepMyBlock::CacheStreetName);
 

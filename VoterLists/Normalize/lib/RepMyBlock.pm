@@ -49,6 +49,16 @@ our @CacheVoter_UniqStateVoterID;
 our @CacheVoter_Street; 
 our @CacheVoter_City;
 
+our @CacheAdress_ResHouseNumber;
+our @CacheAdress_ResFracAddress; 
+our @CacheAdress_ResApartment;
+our @CacheAdress_ResPreStreet; 
+our @CacheAdress_ResStreetName; 
+our @CacheAdress_ResPostStDir; 
+our @CacheAdress_ResCity; 
+our @CacheAdress_ResZip; 
+our @CacheAdress_ResZip4;
+
 our %CachePlainVoter = ();
 our %CacheVoterHistory = ();
 

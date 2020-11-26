@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
-package RepMyBlock::NYS;
+### This is to process the OH raw data.
+package RepMyBlock::OH;
  
 use strict;
 use warnings;
@@ -220,29 +221,59 @@ sub LoadAddressesFromRawData {
 	my %LocalCacheCity = ();
 	my %LocalCacheStreet = ();
 	
+	print "Reading the Street and City\n";
 	
-	$sql = "SELECT DISTINCT Raw_Voter_ResStreetName, Raw_Voter_ResCity FROM " . $DateTable ;
+	$sql = "SELECT Raw_Voter_ResStreetName, Raw_Voter_ResCity FROM " . $DateTable ;
 	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
 	$stmt->execute();
 	
 	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {		                          
-		if ( defined ($row[1]) ) { $LocalCacheCity { NameCase($row[1]) } = 0 }; 
-		if ( defined ($row[0]) ) { $LocalCacheStreet { NameCase($row[0]) } = 0 };
+		if ( defined ($row[1]) ) { $LocalCacheCity { $row[1] } = 0 }; 
+		if ( defined ($row[0]) ) { $LocalCacheStreet { $row[0] } = 0 };
+		$Counter++;
+		if (( $Counter % 50000) == 0)  { print "Done $Counter \n\033[1A"; }
+	}
+	
+	print "Loaded into cache: $Counter\nStart compressing\n";
+	
+	# Spagetting sauce for City
+	my $j = 0; foreach my $key (keys %LocalCacheStreet ) {	$RepMyBlock::CacheVoter_Street[$j++] = NameCase($key); }
+	print "Loaded into cache: $j streets\n";
+	
+	$j = 0; foreach my $key (keys %LocalCacheCity) { $RepMyBlock::CacheVoter_City[$j++] = NameCase($key);	}
+	print "Loaded into cache: $j cities\n";
+	
+	return $Counter;
+}
+
+
+sub LoadVoterAddressFromRawData {
+	my $DateTable = $_[0];
+	my $Counter = 0;
+	my $sql = "";
+	my $stmt = "";
+	
+	$sql = "SELECT DISTINCT Raw_Voter_ResHouseNumber, Raw_Voter_ResFracAddress, Raw_Voter_ResApartment, " . 
+					"Raw_Voter_ResPreStreet, Raw_Voter_ResStreetName, Raw_Voter_ResPostStDir, Raw_Voter_ResCity, " . 
+					"Raw_Voter_ResZip, Raw_Voter_ResZip4 FROM " . $DateTable . " LIMIT 100";
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	$stmt->execute();
+	
+	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {		
+		if ( defined ($row[0]) ) { $RepMyBlock::CacheAdress_ResHouseNumber[$Counter]= $row[0] }; 
+		if ( defined ($row[1]) ) { $RepMyBlock::CacheAdress_ResFracAddress[$Counter] = $row[1] }; 
+		if ( defined ($row[2]) ) { $RepMyBlock::CacheAdress_ResApartment[$Counter]= $row[2] }; 
+		if ( defined ($row[3]) ) { $RepMyBlock::CacheAdress_ResPreStreet[$Counter] = $row[3] }; 
+		if ( defined ($row[4]) ) { $RepMyBlock::CacheAdress_ResStreetName[$Counter] = $RepMyBlock::CacheStreetName {NameCase($row[4]) } }; 
+		if ( defined ($row[5]) ) { $RepMyBlock::CacheAdress_ResPostStDir[$Counter] = $row[5] }; 
+		if ( defined ($row[6]) ) { $RepMyBlock::CacheAdress_ResCity[$Counter] = $RepMyBlock::CacheCityName { NameCase($row[6]) } }; 
+		if ( defined ($row[7]) ) { $RepMyBlock::CacheAdress_ResZip[$Counter] = $row[7] }; 
+		if ( defined ($row[8]) ) { $RepMyBlock::CacheAdress_ResZip4[$Counter]= $row[8] }; 
+		
 		$Counter++;
 		if (( $Counter % 500000) == 0)  { print "Done $Counter \n\033[1A"; }
 	}
-	print "Loaded into cache: $Counter\n";	
-
-	# Spagetting sauce for City
-	my $j = 0;
-	foreach my $key (keys %LocalCacheStreet ) {		
-		$RepMyBlock::CacheVoter_Street[$j++] = $key;
-	}
-	
-	$j = 0;
-	foreach my $key (keys %LocalCacheCity) {		
-		$RepMyBlock::CacheVoter_City[$j++] = $key;
-	}
+	print "Loaded into cache: $Counter\n";
 		
 	return $Counter;
 }
@@ -332,5 +363,12 @@ sub ReturnYesNo {
 	elsif ($Question eq 'N') { return 'no'; }
 	return undef;
 }
+
+sub trim {
+	my $str = $_[0];
+	$str =~ s/^\s+|\s+$//g;
+	return $str;
+}
+
  
 1;

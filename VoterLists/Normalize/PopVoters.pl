@@ -7,7 +7,7 @@ use Text::CSV;
 
 use FindBin::libs;
 use RepMyBlock;
-use RepMyBlock::NYS;
+use RepMyBlock::NY;
 use RMBSchemas;
 
 print "Start the program\n";
@@ -55,7 +55,7 @@ RepMyBlock::NYS::TransferRawTables($TableDated);
 my $start = time();
 
 print "Loading the Voter Data\n";
-my $VoterCounter = RepMyBlock::NYS::LoadFromRawData($TableDated);
+my $VoterCounter = RepMyBlock::NY::LoadFromRawData($TableDated);
 
 print "Starting to write the data to the database";
 RepMyBlock::ReplaceVoterData($VoterCounter);

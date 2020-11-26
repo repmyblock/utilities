@@ -7,7 +7,7 @@ use Text::CSV;
 
 use FindBin::libs;
 use RepMyBlock;
-use RepMyBlock::NYS;
+use RepMyBlock::NY;
 
 print "Start the program\n";
 print "Connecting to the databases\n";
@@ -22,7 +22,7 @@ my $TableDated = "Raw_Voter_" . $RepMyBlock::DateTable;
 use Data::Dumper;
 
 print "Done Loading Historical Stuff\n";
-RepMyBlock::NYS::LoadVoterHistoryData($TableDated);
+RepMyBlock::NY::LoadVoterHistoryData($TableDated);
 
 print "Loading the historical data\n";
 RepMyBlock::LoadHistoryCache();

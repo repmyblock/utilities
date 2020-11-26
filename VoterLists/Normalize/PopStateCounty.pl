@@ -7,7 +7,8 @@ use Text::CSV;
 
 use FindBin::libs;
 use RepMyBlock;
-use RepMyBlock::NYS;
+use RepMyBlock::NY;
+use RepMyBlock::OH;
 use RMBSchemas;
 
 print "Start the program\n";
