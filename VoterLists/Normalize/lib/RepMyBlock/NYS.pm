@@ -4,7 +4,7 @@ package RepMyBlock::NYS;
  
 use strict;
 use warnings;
-
+use Lingua::EN::NameCase 'NameCase' ;
 
 sub TransferRawTables {
 	my $DateTable = $_[0];
@@ -24,9 +24,12 @@ sub TransferRawTables {
 	
 	### Last Name
 	$sql = "SELECT Raw_Voter_ID, Raw_Voter_LastName, Raw_Voter_FirstName, Raw_Voter_MiddleName FROM " . $DateTable; # . " LIMIT 60";
-	$stmt = $RepMyBlock::dbh->prepare($sql);
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
 	$stmt->execute();
+	
 	while ( my @row = $stmt->fetchrow_array) { #} or die "can't execute the query: " . $stmt->errstr ) {
+	
+		# print "Name Found: " . $row[1] . " - " . $row[2] . " - " . $row[3] . "\n";
 		
 		### Last Name
 		if ( defined ($row[1])) {		
@@ -65,6 +68,77 @@ sub TransferRawTables {
 	RepMyBlock::AddToDatabase("MiddleName", $Counters[2], \@RepMyBlock::AddPoolMiddleNames, \%RepMyBlock::CacheMiddleName);
 }
 
+sub LoadFromRawData {
+	my $DateTable = $_[0];
+	
+	my $Counter = 0;
+	my $sql = "";
+	my $stmt = "";
+	
+	### Last Name
+	$sql = "SELECT Raw_Voter_FirstName, Raw_Voter_MiddleName, Raw_Voter_LastName, Raw_Voter_Suffix, Raw_Voter_DOB, " .
+					"Raw_Voter_Gender, Raw_Voter_EnrollPolParty, Raw_Voter_ElectDistr, Raw_Voter_AssemblyDistr, Raw_Voter_CountyVoterNumber, " . 
+					"Raw_Voter_RegistrationCharacter, Raw_Voter_ApplicationSource, Raw_Voter_IDRequired, Raw_Voter_IDMet, Raw_Voter_Status, " . 
+					"Raw_Voter_ReasonCode, Raw_Voter_VoterMadeInactive, Raw_Voter_VoterPurged, Raw_Voter_UniqNYSVoterID " . 
+					"FROM " . $DateTable; # . " LIMIT 500000";
+	
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	$stmt->execute();
+	
+	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {
+		# Index Part
+		if ( defined ($row[0]) ) { $RepMyBlock::CacheIdxFirstName[$Counter] = $RepMyBlock::CacheFirstName { $row[0] }; };
+		if ( defined ($row[1]) ) { $RepMyBlock::CacheIdxMiddleName[$Counter] = $RepMyBlock::CacheMiddleName { $row[1] }; };
+		if ( defined ($row[2]) ) { $RepMyBlock::CacheIdxLastName[$Counter] =  $RepMyBlock::CacheLastName { $row[2] }; };
+		if ( defined ($row[3]) ) { $RepMyBlock::CacheIdxSuffix[$Counter] = $row[3]; };
+		if ( defined ($row[4]) ) { $RepMyBlock::CacheIdxDOB[$Counter] = $row[4]; };
+
+		#Voter Part
+		if ( defined ($row[5]) ) { $RepMyBlock::CacheVoter_Gender[$Counter] = $row[5] }; 
+		if ( defined ($row[6]) ) { $RepMyBlock::CacheVoter_EnrollPolParty[$Counter] = $row[6] };
+		if ( defined ($row[7]) && defined($row[8])) { $RepMyBlock::CacheVoter_DBTableValue[$Counter] =  $row[8] . sprintf("%03d", $row[7]) };
+		if ( defined ($row[9]) ) { $RepMyBlock::CacheVoter_CountyVoterNumber[$Counter] = $row[9]; };
+		if ( defined ($row[10]) ) { $RepMyBlock::CacheVoter_RegistrationCharacter[$Counter] = $row[10]; };
+		if ( defined ($row[11]) ) { $RepMyBlock::CacheVoter_ApplicationSource[$Counter] = $row[11]; };
+		if ( defined ($row[12]) ) { $RepMyBlock::CacheVoter_IDRequired[$Counter] = $row[12]; };
+		if ( defined ($row[13]) ) { $RepMyBlock::CacheVoter_IDMet[$Counter] = $row[13]; };
+		if ( defined ($row[14]) ) { $RepMyBlock::CacheVoter_Status[$Counter] = $row[14]; };
+		if ( defined ($row[15]) ) { $RepMyBlock::CacheVoter_ReasonCode[$Counter] = $row[15]; };
+		if ( defined ($row[16]) ) { $RepMyBlock::CacheVoter_VoterMadeInactive[$Counter] = $row[16]; };
+		if ( defined ($row[17]) ) { $RepMyBlock::CacheVoter_VoterPurged[$Counter] = $row[17]; };
+		if ( defined ($row[18]) ) { 
+			$RepMyBlock::CacheVoter_UniqStateVoterID[$Counter] = $row[18]; 
+			$RepMyBlock::CacheIdxCode[$Counter] = $row[18];
+		};
+		
+		$Counter++;
+		if (( $Counter % 500000) == 0)  { print "Done $Counter \n\033[1A"; }
+	}
+	print "Loaded into CacheIDX and CacheVoter: $Counter\n";
+	
+	return $Counter;
+}
+
+sub LoadVoterHistoryData {
+	my $DateTable = $_[0];
+	my $Counter = 0;
+	
+	my $sql = "";
+	my $stmt = "";
+	
+	$sql = "SELECT DISTINCT Raw_Voter_VoterHistory FROM " . $DateTable . " WHERE Raw_Voter_VoterHistory IS NOT NULL";
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	$stmt->execute();
+	
+	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {	
+		my @splitoncolong = split /;/, $row[0];
+		foreach my $wap (@splitoncolong) {
+			$RepMyBlock::CacheVoterHistory{ $wap } = "0";
+		}
+		if (( ++$Counter % 500000) == 0)  { print "Done $Counter \n\033[1A"; }
+	}
+}
+
 sub LoadTheIndexes {
 	my $DateTable = $_[0];
 	
@@ -73,8 +147,9 @@ sub LoadTheIndexes {
 	my $stmt = "";
 	
 	### Last Name
-	$sql = "SELECT Raw_Voter_FirstName, Raw_Voter_MiddleName, Raw_Voter_LastName, Raw_Voter_Suffix, Raw_Voter_DOB, Raw_Voter_UniqNYSVoterID FROM " . $DateTable; # . " LIMIT 60";
-	$stmt = $RepMyBlock::dbh->prepare($sql);
+	$sql = "SELECT Raw_Voter_FirstName, Raw_Voter_MiddleName, Raw_Voter_LastName, Raw_Voter_Suffix, Raw_Voter_DOB, " . 
+					"Raw_Voter_UniqNYSVoterID FROM " . $DateTable; # . " LIMIT 60";
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
 	$stmt->execute();
 	
 	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {
@@ -84,9 +159,11 @@ sub LoadTheIndexes {
 		if ( defined ($row[3]) ) { $RepMyBlock::CacheIdxSuffix[$Counter] = $row[3]; };
 		if ( defined ($row[4]) ) { $RepMyBlock::CacheIdxDOB[$Counter] = $row[4]; };
 		if ( defined ($row[5]) ) { $RepMyBlock::CacheIdxCode[$Counter] = $row[5]; };
+		
 		$Counter++;
-		if (( $Counter % 500000) == 0)  { print "Done $Counter \n"; }
+		if (( $Counter % 500000) == 0)  { print "Done $Counter \n\033[1A"; }
 	}
+	print "Loaded into cache: $Counter\n";
 	
 	return $Counter;
 }
@@ -95,8 +172,79 @@ sub InsideTheNormalize {
 	my $FieldContent = $_[0];
 	my $FieldVariable = $_[1];
 	my $DataBaseName = $_[2];
-	
 	print "Inside RepMyBlock package -> " . $FieldVariable -> { $FieldContent } . "\n";
+}
+
+sub LoadVoterData {
+	my $DateTable = $_[0];
+	my $Counter = 0;
+	my $sql = "";
+	my $stmt = "";
+	
+	$sql = "SELECT Raw_Voter_Gender, Raw_Voter_EnrollPolParty, Raw_Voter_ElectDistr, Raw_Voter_AssemblyDistr, Raw_Voter_CountyVoterNumber, " . 
+					"Raw_Voter_RegistrationCharacter, Raw_Voter_ApplicationSource, Raw_Voter_IDRequired, Raw_Voter_IDMet, Raw_Voter_Status, " . 
+					"Raw_Voter_ReasonCode, Raw_Voter_VoterMadeInactive, Raw_Voter_VoterPurged, Raw_Voter_UniqNYSVoterID " . 
+					"FROM " . $DateTable; # . " LIMIT 60";
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	$stmt->execute();
+	
+	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {
+		                          
+		if ( defined ($row[0]) ) { $RepMyBlock::CacheVoter_Gender[$Counter] = $row[0] }; 
+		if ( defined ($row[1]) ) { $RepMyBlock::CacheVoter_EnrollPolParty[$Counter] = $row[1] };
+		if ( defined ($row[2]) && defined($row[3])) { $RepMyBlock::CacheVoter_DBTableValue[$Counter] =  $row[2] . $row[3] };
+		if ( defined ($row[4]) ) { $RepMyBlock::CacheVoter_CountyVoterNumber[$Counter] = $row[4]; };
+		if ( defined ($row[5]) ) { $RepMyBlock::CacheVoter_RegistrationCharacter[$Counter] = $row[5]; };
+		if ( defined ($row[6]) ) { $RepMyBlock::CacheVoter_ApplicationSource[$Counter] = $row[6]; };
+		if ( defined ($row[7]) ) { $RepMyBlock::CacheVoter_IDRequired[$Counter] = $row[7]; };
+		if ( defined ($row[8]) ) { $RepMyBlock::CacheVoter_IDMet[$Counter] = $row[8]; };
+		if ( defined ($row[9]) ) { $RepMyBlock::CacheVoter_Status[$Counter] = $row[9]; };
+		if ( defined ($row[10]) ) { $RepMyBlock::CacheVoter_ReasonCode[$Counter] = $row[10]; };
+		if ( defined ($row[11]) ) { $RepMyBlock::CacheVoter_VoterMadeInactive[$Counter] = $row[11]; };
+		if ( defined ($row[12]) ) { $RepMyBlock::CacheVoter_VoterPurged[$Counter] = $row[12]; };
+		if ( defined ($row[13]) ) { $RepMyBlock::CacheVoter_UniqStateVoterID[$Counter] = $row[13]; };
+
+		$Counter++;
+		if (( $Counter % 500000) == 0)  { print "Done $Counter \n\033[1A"; }
+	}
+	print "Loaded into cache: $Counter\n";	
+	return $Counter;
+}
+
+sub LoadAddressesFromRawData {
+	my $DateTable = $_[0];
+	my $Counter = 0;
+	my $sql = "";
+	my $stmt = "";
+	
+	my %LocalCacheCity = ();
+	my %LocalCacheStreet = ();
+	
+	
+	$sql = "SELECT DISTINCT Raw_Voter_ResStreetName, Raw_Voter_ResCity FROM " . $DateTable ;
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	$stmt->execute();
+	
+	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {		                          
+		if ( defined ($row[1]) ) { $LocalCacheCity { NameCase($row[1]) } = 0 }; 
+		if ( defined ($row[0]) ) { $LocalCacheStreet { NameCase($row[0]) } = 0 };
+		$Counter++;
+		if (( $Counter % 500000) == 0)  { print "Done $Counter \n\033[1A"; }
+	}
+	print "Loaded into cache: $Counter\n";	
+
+	# Spagetting sauce for City
+	my $j = 0;
+	foreach my $key (keys %LocalCacheStreet ) {		
+		$RepMyBlock::CacheVoter_Street[$j++] = $key;
+	}
+	
+	$j = 0;
+	foreach my $key (keys %LocalCacheCity) {		
+		$RepMyBlock::CacheVoter_City[$j++] = $key;
+	}
+		
+	return $Counter;
 }
 
 #### These are the standart questions in the NYS voter file.
@@ -137,7 +285,7 @@ sub ReturnRegistrationSource {
 	elsif ($Question eq "MAIL") { return "MailIn"; }
 	elsif ($Question eq "SCHOOL") { return "School"; }
 
-	print "Catastrophic ReturnRegistrationSource problem as it is empty\n";
+	print "Catastrophic ReturnRegistrationSource problem as it is empty: $Question\n";
 	exit();
 	
 	return undef;
@@ -159,7 +307,7 @@ sub	ReturnStatusCode {
 	elsif ($Question eq "RETURN-MAIL") { return "ReturnMail"; }
 	elsif ($Question eq "VOTER-REQ") { return "VoterRequest"; }
 	
-	print "Catastrophic ReturnStatusCode problem as it is empty\n";
+	print "Catastrophic ReturnStatusCode problem as it is empty: $Question\n";
 	exit();
 	
 	return undef;
@@ -167,9 +315,13 @@ sub	ReturnStatusCode {
 
 sub ReturnGender {
 	my ($Gender) = @_;
-	if ( $Gender eq 'M') { return "male"; } 
-	if ( $Gender eq 'F') { return "Female";	}
-	if ($Gender eq 'U') { return 'undetermined'; }	
+	
+	if ( defined $Gender ) { 
+		if ( $Gender eq 'M') { return "male"; } 
+		if ( $Gender eq 'F') { return "Female";	}
+		if ($Gender eq 'U') { return 'undetermined'; }	
+	}
+	
 	return undef;
 } 
 
