@@ -78,67 +78,67 @@ sub CreateTable_VotersIndexes {
 											"VotersIndexes_ID int unsigned NOT NULL AUTO_INCREMENT," .
 											"Voters_ID int unsigned DEFAULT NULL," .
 											"DataState_ID tinyint unsigned DEFAULT NULL," .
-											"VotersLastName_ID int unsigned DEFAULT NULL," .
-											"VotersFirstName_ID int unsigned DEFAULT NULL," .
-											"VotersMiddleName_ID int unsigned DEFAULT NULL," .
+											"DataLastName_ID int unsigned DEFAULT NULL," .
+											"DataFirstName_ID int unsigned DEFAULT NULL," .
+											"DataMiddleName_ID int unsigned DEFAULT NULL," .
 											"VotersIndexes_Suffix varchar(10) DEFAULT NULL," .
 											"VotersIndexes_DOB date DEFAULT NULL," .
 											"VotersIndexes_UniqStateVoterID char(20) DEFAULT NULL," .
 											"PRIMARY KEY (VotersIndexes_ID)," .
 											"KEY VotersIndexes_UniqStateVoterID_IDX (VotersIndexes_UniqStateVoterID)," .
-											"KEY VotersIndexes_VotersFirstName_IDX (VotersFirstName_ID)," .
-											"KEY VotersIndexes_VotersMiddleName_IDX (VotersMiddleName_ID)," .
-											"KEY VotersIndexes_VotersLastName_IDX (VotersLastName_ID)," .
+											"KEY VotersIndexes_DataFirstName_IDX (DataFirstName_ID)," .
+											"KEY VotersIndexes_DataMiddleName_IDX (DataMiddleName_ID)," .
+											"KEY VotersIndexes_DataLastName_IDX (DataLastName_ID)," .
 											"KEY VotersIndexes_DOB_IDX (VotersIndexes_DOB)," .
 											"KEY VotersIndexes_Voters_ID_IDX (Voters_ID)" .
 											") ENGINE=InnoDB DEFAULT CHARSET=latin1 ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8");
 }
 
-sub CreateTable_VotersFirstName {
+sub CreateTable_DataFirstName {
 	my $self = shift;
 	my $drop = shift;
 	
-	if (defined $drop && $drop == 1 ) {	$self->DropTable("VotersFirstName"); }
+	if (defined $drop && $drop == 1 ) {	$self->DropTable("DataFirstName"); }
 
-	$self->ExecuteQuery("CREATE TABLE VotersFirstName (" .
-											"VotersFirstName_ID int unsigned NOT NULL AUTO_INCREMENT," .
-											"VotersFirstName_Text varchar(256) DEFAULT NULL, UNIQUE," .
-											"VotersFirstName_Compress varchar(256) DEFAULT NULL," .
-											"PRIMARY KEY (VotersFirstName_ID)," .
-											"KEY VotersFirstName_Text_IDX (VotersFirstName_Text)," .
-											"KEY VotersFirstName_Compress_IDX (VotersFirstName_Compress)" .
+	$self->ExecuteQuery("CREATE TABLE DataFirstName (" .
+											"DataFirstName_ID int unsigned NOT NULL AUTO_INCREMENT," .
+											"DataFirstName_Text varchar(256) DEFAULT NULL, UNIQUE," .
+											"DataFirstName_Compress varchar(256) DEFAULT NULL," .
+											"PRIMARY KEY (DataFirstName_ID)," .
+											"KEY DataFirstName_Text_IDX (DataFirstName_Text)," .
+											"KEY DataFirstName_Compress_IDX (DataFirstName_Compress)" .
 											") ENGINE=InnoDB DEFAULT CHARSET=latin1 ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8");
 }
 
-sub CreateTable_VotersMiddleName {
+sub CreateTable_DataMiddleName {
 	my $self = shift;
 	my $drop = shift;
 	
-	if (defined $drop && $drop == 1 ) {	$self->DropTable("VotersMiddleName"); }
+	if (defined $drop && $drop == 1 ) {	$self->DropTable("DataMiddleName"); }
 
-	$self->ExecuteQuery("CREATE TABLE VotersMiddleName (" .
-											"VotersMiddleName_ID int unsigned NOT NULL AUTO_INCREMENT," .
-											"VotersMiddleName_Text varchar(256) DEFAULT NULL,  UNIQUE," .
-											"VotersMiddleName_Compress varchar(256) DEFAULT NULL," .
-											"PRIMARY KEY (VotersMiddleName_ID)," .
-											"KEY VotersMiddleName_Text_IDX (VotersMiddleName_Text)," .
-											"KEY VotersMiddleName_Compress_IDX (VotersMiddleName_Compress)" .
+	$self->ExecuteQuery("CREATE TABLE DataMiddleName (" .
+											"DataMiddleName_ID int unsigned NOT NULL AUTO_INCREMENT," .
+											"DataMiddleName_Text varchar(256) DEFAULT NULL,  UNIQUE," .
+											"DataMiddleName_Compress varchar(256) DEFAULT NULL," .
+											"PRIMARY KEY (DataMiddleName_ID)," .
+											"KEY DataMiddleName_Text_IDX (DataMiddleName_Text)," .
+											"KEY DataMiddleName_Compress_IDX (DataMiddleName_Compress)" .
 											") ENGINE=InnoDB DEFAULT CHARSET=latin1 ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8");
 }
 
-sub CreateTable_VotersLastName {
+sub CreateTable_DataLastName {
 	my $self = shift;
 	my $drop = shift;
 	
-	if (defined $drop && $drop == 1 ) {	$self->DropTable("VotersLastName"); }
+	if (defined $drop && $drop == 1 ) {	$self->DropTable("DataLastName"); }
 
-	$self->ExecuteQuery("CREATE TABLE VotersLastName (" .
-											"VotersLastName_ID int unsigned NOT NULL AUTO_INCREMENT," .
-											"VotersLastName_Text varchar(256) DEFAULT NULL, UNIQUE," .
-											"VotersLastName_Compress varchar(256) DEFAULT NULL," .
-											"PRIMARY KEY (VotersLastName_ID)," .
-											"KEY VotersLastName_Text_IDX (VotersLastName_Text)," .
-											"KEY VotersLastName_Compress_IDX (VotersLastName_Compress)" .
+	$self->ExecuteQuery("CREATE TABLE DataLastName (" .
+											"DataLastName_ID int unsigned NOT NULL AUTO_INCREMENT," .
+											"DataLastName_Text varchar(256) DEFAULT NULL, UNIQUE," .
+											"DataLastName_Compress varchar(256) DEFAULT NULL," .
+											"PRIMARY KEY (DataLastName_ID)," .
+											"KEY DataLastName_Text_IDX (DataLastName_Text)," .
+											"KEY DataLastName_Compress_IDX (DataLastName_Compress)" .
 											") ENGINE=InnoDB DEFAULT CHARSET=latin1 ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8");
 }
 

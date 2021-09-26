@@ -23,17 +23,19 @@ $RepMyBlock->InitializeVoterFile();
 
 print "State being considered: " . $RepMyBlock::DataStateID . "\n";
 
+
 #$RepMyBlock::DBTableName = "NY";
 
 print "Caching the data from the CD from date: " .  $RepMyBlock->{tabledate} . "\n";
 my $TableDated = "NY_Raw_" . $RepMyBlock->{tabledate};
 
+$RepMyBlock->InitLastInsertID();
 $RepMyBlock->InitStreetCaches();
 $RepMyBlock::dbhRawVoters =  $dbhRawVoters;
 
 
 my $GrandDBTotal = $RepMyBlock->NumberOfVotersInDB($TableDated);
-my $AmountToAdd = 210000;
+my $AmountToAdd = 1000000;
 my $Start = 0;
 
 $RepMyBlock->SetDatabase($dbhVoters);
@@ -75,48 +77,56 @@ while (my $VoterCounter = $RepMyBlock->LoadFromRawData($TableDated, $AmountToAdd
 	$RepMyBlock->AddAddressToDatabase();
 		
 	for (my $i = 0; $i < $VoterCounter; $i++) {	
-		$RepMyBlock::CacheHouse {  
-			$RepMyBlock::CacheAddress
-			{ $RepMyBlock::CacheAdress_ResStreetNameID[$i] } 
-			{ $RepMyBlock::CacheAdress_ResCityNameID[$i] } { $RepMyBlock::CacheAdress_ResHouseNumber[$i] } 
-			{ $RepMyBlock::CacheAdress_ResZip[$i] }	{ $RepMyBlock::CacheAdress_ResZip4[$i] } 
-			{ $RepMyBlock::CacheAdress_ResPreStreet[$i] } { $RepMyBlock::CacheAdress_ResPostStDir[$i] }	
-			{ $RepMyBlock::CacheAdress_ResFracAddress[$i] } 
-		} {	$RepMyBlock::CacheAdress_ResApartment[$i] } = "0";
+		$RepMyBlock->TransferHousesToHash($i);
 	}
-	
 	$RepMyBlock->AddToDataHouse();
+	
+	
+	### Once processing of the names and the addresses is done, we can start with the voters.
+	#### Table Voters
+	# Voters_ID : 
+	# ElectionsDistricts_DBTable, ElectionsDistricts_DBTableValue, Voters_Gender, VotersComplementInfo_ID, Voters_UniqStateVoterID, 
+	# DataState_ID, Voters_RegParty, Voters_ReasonCode, Voters_Status, VotersMailingAddress_ID, Voters_IDRequired, Voters_IDMet, Voters_ApplyDate, 
+	# Voters_RegSource, Voters_DateInactive, Voters_DatePurged, Voters_CountyVoterNumber, Voters_RecFirstSeen, Voters_RecLastSeen
+	
+	#$RepMyBlock::DBTableName
+	#$RepMyBlock::CacheVoter_DBTableValue[$Counter]
+	#$RepMyBlock::CacheVoter_Gender[$Counter] 
+	## NADA
+	#$RepMyBlock::CacheVoter_UniqStateVoterID[$Counter]
+	#$RepMyBlock::DataStateID 
+	#$RepMyBlock::CacheVoter_EnrollPolParty[$Counter] = $row[6] };
+	#$RepMyBlock::CacheVoter_ReasonCode[$Counter]
+	#$RepMyBlock::CacheVoter_Status[$Counter]
+	#NADA
+	#$RepMyBlock::CacheVoter_IDRequired[$Counter]
+	#$RepMyBlock::CacheVoter_IDMet[$Counter]
+	### Found the Variable for Apply Date
+	#$RepMyBlock::CacheVoter_ApplicationSource[$Counter] 
+	#$RepMyBlock::CacheVoter_VoterMadeInactive[$Counter]
+	#$RepMyBlock::CacheVoter_VoterPurged[$Counter]
+	#$RepMyBlock::CacheVoter_CountyVoterNumber[$Counter] =
+	### FIST SEENS
+	### LAST SEEN
+	
+	
+	#### Table VotersIndexes
+	# VotersIndexes_ID:
+	# Voters_ID, DataState_ID, VotersLastName_ID, VotersFirstName_ID, VotersMiddleName_ID, VotersIndexes_Suffix, VotersIndexes_DOB, 
+	# VotersIndexes_UniqStateVoterID
+	
+	# From Table Above
+	#$RepMyBlock::DataStateID 
+	#LASTNAME_ID
+	#FIRSTNAME_ID
+	#MIDDLENAME_ID
+	#$RepMyBlock::CacheIdxSuffix[$Counter] = $row[3]; };
+	#$RepMyBlock::CacheIdxDOB[$Counter] = $row[4]; };
+	#$RepMyBlock::CacheVoter_UniqStateVoterID[$Counter]
 	
 	$Start += $AmountToAdd;
 	my $clock1 = clock();
 	print "Cycle took " . ($clock1 - $clock0) . " seconds - New Start: $Start\n";
 	
-
+	#exit();
 }
-
-#DataAddress_ID, DataAddress_HouseNumber, DataAddress_FracAddress, DataAddress_PreStreet, 
-#DataStreet_ID, DataAddress_PostStreet, DataCity_ID, DataState_ID, DataAddress_zipcode, 
-#DataAddress_zip4, Cordinate_ID, PG_OSM_osmid
-
-#sub AddDataCity { my $self = shift; $self->AddToDatabase("DataCity", $CounterFirstName, \@AddPoolCityName, \%CounterCityName, 0); }
-#sub AddDataStreet { my $self = shift; $self->AddToDatabase("DataStreet", $CounterLastName, \@AddPoolStreetName, \%CounterStreetName, 0); }
-
-	
-	#print "  Info CityStreet_ID: " . $RepMyBlock::CacheAdress_ResStreetNameID[$i] . "\n";
-	#print "  Info CityName_ID: " . $RepMyBlock::CacheAdress_ResCityNameID[$i] . "\n";
-	#print "  Info CacheAdress_ResStreetName: " . $RepMyBlock::CacheAdress_ResStreetName[$i] . "\n";
-	#print "  Info CacheAdress_ResCity: " . $RepMyBlock::CacheAdress_ResCity[$i] . "\n";
-	
-	
-		
-	#print "  Info CacheAdress_ResHouseNumber: " . $RepMyBlock::CacheAdress_ResHouseNumber[$i] . "\n";
-	#print "  Info CacheAdress_ResFracAddress: " . $RepMyBlock::CacheAdress_ResFracAddress[$i] . "\n";
-	#print "  Info CacheAdress_ResApartment: " . $RepMyBlock::CacheAdress_ResApartment[$i] . "\n";
-	#print "  Info CacheAdress_ResPreStreet: " . $RepMyBlock::CacheAdress_ResPreStreet[$i] . "\n";
-	#print "  Info CacheAdress_ResStreetName: " . $RepMyBlock::CacheAdress_ResStreetName[$i] . "\n";
-	#print "  Info CacheAdress_ResPostStDir: " . $RepMyBlock::CacheAdress_ResPostStDir[$i] . "\n";
-	#print "  Info CacheAdress_ResCity: " . $RepMyBlock::CacheAdress_ResCity[$i] . "\n";
-	#print "  Info CacheAdress_ResZip: " . $RepMyBlock::CacheAdress_ResZip[$i] . "\n";
-	#print "  Info CacheAdress_ResZip4: " . $RepMyBlock::CacheAdress_ResZip4[$i] . "\n";
-	#print "\n";
-#}

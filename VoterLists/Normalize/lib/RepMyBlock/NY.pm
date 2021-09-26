@@ -21,6 +21,7 @@ sub new {
   my $self = {}; # the hashed reference 
 
 	$RepMyBlock::DataStateID = "1";  
+	$RepMyBlock::DBTableName = "ADED";
   return bless $self, $class; 
 }
 
@@ -40,9 +41,18 @@ sub NumberOfVotersInDB {
 	my $stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
 	$stmt->execute();
 	my @row = $stmt->fetchrow_array;
-	
-	return $row[0];
+
 }
+
+sub LoadOneVoter {
+	my $self = shift;
+	
+	my $sql = "SELECT * FROM NY_Raw_" . $self->{"tabledate"} . " WHERE UniqNYSVoterID = ? AND Status LIKE '%CTIVE'"; 
+	my $stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	$stmt->execute($_[0]);
+	return $stmt->fetchrow_hashref();
+}
+
 
 sub LoadFromRawData {
 	my $self = shift;
@@ -77,17 +87,27 @@ sub LoadFromRawData {
 
 	### THe Counter way 20.597232
 
-	
 	my $clock_inside0 = clock();
-
-	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {
+	while (my @row = $stmt->fetchrow_array) { #} or die "can't execute the query: $stmt->errstr \nSQL: $sql\n\n" ) {
 		# Index Part
+			
+		if ( defined ($row[0]) ) { 
+			$RepMyBlock::CacheVoter_FirstName[$Counter] = $self->trimstring($row[0]);
+		 	$RepMyBlock::CacheIdxFirstName[$Counter] = $RepMyBlock::CacheFirstName { $RepMyBlock::CacheVoter_FirstName[$Counter] };
+		}
 		
-		if ( defined ($row[0]) ) { $RepMyBlock::CacheIdxFirstName[$Counter] = $RepMyBlock::CacheFirstName { $self->trimstring($row[0]) }; };
-		if ( defined ($row[1]) ) { $RepMyBlock::CacheIdxMiddleName[$Counter] = $RepMyBlock::CacheMiddleName { $self->trimstring($row[1]) }; };
-		if ( defined ($row[2]) ) { $RepMyBlock::CacheIdxLastName[$Counter] =  $RepMyBlock::CacheLastName { $self->trimstring($row[2]) }; };
+		if ( defined ($row[1]) ) { 
+			$RepMyBlock::CacheVoter_MiddleName[$Counter] = $self->trimstring($row[1]);
+		 	$RepMyBlock::CacheIdxMiddleName[$Counter] = $RepMyBlock::CacheMiddleName { $RepMyBlock::CacheVoter_MiddleName[$Counter] };
+		}
+		
+		if ( defined ($row[2]) ) { 
+			$RepMyBlock::CacheVoter_LastName[$Counter] = $self->trimstring($row[2]);
+		  $RepMyBlock::CacheIdxLastName[$Counter] =  $RepMyBlock::CacheLastName { $RepMyBlock::CacheVoter_LastName[$Counter] };
+		}
+		
 		if ( defined ($row[3]) ) { $RepMyBlock::CacheIdxSuffix[$Counter] = $row[3]; };
-		if ( defined ($row[4]) ) { $RepMyBlock::CacheIdxDOB[$Counter] = $row[4]; };
+		if ( defined ($row[4]) ) { $RepMyBlock::CacheIdxDOB[$Counter] = $self->ParseDatesToDB($row[4]); };
 
 		#Voter Part
 		if ( defined ($row[5]) ) { $RepMyBlock::CacheVoter_Gender[$Counter] = ReturnGender($row[5]) }; 
@@ -100,14 +120,14 @@ sub LoadFromRawData {
 		if ( defined ($row[13]) ) { $RepMyBlock::CacheVoter_IDMet[$Counter] = ReturnYesNo($row[13]); };
 		if ( defined ($row[14]) ) { $RepMyBlock::CacheVoter_Status[$Counter] = ReturnStatusCode($row[14]); };
 		if ( defined ($row[15]) ) { $RepMyBlock::CacheVoter_ReasonCode[$Counter] = ReturnReasonCode($row[15]); };
-		if ( defined ($row[16]) ) { $RepMyBlock::CacheVoter_VoterMadeInactive[$Counter] = $row[16]; };
-		if ( defined ($row[17]) ) { $RepMyBlock::CacheVoter_VoterPurged[$Counter] = $row[17]; };
+		if ( defined ($row[16]) ) { $RepMyBlock::CacheVoter_VoterMadeInactive[$Counter] = $self->ParseDatesToDB($row[16]); };
+		if ( defined ($row[17]) ) { $RepMyBlock::CacheVoter_VoterPurged[$Counter] = $self->ParseDatesToDB($row[17]); };
 		
 		# Address Part
-		if ( defined ($row[18]) ) { $RepMyBlock::CacheAdress_ResHouseNumber[$Counter]= $row[18]; }; 
-		if ( defined ($row[19]) ) { $RepMyBlock::CacheAdress_ResFracAddress[$Counter] = $row[19]; }; 
-		if ( defined ($row[20]) ) { $RepMyBlock::CacheAdress_ResApartment[$Counter]= $row[20]; }; 
-		if ( defined ($row[21]) ) { $RepMyBlock::CacheAdress_ResPreStreet[$Counter] = $row[21]; }; 
+		if ( defined ($row[18]) ) { $RepMyBlock::CacheAdress_ResHouseNumber[$Counter]= $self->trimstring($row[18]); }; 
+		if ( defined ($row[19]) ) { $RepMyBlock::CacheAdress_ResFracAddress[$Counter] = $self->trimstring($row[19]); }; 
+		if ( defined ($row[20]) ) { $RepMyBlock::CacheAdress_ResApartment[$Counter]= $self->trimstring($row[20]); }; 
+		if ( defined ($row[21]) ) { $RepMyBlock::CacheAdress_ResPreStreet[$Counter] = $self->trimstring($row[21]); }; 
 		
 		if ( defined ($row[22]) ) { 
 			$RepMyBlock::CacheAdress_ResStreetName[$Counter] = $self->trimstring($row[22]);
@@ -141,63 +161,116 @@ sub LoadFromRawData {
 	return $Counter;
 }
 
-sub LoadAddressesFromRawData {
-	my $self = shift;
-	
-	my $Counter = 0;
-	my $sql = "";
-	my $stmt = "";
-	my $string = "";
-			
-	$sql = "SELECT DISTINCT ResStreetName, ResCity FROM " . $_[0];		
-	if (defined $_[2] && $_[1] > 0 && $_[2] > 0) { $sql .= " LIMIT " . $_[2] . ", " . $_[1]; }
-	elsif (defined $_[1] && $_[1] > 0) { $sql .= " LIMIT " . $_[1]; }
-	
-	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
-	$stmt->execute();
-	
-	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {		                          
-		# Address Part
-		if ( defined ($row[0]) ) { 
-			$string = $self->trimstring(NameCase($row[0]));
-			if ( length ($string) > 0) {
-				push(@RepMyBlock::CacheAdress_ResStreetName, $string);
-				push(@RepMyBlock::CacheAdress_ResStreetNameID,  $RepMyBlock::CacheStreetName { $string });
-			}
-		}
-
-		if ( defined ($row[1]) ) { 
-			$string = $self->trimstring(NameCase($row[1]));
-			if ( length($string) > 0 ) {
-				push(@RepMyBlock::CacheAdress_ResCityName, $string);
-				push(@RepMyBlock::CacheAdress_ResCityNameID, $RepMyBlock::CacheCityName { $string });
-			}
-		}
-		
-		$Counter++;
-		if (( $Counter % 1000) == 0)  { print "Done $Counter \n\033[1A"; }
-	}
-
-	return $Counter;
-}
-
 sub TransferAddressesToHash {
 	my $self = shift;
 	
 	if ( ! defined ($RepMyBlock::CacheAddress
-									{ $RepMyBlock::CacheAdress_ResStreetNameID[$_[0]] } { $RepMyBlock::CacheAdress_ResCityNameID[$_[0]] } 
-									{ $RepMyBlock::CacheAdress_ResHouseNumber[$_[0]] } { $RepMyBlock::CacheAdress_ResZip[$_[0]] }	
+									{ $RepMyBlock::CacheStreetName { $RepMyBlock::CacheAdress_ResStreetName[$_[0]] }} 
+									{ $RepMyBlock::CacheCityName { $RepMyBlock::CacheAdress_ResCityName[$_[0]] }} 
+										{ $RepMyBlock::CacheAdress_ResHouseNumber[$_[0]] } { $RepMyBlock::CacheAdress_ResZip[$_[0]] }	
 									{ $RepMyBlock::CacheAdress_ResZip4[$_[0]] } { $RepMyBlock::CacheAdress_ResPreStreet[$_[0]] } 
-									{ $RepMyBlock::CacheAdress_ResPostStDir[$_[0]] } { $RepMyBlock::CacheAdress_ResFracAddress[$_[0]] } )) {
-										
+									{ $RepMyBlock::CacheAdress_ResPostStDir[$_[0]] } { $RepMyBlock::CacheAdress_ResFracAddress[$_[0]] } )) {					
+		
 		$RepMyBlock::CacheAddress
-			{ $RepMyBlock::CacheAdress_ResStreetNameID[$_[0]] } 
-			{ $RepMyBlock::CacheAdress_ResCityNameID[$_[0]] } { $RepMyBlock::CacheAdress_ResHouseNumber[$_[0]] } 
+			{ $RepMyBlock::CacheStreetName { $RepMyBlock::CacheAdress_ResStreetName[$_[0]] }} 
+			{ $RepMyBlock::CacheCityName { $RepMyBlock::CacheAdress_ResCityName[$_[0]] }} 
+			{ $RepMyBlock::CacheAdress_ResHouseNumber[$_[0]] } 
 			{ $RepMyBlock::CacheAdress_ResZip[$_[0]] }	{ $RepMyBlock::CacheAdress_ResZip4[$_[0]] } 
 			{ $RepMyBlock::CacheAdress_ResPreStreet[$_[0]] } { $RepMyBlock::CacheAdress_ResPostStDir[$_[0]] }	
 			{ $RepMyBlock::CacheAdress_ResFracAddress[$_[0]] }	= "0";
+			
+	}
+		
+		
+}
 
-		}
+sub TransferHousesToHash {
+	my $self = shift;
+	
+	my $CacheAddress = $RepMyBlock::CacheAddress
+											{ $RepMyBlock::CacheStreetName { $RepMyBlock::CacheAdress_ResStreetName[$_[0]] }} 
+											{ $RepMyBlock::CacheCityName { $RepMyBlock::CacheAdress_ResCityName[$_[0]] }}
+											{ $RepMyBlock::CacheAdress_ResHouseNumber[$_[0]] } 
+											{ $RepMyBlock::CacheAdress_ResZip[$_[0]] }	{ $RepMyBlock::CacheAdress_ResZip4[$_[0]] } 
+											{ $RepMyBlock::CacheAdress_ResPreStreet[$_[0]] } { $RepMyBlock::CacheAdress_ResPostStDir[$_[0]] }	
+											{ $RepMyBlock::CacheAdress_ResFracAddress[$_[0]] };
+																					
+	if ( ! defined ($RepMyBlock::CacheHouse { $CacheAddress } {	$RepMyBlock::CacheAdress_ResApartment[$_[0]] }))  {	
+		$RepMyBlock::CacheHouse { $CacheAddress } {	$RepMyBlock::CacheAdress_ResApartment[$_[0]] } = "0";
+	}
+	
+}
+
+sub TransferVotersIndexToHash {
+	my $self = shift;
+	
+	if ( ! defined ($RepMyBlock::CacheVotersIndex
+									{ $RepMyBlock::CacheFirstName { $RepMyBlock::CacheVoter_FirstName[$_[0]] }} 
+									{ $RepMyBlock::CacheLastName { $RepMyBlock::CacheVoter_LastName[$_[0]] }} 
+									{ $RepMyBlock::CacheMiddleName { $RepMyBlock::CacheVoter_MiddleName[$_[0]] }}
+									{ $RepMyBlock::CacheIdxSuffix[$_[0]] }
+									{ $RepMyBlock::CacheIdxDOB[$_[0]] }
+									{ $RepMyBlock::CacheVoter_UniqStateVoterID[$_[0]] })) {					
+		
+		$RepMyBlock::CacheVotersIndex
+									{ $RepMyBlock::CacheFirstName { $RepMyBlock::CacheVoter_FirstName[$_[0]] }} 
+									{ $RepMyBlock::CacheLastName { $RepMyBlock::CacheVoter_LastName[$_[0]] }} 
+									{ $RepMyBlock::CacheMiddleName { $RepMyBlock::CacheVoter_MiddleName[$_[0]] }}
+									{ $RepMyBlock::CacheIdxSuffix[$_[0]] }
+									{ $RepMyBlock::CacheIdxDOB[$_[0]] }
+									{ $RepMyBlock::CacheVoter_UniqStateVoterID[$_[0]] }	= "0";
+										
+	}
+}
+
+sub TransferVotersToHash {
+	my $self = shift;
+	
+	my $CacheVotersIndex = $RepMyBlock::CacheVotersIndex
+													{ $RepMyBlock::CacheFirstName { $RepMyBlock::CacheVoter_FirstName[$_[0]] }} 
+													{ $RepMyBlock::CacheLastName { $RepMyBlock::CacheVoter_LastName[$_[0]] }} 
+													{ $RepMyBlock::CacheMiddleName { $RepMyBlock::CacheVoter_MiddleName[$_[0]] }}
+													{ $RepMyBlock::CacheIdxSuffix[$_[0]] }
+													{ $RepMyBlock::CacheIdxDOB[$_[0]] }
+													{ $RepMyBlock::CacheVoter_UniqStateVoterID[$_[0]] };
+																									
+	my $CacheHouse =	$RepMyBlock::CacheHouse {
+											$RepMyBlock::CacheAddress
+												{ $RepMyBlock::CacheStreetName { $RepMyBlock::CacheAdress_ResStreetName[$_[0]] }} 
+												{ $RepMyBlock::CacheCityName { $RepMyBlock::CacheAdress_ResCityName[$_[0]] }}
+												{ $RepMyBlock::CacheAdress_ResHouseNumber[$_[0]] } 
+												{ $RepMyBlock::CacheAdress_ResZip[$_[0]] }	{ $RepMyBlock::CacheAdress_ResZip4[$_[0]] } 
+												{ $RepMyBlock::CacheAdress_ResPreStreet[$_[0]] } { $RepMyBlock::CacheAdress_ResPostStDir[$_[0]] }	
+												{ $RepMyBlock::CacheAdress_ResFracAddress[$_[0]] } 
+										} {	$RepMyBlock::CacheAdress_ResApartment[$_[0]] };
+														
+				
+		if ( ! defined ($RepMyBlock::CacheVoters
+											{ $RepMyBlock::CacheVoter_DBTableValue[$_[0]] }	{ $RepMyBlock::CacheVoter_Gender[$_[0]] }
+											{ $CacheVotersIndex } { $CacheHouse } { $RepMyBlock::CacheVoter_EnrollPolParty[$_[0]] }
+											{ $RepMyBlock::CacheVoter_ReasonCode[$_[0]] }	{ $RepMyBlock::CacheVoter_Status[$_[0]] }
+											{ $RepMyBlock::CacheVoter_IDRequired[$_[0]] }	{ $RepMyBlock::CacheVoter_IDMet[$_[0]] }
+											{ $RepMyBlock::CacheVoter_ApplicationSource[$_[0]] } 
+											{ $RepMyBlock::CacheVoter_VoterMadeInactive[$_[0]] }
+											{ $RepMyBlock::CacheVoter_VoterPurged[$_[0]] } 
+											{ $RepMyBlock::CacheVoter_CountyVoterNumber[$_[0]] }
+											{ $RepMyBlock::CacheVoter_UniqStateVoterID[$_[0]] }	)) {	
+												
+			if ( $RepMyBlock::CacheVoter_Status[$_[0]] ne "Active" && $RepMyBlock::CacheVoter_Status[$_[0]] ne "Inactive" && $RepMyBlock::CacheVoter_Status[$_[0]] ne "Prereg17YearOlds") {
+				undef $RepMyBlock::CacheVoter_DBTableValue[$_[0]];
+			}
+						
+			$RepMyBlock::CacheVoters
+											{ $RepMyBlock::CacheVoter_DBTableValue[$_[0]] }	{ $RepMyBlock::CacheVoter_Gender[$_[0]] }
+											{ $CacheVotersIndex } { $CacheHouse } { $RepMyBlock::CacheVoter_EnrollPolParty[$_[0]] }
+											{ $RepMyBlock::CacheVoter_ReasonCode[$_[0]] }	{ $RepMyBlock::CacheVoter_Status[$_[0]] }
+											{ $RepMyBlock::CacheVoter_IDRequired[$_[0]] }	{ $RepMyBlock::CacheVoter_IDMet[$_[0]] }
+											{ $RepMyBlock::CacheVoter_ApplicationSource[$_[0]] } 
+											{ $RepMyBlock::CacheVoter_VoterMadeInactive[$_[0]] }
+											{ $RepMyBlock::CacheVoter_VoterPurged[$_[0]] } 
+											{ $RepMyBlock::CacheVoter_CountyVoterNumber[$_[0]] }
+											{ $RepMyBlock::CacheVoter_UniqStateVoterID[$_[0]] }	= "0";
+		}	
 }
 
 ### From down here I need to replace to make it work.
@@ -412,5 +485,6 @@ sub ReturnYesNo {
 	elsif ($Question eq 'N') { return 'no'; }
 	return undef;
 }
+
 
 1;
