@@ -6,6 +6,15 @@ use strict;
 use warnings;
 use Lingua::EN::NameCase 'NameCase' ;
 
+sub new { 
+  my $class = shift; # defining shift in $myclass 
+  my $self = {}; # the hashed reference 
+
+	$RepMyBlock::DataStateID = "1";  
+	$RepMyBlock::DBTableName = "ADED";
+  return bless $self, $class; 
+}
+
 sub TransferRawTables {
 	my $DateTable = $_[0];
 
@@ -271,6 +280,37 @@ sub LoadVoterAddressFromRawData {
 		
 		$Counter++;
 		if (( $Counter % 500000) == 0)  { print "Done $Counter \n\033[1A"; }
+	}
+	print "Loaded into cache: $Counter\n";
+		
+	return $Counter;
+}
+
+sub LoadRawDistrict {
+	my $DateTable = $_[1];
+	my $Counter = 0;
+	my $sql = "";
+	my $stmt = "";
+	
+	print "DateTable: " . $_[1] . "\n";
+	$sql = "SELECT DISTINCT Election_District, Assembly_District, Congress_District, Council_District, Senate_District, " . 
+					"Civil_Court_District, Judicial_District, County_ID FROM " . $DateTable . " WHERE Status_Code = 'A'";
+	print "SQL: $sql\n";
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	$stmt->execute();
+	
+	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {		
+		if ( defined ($row[0]) ) { $RepMyBlock::CacheDistrict_Election_District[$Counter]= $row[0] }; 
+		if ( defined ($row[1]) ) { $RepMyBlock::CacheDistrict_Assembly_District[$Counter] = $row[1] }; 
+		if ( defined ($row[2]) ) { $RepMyBlock::CacheDistrict_Congress_District[$Counter]= $row[2] }; 
+		if ( defined ($row[3]) ) { $RepMyBlock::CacheDistrict_Council_District[$Counter] = $row[3] }; 
+		if ( defined ($row[4]) ) { $RepMyBlock::CacheDistrict_Senate_District[$Counter] = $row[4] }; 
+		if ( defined ($row[5]) ) { $RepMyBlock::CacheDistrict_Civil_Court_District[$Counter] = $row[5] }; 
+		if ( defined ($row[6]) ) { $RepMyBlock::CacheDistrict_Judicial_District[$Counter] = $row[6] };
+		if ( defined ($row[0]) ) { $RepMyBlock::CacheDistrict_NYC_CountyID[$Counter]= $row[7] }; 
+		
+		$Counter++;
+		if (( $Counter % 1000) == 0)  { print "Done $Counter \n\033[1A"; }
 	}
 	print "Loaded into cache: $Counter\n";
 		

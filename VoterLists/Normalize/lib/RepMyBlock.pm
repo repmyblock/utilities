@@ -37,6 +37,7 @@ our %CacheAddress = ();
 our %CacheHouse = ();
 our %CacheStateName = ();
 our %CacheCountyName = ();
+our %CacheDataDistrict = ();
 
 our %LastInsertID = ();
 
@@ -89,6 +90,23 @@ our @CacheAdress_ResZip4;
 our @CacheAdress_ResStreetNameID;
 our @CacheAdress_ResCityNameID;
 
+our @CacheDistrict_CountyCode; 
+our @CacheDistrict_ElectDistr; 
+our @CacheDistrict_LegisDistr; 
+our @CacheDistrict_TownCity; 
+our @CacheDistrict_Ward;
+our @CacheDistrict_CongressDistr;
+our @CacheDistrict_SenateDistr;
+our @CacheDistrict_AssemblyDistr;
+
+our @CacheDistrict_Election_District; 
+our @CacheDistrict_Assembly_District;
+our @CacheDistrict_Congress_District;
+our @CacheDistrict_Council_District; 
+our @CacheDistrict_Senate_District;
+our @CacheDistrict_Civil_Court_District;
+our @CacheDistrict_Judicial_District;
+our @CacheDistrict_NYC_CountyID;
 
 our %CacheVotersIndex = ();
 our %CacheVoters = ();
@@ -158,8 +176,19 @@ sub InitLastInsertID {
 	my @TableToCheck = qw/Voters VotersIndexes DataFirstName DataLastName DataMiddleName DataAddress DataCity DataCounty DataHouse DataState DataStreet/;
 	foreach ( @TableToCheck ) {
 		$LastInsertID { $_ } = 	$self->FindMaxID($_);
-		print $_ . ": " . $LastInsertID { $_ }  . "\n";
+		printf ("\t%-15s: %s\n", $_, $LastInsertID {$_} );
 	}
+}
+
+sub ListCountsTables {
+	my $self = shift;
+	
+	my @TableToCheck = qw/Voters VotersIndexes DataFirstName DataLastName DataMiddleName DataAddress DataCity DataCounty DataHouse DataState DataStreet/;
+	foreach ( @TableToCheck ) {
+		my $TableCount = 	$self->CountDBTables($_);
+		printf ("\t%-15s: %s\n", $_, $TableCount );
+	}
+	
 }
 
 sub SetVoterState {
@@ -248,7 +277,19 @@ sub LoadUpdateNamesCache {
 sub FindMaxID() {
 	my $self = shift;
 	
-	my $sql = "SELECT MAX(" . $_[0] . "_ID) FROM ". $_[0];
+	my $sql = "SELECT MAX(" . $_[0] . "_ID) FROM " . $_[0];
+	my $QueryDB = $self->{"dbh"}->prepare($sql);
+	$QueryDB->execute() or die "Connection error: $DBI::errstr";
+	my @row = $QueryDB->fetchrow_array;	
+	
+	if ( ! defined $row[0] ) {	return 0;	}
+	return $row[0];
+}
+
+sub CountDBTables() {
+	my $self = shift;
+	
+	my $sql = "SELECT COUNT(" . $_[0] . "_ID) FROM " . $_[0];
 	my $QueryDB = $self->{"dbh"}->prepare($sql);
 	$QueryDB->execute() or die "Connection error: $DBI::errstr";
 	my @row = $QueryDB->fetchrow_array;	
@@ -278,7 +319,6 @@ sub LoadColumnIntoCache {
 			}
 		}
 	}
-
 }
 		
 sub LoadCaches {
@@ -307,11 +347,11 @@ sub LoadCaches {
 			${$_[0]}{ $self->trimstring($row[1])} = $self->trimstring($row[0]);
 		}
 	}	
-
+	
 	$self->{"LoadCache"}{ $_[1] } = 'yes';
 	
 	my $clock_inside1 = clock();
-	print "Loaded cache for " . $_[1] . " in " . ($clock_inside1 - $clock_inside0) . " seconds\n";
+	printf ("\tLoaded cache for %-15sin %-20s seconds\n", $_[1], ($clock_inside1 - $clock_inside0));
 }
 
 
@@ -347,7 +387,8 @@ sub LoadAddressesCaches () {
 	}	
 	
 	my $clock_inside1 = clock();
-	print "Loaded cache for DataAddress in StateID " . $_[0] . " in " . ($clock_inside1 - $clock_inside0) . " seconds\n";
+	printf ("\tLoaded cache for %-15sin %-20s seconds (State ID: %s)\n", "DataAddress", ($clock_inside1 - $clock_inside0), $_[0]);
+
 }
 
 sub LoadHouseCaches() {
@@ -371,7 +412,8 @@ sub LoadHouseCaches() {
 	}
 		
 	my $clock_inside1 = clock();
-	print "Loaded cache" . $InfoStr . "for DataHouse in " . ($clock_inside1 - $clock_inside0) . " seconds\n";
+	printf ("\tLoaded cache for %-15s in %s seconds (State ID: %s)\n", "DataHouse", ($clock_inside1 - $clock_inside0), $InfoStr);
+
 }
 
 sub LoadVotersCaches () {
@@ -401,7 +443,8 @@ sub LoadVotersCaches () {
 	}	
 	
 	my $clock_inside1 = clock();
-	print "Loaded cache for DataAddress in StateID " . $_[0] . " in " . ($clock_inside1 - $clock_inside0) . " seconds\n";
+	printf ("\tLoaded cache for %-15sin %s seconds (State ID: %s)\n", "VotersIndexes", ($clock_inside1 - $clock_inside0), $_[0]);
+
 }
 
 sub DbAddToAddress {
@@ -463,9 +506,96 @@ sub DbAddToAddress {
 	$self->LoadAddressesCaches($DataStateID, $LastInsertID { "DataHouse" } );
 	$LastInsertID { "DataAddress" } = $self->FindMaxID("DataAddress");	
 	my $clock_inside1 = clock();
-	print "Wrote to database table DataAddress in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . $LastInsertID { "DataAddress" } . "\n";
+	print "\tWrote table DataAddress in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . $LastInsertID { "DataAddress" } . "\n\n";
 
 }
+
+sub DbAddToDataDistrict {
+		my $self = shift;
+	my $clock_inside0 = clock();
+	# $Name = $_[0]; @Pool = @{$_[1]}; $rhOptions = $_[2], $AddCompress = $_[3], 
+	
+	my $firsttime = 0;
+	my $sql = "INSERT INTO DataDistrict (DataDistrict_CycleStartDate, DataDistrict_CycleEndDate, DataDistrict_DBTable, " . 
+																			"DataDistrict_DBTableValue, DataCounty_ID, " . 
+																			"DataDistrict_Electoral, " . 
+																			"DataDistrict_StateAssembly, DataDistrict_SenateSenate, DataDistrict_Legislative, DataDistrict_TownCity, DataDistrict_Ward, " . 
+																			"DataDistrict_Congress, DataDistrict_Council, DataDistrict_CivilCourt, DataDistrict_Judicial " . 
+																			") VALUES ";
+
+	foreach my $CycleStartDate (keys %CacheDataDistrict) {
+		foreach my $CycleEndDate (keys %{$CacheDataDistrict{$CycleStartDate}}) {
+			foreach my $DBTable (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}}) {
+				foreach my $DBTableValue (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}}) {
+					foreach my $DataCounty_ID (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}}) {
+						foreach my $Electoral (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}}) {
+							foreach my $StateAssembly (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}}) {
+								foreach my $SenateSenate (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}{$StateAssembly}}) {
+									foreach my $Legis (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}{$StateAssembly}{$SenateSenate}}) {
+										foreach my $TownCity (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}{$StateAssembly}{$SenateSenate}{$Legis}}) {
+											foreach my $Ward (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}{$StateAssembly}{$SenateSenate}{$Legis}{$TownCity}}) {
+												foreach my $Congress (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}{$StateAssembly}{$SenateSenate}{$Legis}{$TownCity}{$Ward}}) {
+													foreach my $Council (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}{$StateAssembly}{$SenateSenate}{$Legis}{$TownCity}{$Ward}{$Congress}}) {
+														foreach my $CivilCourt (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}{$StateAssembly}{$SenateSenate}{$Legis}{$TownCity}{$Ward}{$Congress}{$Council}}) {
+															foreach my $Judicial (keys %{$CacheDataDistrict{$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}{$StateAssembly}{$SenateSenate}{$Legis}{$TownCity}{$Ward}{$Congress}{$Council}{$CivilCourt}}) {
+								 			
+														 		if ( $CacheDataDistrict {$CycleStartDate}{$CycleEndDate}{$DBTable}{$DBTableValue}{$DataCounty_ID}{$Electoral}{$StateAssembly}{$SenateSenate}{$Legis}{$TownCity}{$Ward}{$Congress}{$Council}{$CivilCourt}{$Judicial} < 1 ) {
+															 		if ( $firsttime == 1) {	$sql .= ","; } else { $firsttime = 1;	}
+															 									
+																	$sql .= "(";
+																	if ( length($CycleStartDate) > 0 ) { $sql .= $self->{"dbh"}->quote($CycleStartDate) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($CycleEndDate) > 0 ) { $sql .= $self->{"dbh"}->quote($CycleEndDate) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($DBTable) > 0 ) { $sql .= $self->{"dbh"}->quote($DBTable) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($DBTableValue) > 0 ) { $sql .= $self->{"dbh"}->quote($DBTableValue) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($DataCounty_ID) > 0 ) { $sql .= $self->{"dbh"}->quote($DataCounty_ID) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($Electoral) > 0 ) { $sql .= $self->{"dbh"}->quote($Electoral) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($StateAssembly) > 0 ) { $sql .= $self->{"dbh"}->quote($StateAssembly) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($SenateSenate) > 0 ) { $sql .= $self->{"dbh"}->quote($SenateSenate) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($Legis) > 0 ) { $sql .= $self->{"dbh"}->quote($Legis) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($TownCity) > 0 ) { $sql .= $self->{"dbh"}->quote($TownCity) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($Ward) > 0 ) { $sql .= $self->{"dbh"}->quote($Ward) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($Congress) > 0 ) { $sql .= $self->{"dbh"}->quote($Congress) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($Council) > 0 ) { $sql .= $self->{"dbh"}->quote($Council) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($CivilCourt) > 0 ) { $sql .= $self->{"dbh"}->quote($CivilCourt) . ", " } else { $sql .= "NULL,"; }
+																	if ( length($Judicial) > 0 ) { $sql .= $self->{"dbh"}->quote($Judicial) } else { $sql .= "NULL"; }
+																	$sql .= ")";
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+ 	 	}
+ 	}
+	
+	if ( ! defined $self->{"dbh"} ) {
+		print "Database not defined\n";	exit();
+	}
+	
+	if ($firsttime > 0) {
+	  my $QueryDB = $self->{"dbh"}->prepare($sql);
+		$QueryDB->execute() or die "Connection error: $DBI::errstr";
+	} 
+
+	### This is for the end.
+#	$self->LoadHouseCaches($LastInsertID { "DataHouse" } );
+# $LastInsertID { "DataHouse" } = $self->FindMaxID("DataHouse");	
+	
+	my $clock_inside1 = clock();
+	
+	print "\tWrote table DataDistrict in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . 
+				$LastInsertID { "DataDistrict" } . "\n\n";
+	
+}
+
 
 sub DbAddToDataHouse {
 	my $self = shift;
@@ -502,10 +632,9 @@ sub DbAddToDataHouse {
 	
 	my $clock_inside1 = clock();
 	
-	print "Wrote to database table DataHouse in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . 
-				$LastInsertID { "DataHouse" } . "\n";
+	print "\tWrote table DataHouse in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . 
+				$LastInsertID { "DataHouse" } . "\n\n";
 }
-
 
 sub DbAddToVotersIndex {
 	my $self = shift;
@@ -556,8 +685,10 @@ sub DbAddToVotersIndex {
 	$self->LoadVotersCaches($DataStateID, $LastInsertID { "VotersIndexes" } );
 	$LastInsertID { "VotersIndexes" } = $self->FindMaxID("VotersIndexes");	
 	my $clock_inside1 = clock();
-	print "Wrote to database table VotersIndexes in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . $LastInsertID { "VotersIndexes" } . "\n";
-
+	print "\tWrote table VotersIndexes in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . $LastInsertID { "VotersIndexes" } . 
+	"\n\n";
+	
+	
 }
 
 sub DbAddToVoters {
@@ -610,7 +741,7 @@ sub DbAddToVoters {
 															$sql .= "NOW(), NOW()";
 															$sql .= ")";
 															
-																
+															
 														}
 													}
 												}
@@ -635,14 +766,15 @@ sub DbAddToVoters {
 		$QueryDB->execute() or die "Connection error: $DBI::errstr";
 	} 
 	
+	
+	
+	
 	#$self->LoadVotersCaches($DataStateID, $LastInsertID { "Voters" } );
 	#$LastInsertID { "Voters" } = $self->FindMaxID("Voters");	
 	my $clock_inside1 = clock();
-	print "Wrote to database table VotersIndexes in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . $LastInsertID { "VotersIndexes" } . "\n";
-
+	print "\tWrote table VotersData in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . $LastInsertID { "VotersIndexes" } . 
+				"\n\n";
 }
-
-
 
 sub AddToDatabase {
 	my $self = shift;
@@ -688,15 +820,14 @@ sub AddToDatabase {
 	}
 
 	my $clock_inside1 = clock();
-	print "Wrote to database table " . $_[0] . " in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . 
-				$LastInsertID { $_[0] } . "\n";
+	print "\tWrote table " . $_[0] . " in " . ($clock_inside1 - $clock_inside0) . " seconds and last ID is " . 
+				$LastInsertID { $_[0] } . "\n\n";
 }
 
 sub DateDBID {
 	my $stmtFindDatesID = $dbhRawVoters->prepare("SELECT Raw_Voter_Dates_ID FROM Raw_Voter_Dates WHERE Raw_Voter_Dates_Date = ?");
 	$stmtFindDatesID->execute($DateTable);
 	my @row = $stmtFindDatesID->fetchrow_array;
-	
 	return $row[0];
 }
 
@@ -705,7 +836,6 @@ sub ReturnCompressed {
 	if (defined ($CompressFieldName)) { $CompressFieldName =~ tr/a-zA-Z//dc; }
 	return $CompressFieldName;
 }
-
 
 sub EmptyDatabases {
 	my $self = shift;
@@ -846,7 +976,6 @@ sub UpdateIndexTable() {
 		}
 		print "Done $Counter\n";
 	}
-	
 }
 
 sub ReplaceIdxDatabase {
@@ -989,8 +1118,6 @@ sub ReplaceVoterData {
 	print "Done inserting $j record to Voters table\n";		
 }
 
-
-
 sub PrintCache {
 	my $rhOptions = $_[0];
 	print "Printing cache ...\n";	
@@ -1084,6 +1211,7 @@ sub LoadPartyCall {
 	
 	return $rhOptions;
 }
+
 
 sub ParseDatesToDB {
 	my $self = shift;

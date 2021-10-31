@@ -400,6 +400,37 @@ sub LoadVoterAddressFromRawData {
 	return $Counter;
 }
 
+sub LoadRawDistrict {
+	my $DateTable = $_[1];
+	my $Counter = 0;
+	my $sql = "";
+	my $stmt = "";
+	
+	print "DateTable: " . $_[1] . "\n";
+	$sql = "SELECT DISTINCT CountyCode, ElectDistr, LegisDistr, TownCity, Ward, CongressDistr, " . 
+					"SenateDistr, AssemblyDistr FROM " . $DateTable . " WHERE Status = 'ACTIVE'";
+	print "SQL: $sql\n";
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	$stmt->execute();
+	
+	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {		
+		if ( defined ($row[0]) ) { $RepMyBlock::CacheDistrict_CountyCode[$Counter]= $row[0] }; 
+		if ( defined ($row[1]) ) { $RepMyBlock::CacheDistrict_ElectDistr[$Counter] = $row[1] }; 
+		if ( defined ($row[2]) ) { $RepMyBlock::CacheDistrict_LegisDistr[$Counter]= $row[2] }; 
+		if ( defined ($row[3]) ) { $RepMyBlock::CacheDistrict_TownCity[$Counter] = $row[3] }; 
+		if ( defined ($row[4]) ) { $RepMyBlock::CacheDistrict_Ward[$Counter] = $row[4] }; 
+		if ( defined ($row[5]) ) { $RepMyBlock::CacheDistrict_CongressDistr[$Counter] = $row[5] }; 
+		if ( defined ($row[6]) ) { $RepMyBlock::CacheDistrict_SenateDistr[$Counter] = $row[6] }; 
+		if ( defined ($row[7]) ) { $RepMyBlock::CacheDistrict_AssemblyDistr[$Counter] = $row[7] }; 
+		
+		$Counter++;
+		if (( $Counter % 1000) == 0)  { print "Done $Counter \n\033[1A"; }
+	}
+	print "Loaded into cache: $Counter\n";
+		
+	return $Counter;
+}
+
 #### These are the standart questions in the NYS voter file.
 sub	ReturnReasonCode {
 	my ($Question) = @_;

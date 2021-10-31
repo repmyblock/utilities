@@ -13,7 +13,7 @@ use RMBSchemas;
 
 use RepMyBlock::NY;
 my $EmptyDatabase = 1;
-my $StopCounterPass = 1;
+my $StopCounterPass = 0;
 
 print "Start the program\n";
 
@@ -33,6 +33,7 @@ if ( $EmptyDatabase == 1) {
 	$RepMyBlock->EmptyDatabases("DataFirstName");
 	$RepMyBlock->EmptyDatabases("DataLastName");
 	$RepMyBlock->EmptyDatabases("DataMiddleName");
+	## $RepMyBlock->EmptyDatabases("DataDistrict");  ## This one if off because it need to be loaded before starting.
 }
 
 $RepMyBlock->EmptyDatabases("Voters");
@@ -41,16 +42,16 @@ $RepMyBlock->EmptyDatabases("VotersIndexes");
 print "Initializing files\n";
 $RepMyBlock->InitializeVoterFile();
 
-print "Caching the data from the CD from date: " .  $RepMyBlock->{tabledate} . "\n";
+print "\nCaching the data from the CD from date: " .  $RepMyBlock->{tabledate} . "\n";
 my $TableDated = "NY_Raw_" . $RepMyBlock->{tabledate};
 
 $RepMyBlock->InitLastInsertID();
 
-print "Loading the caches\n";
+print "\nLoading the caches\n";
 $RepMyBlock->InitStreetCaches();
 $RepMyBlock->InitNamesCaches();
 
-print "Charging the raw database\n";
+print "\nCharging the raw database\n";
 $RepMyBlock::dbhRawVoters =  $dbhRawVoters;
 #my $GrandDBTotal = $RepMyBlock->NumberOfVotersInDB($TableDated);
 my $GrandDBTotal = 20318188; 
@@ -125,9 +126,21 @@ while (my $VoterCounter = $RepMyBlock->LoadFromRawData($TableDated, $AmountToAdd
 	print "\nCycle " . $PassCounter . " took " . ($clock1 - $clock0) . " seconds - New Start: $Start\n";
 	
 	if ( $StopCounterPass > 0 && $StopCounterPass <= $PassCounter ) {
+		print "\nFinal Last Insert ID:\n";
+		$RepMyBlock->InitLastInsertID();
+		
+		print "\nFinal Count Tables ID:\n";
+		$RepMyBlock->ListCountsTables();
+		
 		exit();
 	}
 	
 	print "\n";
 	
 }
+
+print "\nFinal Last Insert ID:\n";
+$RepMyBlock->InitLastInsertID();
+
+print "\nFinal Count Tables ID:\n";
+$RepMyBlock->ListCountsTables();
