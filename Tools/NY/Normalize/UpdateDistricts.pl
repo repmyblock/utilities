@@ -13,7 +13,7 @@ use RMBSchemas;
 
 use RepMyBlock::NY;
 use RepMyBlock::NYC;
-my $EmptyDatabase = 1;
+my $EmptyDatabase = 0;
 my $StopCounterPass = 0;
 
 print "Start the program\n";
@@ -32,20 +32,22 @@ $RepMyBlock->InitializeVoterFile();
 
 print "\nCaching the data from the CD from date: " .  $RepMyBlock->{tabledate} . "\n";
 my $TableDated = "NY_Raw_" . $RepMyBlock->{tabledate};
-my $TableDatedLocal = "NYC_Raw_20210218";
+my $TableDatedLocal = "NYC_Raw_20211022";
 
 print "\nCharging the raw database\n";
 $RepMyBlock::dbhRawVoters = $dbhRawVoters;
 $RepMyBlock->SetDatabase($dbhVoters);
 
 $RepMyBlock->EmptyDatabases("DataDistrict");
-
+$RepMyBlock->EmptyDatabases("DataDistrictTown");
 #$RepMyBlockLocal::dbhRawVoters = $dbhRawVoters;
 ##$RepMyBlockLocal->SetDatabase($dbhVoters);
 
 print "TableDated: $TableDated\n";
 my $VoterCounterLocal = $RepMyBlockLocal->LoadRawDistrict($TableDatedLocal);
 my $clock0 = clock();
+
+$RepMyBlock->LoadCacheCountyTranslation();
 
 my %LocalCouncil; 
 my %LocalCivil;
@@ -63,6 +65,22 @@ my $VoterCounter = $RepMyBlock->LoadRawDistrict($TableDated);
 print "\nStarted with $VoterCounter\n";
 
 my $StartDate = "2010-11-03";
+
+#### Before going into the cycle, we need to load the Towns.
+my %CacheTown = ();
+for (my $i = 0; $i < $VoterCounter; $i++) {
+	if ( defined $RepMyBlock::CacheDistrict_TownCity[$i]) {
+		$CacheTown { uc $RepMyBlock::CacheDistrict_TownCity[$i] } = 1;	
+	}
+}
+my $i = 0;
+foreach my $TownName (keys %CacheTown) {
+	$RepMyBlock::AddPoolDistrictTown[$i] = $TownName;
+	$i++;
+}
+
+$RepMyBlock->AddDistrictTown();
+
 for (my $i = 0; $i < $VoterCounter; $i++) {
 	my $ED = RemoveLeadingZero($RepMyBlock::CacheDistrict_ElectDistr[$i]);
 	my $AD = RemoveLeadingZero($RepMyBlock::CacheDistrict_AssemblyDistr[$i]);
@@ -70,20 +88,18 @@ for (my $i = 0; $i < $VoterCounter; $i++) {
 	my $DBTable = "ADED";
 	my $DBValue = $AD . sprintf( "%03d", $ED );
 
-	$RepMyBlock::CacheDataDistrict 
-										{$StartDate}
-										{''}
-										{$DBTable}
-										{$DBValue}
-										{$RepMyBlock::CacheDistrict_CountyCode[$i]}{$ED}{$AD}
-										{$RepMyBlock::CacheDistrict_SenateDistr[$i]}
-										{$RepMyBlock::CacheDistrict_LegisDistr[$i]}
-										{''}
-										{$RepMyBlock::CacheDistrict_Ward[$i]}
-										{$RepMyBlock::CacheDistrict_CongressDistr[$i]}
-										{$LocalCouncil{$AD}{$ED}}
-										{$LocalCivil{$AD}{$ED}}
-										{$LocalJudicial{$AD}{$ED}} = -1;
+	$RepMyBlock::CacheDataDistrict
+		{'1'}
+		{$DBTable}
+		{$DBValue}
+		{$RepMyBlock::CacheCountyTranslation{RemoveLeadingZero($RepMyBlock::CacheDistrict_CountyCode[$i])}}{$ED}{$AD}
+		{$RepMyBlock::CacheDistrict_SenateDistr[$i]}
+		{$RepMyBlock::CacheDistrict_LegisDistr[$i]}
+		{$RepMyBlock::CacheDistrict_Ward[$i]}
+		{$RepMyBlock::CacheDistrict_CongressDistr[$i]}
+		{$LocalCouncil{$AD}{$ED}}
+		{$LocalCivil{$AD}{$ED}}
+		{$LocalJudicial{$AD}{$ED}} = -1;
 }
 
 $RepMyBlock->DbAddToDataDistrict();

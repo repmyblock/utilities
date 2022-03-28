@@ -12,7 +12,7 @@ use FindBin::libs;
 use RMBSchemas;
 
 use RepMyBlock::NY;
-my $EmptyDatabase = 1;
+my $EmptyDatabase = 0;
 my $StopCounterPass = 0;
 
 print "Start the program\n";
@@ -53,10 +53,10 @@ $RepMyBlock->InitNamesCaches();
 
 print "\nCharging the raw database\n";
 $RepMyBlock::dbhRawVoters =  $dbhRawVoters;
-#my $GrandDBTotal = $RepMyBlock->NumberOfVotersInDB($TableDated);
-my $GrandDBTotal = 20318188; 
+my $GrandDBTotal = $RepMyBlock->NumberOfVotersInDB($TableDated);
+#my $GrandDBTotal = 20318188; 
 my $AmountToAdd = 50000;
-my $AmountToAdd = 1000;
+#my $AmountToAdd = 1000;
 my $Start = 0;
 my $PassCounter = 0;
 
@@ -67,7 +67,7 @@ while (my $VoterCounter = $RepMyBlock->LoadFromRawData($TableDated, $AmountToAdd
 	
 	my $clock0 = clock();
 	print "\nStarted with $VoterCounter\n";
-
+	
 	my $CounterCity = 0; 
 	my $CounterStreet = 0;
 	
@@ -115,7 +115,8 @@ while (my $VoterCounter = $RepMyBlock->LoadFromRawData($TableDated, $AmountToAdd
 	$RepMyBlock->AddAddressCacheIntoDatabase();
 
 	for (my $i = 0; $i < $VoterCounter; $i++) {	$RepMyBlock->TransferAddressesToHash($i); }	$RepMyBlock->DbAddToAddress();
-	for (my $i = 0; $i < $VoterCounter; $i++) {	$RepMyBlock->TransferHousesToHash($i); } $RepMyBlock->DbAddToDataHouse();		
+	for (my $i = 0; $i < $VoterCounter; $i++) {	$RepMyBlock->TransferHousesToHash($i); } $RepMyBlock->DbAddToDataHouse();	
+		
 	for (my $i = 0; $i < $VoterCounter; $i++) {	$RepMyBlock->TransferVotersIndexToHash($i); } $RepMyBlock->DbAddToVotersIndex();
 	for (my $i = 0; $i < $VoterCounter; $i++) {	$RepMyBlock->TransferVotersToHash($i); } $RepMyBlock->DbAddToVoters();
 			
@@ -137,6 +138,8 @@ while (my $VoterCounter = $RepMyBlock->LoadFromRawData($TableDated, $AmountToAdd
 	
 	print "\n";
 	
+	#	Reset the counter.
+  $RepMyBlock->ResetAllIncomingDBVariables();	
 }
 
 print "\nFinal Last Insert ID:\n";

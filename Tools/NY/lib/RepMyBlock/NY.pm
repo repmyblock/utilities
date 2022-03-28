@@ -161,6 +161,47 @@ sub LoadFromRawData {
 	return $Counter;
 }
 
+sub ResetAllIncomingDBVariables {
+	
+	undef @RepMyBlock::CacheVoter_FirstName;
+	undef @RepMyBlock::CacheIdxFirstName;
+	undef @RepMyBlock::CacheVoter_MiddleName;
+	undef @RepMyBlock::CacheIdxMiddleName;
+	undef @RepMyBlock::CacheVoter_LastName;
+	undef @RepMyBlock::CacheIdxLastName;
+	undef @RepMyBlock::CacheIdxSuffix;
+	undef @RepMyBlock::CacheIdxDOB;
+	undef @RepMyBlock::CacheVoter_Gender;
+	undef @RepMyBlock::CacheVoter_EnrollPolParty;
+	undef @RepMyBlock::CacheVoter_DBTableValue;
+	undef @RepMyBlock::CacheVoter_CountyVoterNumber;
+	undef @RepMyBlock::CacheVoter_RegistrationCharacter;
+	undef @RepMyBlock::CacheVoter_ApplicationSource;
+	undef @RepMyBlock::CacheVoter_IDRequired;
+	undef @RepMyBlock::CacheVoter_IDMet;
+	undef @RepMyBlock::CacheVoter_Status;
+	undef @RepMyBlock::CacheVoter_ReasonCode;
+	undef @RepMyBlock::CacheVoter_VoterMadeInactive;
+	undef @RepMyBlock::CacheVoter_VoterPurged;
+	undef @RepMyBlock::CacheAdress_ResHouseNumber;
+	undef @RepMyBlock::CacheAdress_ResFracAddress; 
+	undef @RepMyBlock::CacheAdress_ResApartment;
+	undef @RepMyBlock::CacheAdress_ResPreStreet;
+	undef @RepMyBlock::CacheAdress_ResStreetName;
+	undef @RepMyBlock::CacheAdress_ResStreetNameID;
+	undef @RepMyBlock::CacheAdress_ResStreetName;
+	undef @RepMyBlock::CacheAdress_ResPostStDir; 
+	undef @RepMyBlock::CacheAdress_ResCityName;
+	undef @RepMyBlock::CacheAdress_ResCityNameID;
+	undef @RepMyBlock::CacheCityName;
+	undef @RepMyBlock::CacheAdress_ResZip;
+	undef @RepMyBlock::CacheAdress_ResZip4;
+	undef @RepMyBlock::CacheVoter_UniqStateVoterID;
+	undef @RepMyBlock::CacheIdxCode;
+	
+}
+
+
 sub TransferAddressesToHash {
 	my $self = shift;
 	
@@ -366,8 +407,6 @@ sub LoadVoterData {
 	print "Loaded into cache: $Counter\n";	
 	return $Counter;
 }
-
-
 
 sub LoadVoterAddressFromRawData {
 	my $DateTable = $_[0];
