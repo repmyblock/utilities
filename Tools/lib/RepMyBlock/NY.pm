@@ -559,10 +559,11 @@ sub ReturnYesNo {
 
 sub ReturnAllLabels {
 	print "DateTable: " . $_[1] . "\n";
-	$sql = "SELECT * FROM FillingTrack";
+	my $sql = "SELECT * FROM FillingTrack";
 	print "SQL: $sql\n";
-	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	my $stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
 	$stmt->execute();
+	my $Counter = 0;
 	
 	while (my @row = $stmt->fetchrow_array) { #  or die "can't execute the query: $stmt->errstr" ) {		
 		if ( defined ($row[0]) ) { $RepMyBlock::CacheDistrict_CountyCode[$Counter]= $row[0] }; 
