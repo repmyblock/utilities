@@ -40,7 +40,8 @@ sub NumberOfVotersInDB {
 	my $sql = "SELECT count(*) AS SizeTotal FROM " . $_[0] ;
 	my $stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
 	$stmt->execute();
-	my @row = $stmt->fetchrow_array;
+	return $stmt->fetchrow_array;
+	
 
 }
 
@@ -53,6 +54,38 @@ sub LoadOneVoter {
 	return $stmt->fetchrow_hashref();
 }
 
+sub IDLoadFromRawData {
+	
+	my $self = shift;
+	my $sql = "";
+	my $stmt = "";
+	
+	# Carefull because the data format changed in January 2022
+	
+	# LastName, FirstName, MiddleName, Suffix, ResHouseNumber, ResFracAddress, ResPreStreet, 
+	# ResStreetName, ResPostStDir, ResType, ResApartment, ResNonStdFormat, ResCity, ResZip, ResZip4, 
+	# ResMail1, ResMail2, ResMail3, ResMail4, DOB, Gender, EnrollPolParty, OtherParty, CountyCode, 
+	# ElectDistr, LegisDistr, TownCity, Ward, CongressDistr, SenateDistr, AssemblyDistr, LastDateVoted, 
+	# PrevYearVoted, PrevCounty, PrevAddress, PrevName, CountyVoterNumber, RegistrationCharacter, ApplicationSource, 
+	# IDRequired, IDMet, Status, ReasonCode, VoterMadeInactive, VoterPurged, UniqNYSVoterID, VoterHistory
+	# ID DRIVER: NY_Raw_ID
+	
+	### Last Name
+	
+	$sql = "SELECT NY_Raw_ID, LastName, FirstName, MiddleName, Suffix, ResHouseNumber, ResFracAddress, ResPreStreet, " . 
+					"ResStreetName, ResPostStDir, ResType, ResApartment, ResNonStdFormat, ResCity, ResZip, ResZip4, " . 
+					"ResMail1, ResMail2, ResMail3, ResMail4, DOB, Gender, EnrollPolParty, OtherParty, CountyCode, " . 
+					"ElectDistr, LegisDistr, TownCity, Ward, CongressDistr, SenateDistr, AssemblyDistr, LastDateVoted, " . 
+					"PrevYearVoted, PrevCounty, PrevAddress, PrevName, CountyVoterNumber, RegistrationCharacter, " .
+					"ApplicationSource, IDRequired, IDMet, Status, ReasonCode, VoterMadeInactive, VoterPurged, " .
+					"UniqNYSVoterID, VoterHistory ". 
+					"FROM " . $_[0] . " WHERE NY_Raw_ID = ?";
+					
+	$stmt = $RepMyBlock::dbhRawVoters->prepare($sql);
+	$stmt->execute($_[1]);
+	return $stmt->fetchrow_hashref();
+	
+}
 
 sub LoadFromRawData {
 	my $self = shift;
@@ -471,7 +504,7 @@ sub LoadRawDistrict {
 
 #### These are the standart questions in the NYS voter file.
 sub	ReturnReasonCode {
-	my ($Question) = @_;
+	my $Question = $_[1];
 		
 	if ( ! defined $Question ) { return undef; }
 	
@@ -490,14 +523,14 @@ sub	ReturnReasonCode {
 	elsif ($Question eq "COURT") {  return "Court" }
 	elsif ($Question eq "INACTIVE") {  return "Inactive" }
 	
-	print "Catastrophic ReturnReasonCode problem as $Question\n";
+	print "Catastrophic ReturnReasonCode problem as #$Question#\n";
 	exit();
 	
 	return undef;
 }
 
 sub ReturnRegistrationSource {
-	my ($Question) = @_;
+	my $Question = $_[1];
 	
 	if ( ! defined $Question ) { return undef; }
 	if ($Question eq "AGCY") { return "Agency"; }
@@ -514,7 +547,7 @@ sub ReturnRegistrationSource {
 }
 	
 sub	ReturnStatusCode {
-	my ($Question) = @_;				
+	my $Question = $_[1];			
 
 	if ( ! defined $Question ) { return undef; }
 	
@@ -528,6 +561,10 @@ sub	ReturnStatusCode {
 	elsif ($Question eq "PREREG") { return "Prereg17YearOlds"; }
 	elsif ($Question eq "RETURN-MAIL") { return "ReturnMail"; }
 	elsif ($Question eq "VOTER-REQ") { return "VoterRequest"; }
+	elsif ($Question eq "A") { return "Active"; }
+	elsif ($Question eq "P") { return "Purged"; }
+	elsif ($Question eq "I") { return "Inactive"; }
+	elsif ($Question eq "17") { return "Prereg17YearOlds"; }
 	
 	print "Catastrophic ReturnStatusCode problem as it is empty: $Question\n";
 	exit();
@@ -536,7 +573,7 @@ sub	ReturnStatusCode {
 }
 
 sub ReturnGender {
-	my ($Gender) = @_;
+	my $Gender = $_[1];
 	
 	if ( defined $Gender ) { 
 		if ( $Gender eq 'M') { return "male"; } 
@@ -549,7 +586,7 @@ sub ReturnGender {
 
 
 sub ReturnYesNo {
-	my ($Question) = @_;
+	my $Question = $_[1];			
 	if ($Question eq 'Y') { return 'yes';	}	
 	elsif ($Question eq 'N') { return 'no'; }
 	return undef;

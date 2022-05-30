@@ -1426,6 +1426,374 @@ sub LoadPartyCall {
 	return $rhOptions;
 }
 
+#######################################################
+### THE SLOW FUNCTION                               ###
+#######################################################
+### These function are one by one 
+
+#### The Slow Individual Queries
+sub SlowReturnLastName {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("SELECT * FROM DataLastName WHERE DataLastName_Text = ?");
+	$stmt->execute($self->trimstring($_[0])) or die "Connection error: $DBI::errstr";
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowReturnFirstName {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("SELECT * FROM DataFirstName WHERE DataFirstName_Text = ?");
+	$stmt->execute($self->trimstring($_[0])) or die "Connection error: $DBI::errstr";
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowReturnMiddleName {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("SELECT * FROM DataMiddleName WHERE DataMiddleName_Text = ?");
+	$stmt->execute($self->trimstring($_[0])) or die "Connection error: $DBI::errstr";
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowReturnCity {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("SELECT * FROM DataCity WHERE DataCity_Name = ?");
+	$stmt->execute($self->trimstring($_[0])) or die "Connection error: $DBI::errstr";
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowRetunBOEIDCounty {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("SELECT * FROM DataCounty WHERE DataCounty_BOEID = ? AND DataState_ID = ?");
+	$stmt->execute($self->trimstring($_[0]), $_[1]) or die "Connection error: $DBI::errstr";
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowRetunTown {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("SELECT * FROM DataDistrictTown WHERE DataDistrictTown_Name = ?");
+	$stmt->execute($self->trimstring($_[0])) or die "Connection error: $DBI::errstr";
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowRetunStreet {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("SELECT * FROM DataStreet WHERE DataStreet_Name = ?");
+	$stmt->execute($self->trimstring($_[0])) or die "Connection error: $DBI::errstr";
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowReturnVotersIndexesByUniqStateID {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("SELECT * FROM VotersIndexes WHERE VotersIndexes_UniqStateVoterID = ?");
+	$stmt->execute($self->trimstring($_[0])) or die "Connection error: $DBI::errstr";
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowUpdateMiddleNameInVoterByIDXID {
+	my $self = shift;
+	my $sql_clause = "UPDATE VotersIndexes SET DataMiddleName_ID = ? WHERE VotersIndexes_ID = ?";
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+	$stmt->execute($_[1], $_[0]);
+}
+
+sub SlowReturnMiddleNameByID {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("SELECT * FROM DataMiddleName WHERE DataMiddleName_ID = ?");
+	$stmt->execute($self->trimstring($_[0])) or die "Connection error: $DBI::errstr";
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowReturnAddress {
+	my $self = shift;
+	
+	my $sql_clause = "SELECT * FROM DataAddress WHERE ";
+	$sql_clause .= defined $_[0] ? "DataAddress_HouseNumber = ? AND " : "DataAddress_HouseNumber IS NULL AND ";
+	$sql_clause .= defined $_[1] ? "DataAddress_FracAddress = ? AND " : "DataAddress_FracAddress IS NULL AND ";
+	$sql_clause .= defined $_[2] ? "DataAddress_PreStreet = ? AND "   : "DataAddress_PreStreet IS NULL AND ";
+	$sql_clause .= defined $_[3] ? "DataStreet_ID = ? AND "           : "DataStreet_ID IS NULL AND ";
+	$sql_clause .= defined $_[4] ? "DataAddress_PostStreet = ? AND "  : "DataAddress_PostStreet IS NULL AND ";
+	$sql_clause .= defined $_[5] ? "DataCity_ID = ? AND "             : "DataCity_ID IS NULL AND ";
+	$sql_clause .= defined $_[6] ? "DataState_ID = ? AND "            : "DataState_ID IS NULL AND ";
+	$sql_clause .= defined $_[7] ? "DataAddress_zipcode = ? AND "     : "DataAddress_zipcode IS NULL AND ";
+	$sql_clause .= defined $_[8] ? "DataAddress_zip4 = ?"        			: "DataAddress_zip4 IS NULL";
+	
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+
+	$stmt->execute(
+				defined $_[0] ? $_[0] : (),
+				defined $_[1] ? $_[1] : (),
+				defined $_[2] ? $_[2] : (),
+				defined $_[3] ? $_[3] : (),
+				defined $_[4] ? $_[4] : (),
+				defined $_[5] ? $_[5] : (),
+				defined $_[6] ? $_[6] : (),
+				defined $_[7] ? $_[7] : (),
+				defined $_[8] ? $_[8] : ()
+	);
+
+	return $stmt->fetchrow_hashref();
+}
+
+
+sub SlowReturnHouse {
+	my $self = shift;
+	
+	my $sql_clause = "SELECT * FROM DataHouse WHERE ";
+	$sql_clause .= defined $_[0] ? "DataAddress_ID = ? AND " 								: "DataAddress_ID IS NULL AND ";
+	$sql_clause .= defined $_[1] ? "DataHouse_Apt = ? AND " 								: "DataHouse_Apt IS NULL AND ";
+	$sql_clause .= defined $_[2] ? "DataDistrictTemporal_GroupID = ? AND "  : "DataDistrictTemporal_GroupID IS NULL AND ";
+	$sql_clause .= defined $_[3] ? "DataDistrictTown_ID = ?"       			    : "DataDistrictTown_ID IS NULL";
+	
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+
+	$stmt->execute(
+				defined $_[0] ? $_[0] : (),
+				defined $_[1] ? $_[1] : (),
+				defined $_[2] ? $_[2] : (),
+				defined $_[3] ? $_[3] : ()
+	);
+
+	return $stmt->fetchrow_hashref();
+}
+
+
+sub SlowReturnDistrict {
+	my $self = shift;
+	
+	my $sql_clause = "SELECT * FROM DataDistrict WHERE ";
+	$sql_clause .= defined $_[0] ? "DataCounty_ID = ? AND " 							: "DataCounty_ID IS NULL AND ";
+	$sql_clause .= defined $_[1] ? "DataDistrict_Electoral = ? AND " 			: "DataDistrict_Electoral IS NULL AND ";
+	$sql_clause .= defined $_[2] ? "DataDistrict_StateAssembly = ? AND "	: "DataDistrict_StateAssembly IS NULL AND ";
+	$sql_clause .= defined $_[3] ? "DataDistrict_SenateSenate = ? AND "  	: "DataDistrict_SenateSenate IS NULL AND ";
+	$sql_clause .= defined $_[4] ? "DataDistrict_Legislative = ? AND " 		: "DataDistrict_Legislative IS NULL AND ";
+	$sql_clause .= defined $_[5] ? "DataDistrict_Ward = ? AND " 					: "DataDistrict_Ward IS NULL AND ";
+	$sql_clause .= defined $_[6] ? "DataDistrict_Congress = ? AND "  			: "DataDistrict_Congress IS NULL AND ";
+	$sql_clause .= defined $_[7] ? "DataDistrict_Council = ? AND"       	: "DataDistrict_Council IS NULL AND ";
+	$sql_clause .= defined $_[8] ? "DataDistrict_CivilCourt = ? AND " 		: "DataDistrict_CivilCourt IS NULL AND ";
+	$sql_clause .= defined $_[9] ? "DataDistrict_Judicial = ?"			 			: "DataDistrict_Judicial IS NULL";
+	
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+
+	$stmt->execute(
+				defined $_[0] ? $_[0] : (),
+				defined $_[1] ? $_[1] : (),
+				defined $_[2] ? $_[2] : (),
+				defined $_[3] ? $_[3] : (),
+				defined $_[4] ? $_[4] : (),
+				defined $_[5] ? $_[5] : (),
+				defined $_[6] ? $_[6] : (),
+				defined $_[7] ? $_[7] : (),
+				defined $_[8] ? $_[8] : (),
+				defined $_[9] ? $_[9] : ()
+	);
+
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowAddDistrict {
+	my $self = shift;
+	my $sql_clause = "INSERT INTO DataDistrict SET " . 
+											"DataCounty_ID = ?, DataDistrict_Electoral = ?, DataDistrict_StateAssembly = ?, " .
+											"DataDistrict_SenateSenate = ?, DataDistrict_Legislative = ?, DataDistrict_Ward = ?, " .
+											"DataDistrict_Congress = ?, DataDistrict_Council = ?, DataDistrict_CivilCourt = ?, " .
+											"DataDistrict_Judicial = ?";
+											
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+	$stmt->execute($_[0], $_[1], $_[2], $_[3], $_[4], $_[5], $_[6], $_[7], $_[8], $_[9]);
+		
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS DataDistrict_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowAddHouse {
+	my $self = shift;
+	my $sql_clause = "INSERT INTO DataHouse SET DataAddress_ID = ?, DataHouse_Apt = ?, DataDistrictTemporal_GroupID = ?, DataDistrictTown_ID = ?";
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+	$stmt->execute($_[0], $_[1], $_[2], $_[3]);
+		
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS DataHouse_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowInsertVotersIndexes {
+	my $self = shift;
+	my $sql_clause = "INSERT INTO VotersIndexes SET " . 
+											"DataState_ID = ?, DataLastName_ID = ?, DataFirstName_ID = ?, " . 
+											"DataMiddleName_ID = ?, VotersIndexes_Suffix = ?, VotersIndexes_DOB = ?, " . 
+											"VotersIndexes_UniqStateVoterID = ?";
+											
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+	$stmt->execute($_[0], $_[1], $_[2], $_[3], $_[4], $_[5], $_[6]);
+		
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS VotersIndexes_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}
+
+
+sub SlowReturnVotersIndexes {
+	my $self = shift;
+
+	my $sql_clause = "SELECT * FROM VotersIndexes WHERE ";
+	$sql_clause .= defined $_[0] ? "DataState_ID = ? AND " 							: "DataState_ID IS NULL AND ";
+	$sql_clause .= defined $_[1] ? "DataLastName_ID = ? AND " 					: "DataLastName_ID IS NULL AND ";
+	$sql_clause .= defined $_[2] ? "DataFirstName_ID = ? AND "					: "DataFirstName_ID IS NULL AND ";
+	$sql_clause .= defined $_[3] ? "DataMiddleName_ID = ? AND " 				: "DataMiddleName_ID IS NULL AND ";
+	$sql_clause .= defined $_[4] ? "VotersIndexes_Suffix = ? AND " 			: "VotersIndexes_Suffix IS NULL AND ";
+	$sql_clause .= defined $_[5] ? "VotersIndexes_DOB = ? AND " 				: "VotersIndexes_DOB IS NULL AND ";
+	$sql_clause .= defined $_[6] ? "VotersIndexes_UniqStateVoterID = ?"	: "VotersIndexes_UniqStateVoterID IS NULL";
+	
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+
+	$stmt->execute(
+				defined $_[0] ? $_[0] : (),
+				defined $_[1] ? $_[1] : (),
+				defined $_[2] ? $_[2] : (),
+				defined $_[3] ? $_[3] : (),
+				defined $_[4] ? $_[4] : (),
+				defined $_[5] ? $_[5] : (),
+				defined $_[6] ? $_[6] : ()
+	);
+
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowReturnVotersByVoterIndexID { 
+	my $self = shift;
+	
+	my $sql_clause = "SELECT * FROM Voters WHERE ";
+	$sql_clause .= defined $_[0] ? "VotersIndexes_ID = ?" 				: "VotersIndexes_ID IS NULL";
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+
+	$stmt->execute(
+				defined $_[0] ? $_[0] : ()
+	);
+
+	return $stmt->fetchrow_hashref();
+}
+	
+sub SlowUpdateVotersByVoterIndexID {
+	my $self = shift;
+	
+	my $sql_clause = "UPDATE Voters SET " .
+										"DataHouse_ID = ?, Voters_Gender = ?, VotersComplementInfo_ID = ?, Voters_UniqStateVoterID = ?, " .
+										"DataState_ID = ?, Voters_RegParty = ?, Voters_ReasonCode = ?, Voters_Status = ?, " . 
+										"VotersMailingAddress_ID = ?, Voters_IDRequired = ?, Voters_IDMet = ?," .
+										"Voters_ApplyDate = ?, Voters_RegSource = ?, Voters_DateInactive = ?, Voters_DatePurged = ?, " .	
+										"Voters_CountyVoterNumber = ?, Voters_RecLastSeen = ? WHERE VotersIndexes_ID = ?";
+	
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+
+	$stmt->execute($_[1], $_[2], $_[3], $_[4], $_[5], $_[6], $_[7], $_[8], $_[9], 
+									$_[10], $_[11], $_[12], $_[13], $_[14], $_[15], $_[16], $_[17], $_[0]);
+}
+
+
+sub SlowInsertNewVoter {
+	my $self = shift;
+	
+	my $sql_clause = "INSERT Voters SET " .
+										"VotersIndexes_ID = ?, DataHouse_ID = ?, Voters_Gender = ?, VotersComplementInfo_ID = ?, Voters_UniqStateVoterID = ?, " .
+										"DataState_ID = ?, Voters_RegParty = ?, Voters_ReasonCode = ?, Voters_Status = ?, " . 
+										"VotersMailingAddress_ID = ?, Voters_IDRequired = ?, Voters_IDMet = ?," .
+										"Voters_ApplyDate = ?, Voters_RegSource = ?, Voters_DateInactive = ?, Voters_DatePurged = ?, " .	
+										"Voters_CountyVoterNumber = ?, Voters_RecFirstSeen = ?, Voters_RecLastSeen = ?";
+	
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+
+	$stmt->execute($_[0], $_[1], $_[2], $_[3], $_[4], $_[5], $_[6], $_[7], $_[8], $_[9], 
+									$_[10], $_[11], $_[12], $_[13], $_[14], $_[15], $_[16], $_[17], $_[17]);
+	
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS VotersIndexes_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowFixDoubleVotersTableByUniqStateID {
+	### The goal of this function is to change Voters_RMBActive flag to "no" when multiple voters have the same UNIQ State ID
+	### but the Voters_RecLastSeen is equal. (Meaning that a person changed name)
+	my $self = shift;
+	
+	my $sql_clause = "SELECT * FROM Voters WHERE Voters_UniqStateVoterID = ?";	
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+	$stmt->execute($_[0]);
+	
+	# Count the numbers of row.
+	my $RowCounter = 0;
+	my $CounterRecLastSeen = 0;
+	
+	while (my $row = $stmt->fetchrow_hashref) {
+		$RowCounter++;
+		if ( $row->{'Voters_RecLastSeen'} eq $_[1] ) {
+			$CounterRecLastSeen++;		
+		}		
+	}
+
+	if ( $RowCounter > 1 && $CounterRecLastSeen == 1 ) {
+		$stmt = $self->{"dbh"}->prepare("UPDATE Voters SET Voters_RMBActive = 'no' WHERE Voters_UniqStateVoterID = ? AND Voters_RecLastSeen != ?");
+	  $stmt->execute($_[0], $_[1]);
+	} 
+			
+} 
+
+sub SlowUpdateVoterLastSeen {
+	my $self = shift;
+	
+	my $sql_clause = "UPDATE Voters SET Voters_RecLastSeen = ? WHERE VotersIndexes_ID = ?";
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+
+	$stmt->execute($_[1], $_[0]);
+}
+
+sub SlowReturnVoters {
+	my $self = shift;
+	
+	my $sql_clause = "SELECT * FROM Voters WHERE ";
+	$sql_clause .= defined $_[0] ? "VotersIndexes_ID = ? AND " 				: "VotersIndexes_ID IS NULL AND ";
+	$sql_clause .= defined $_[1] ? "DataHouse_ID = ? AND " 						: "DataHouse_ID IS NULL AND ";
+	$sql_clause .= defined $_[2] ? "Voters_Gender = ? AND "						: "Voters_Gender IS NULL AND ";
+	$sql_clause .= defined $_[3] ? "VotersComplementInfo_ID = ? AND " : "VotersComplementInfo_ID IS NULL AND ";
+	$sql_clause .= defined $_[4] ? "Voters_UniqStateVoterID = ? AND " : "Voters_UniqStateVoterID IS NULL AND ";
+	$sql_clause .= defined $_[5] ? "DataState_ID = ? AND " 						: "DataState_ID IS NULL AND ";
+	$sql_clause .= defined $_[6] ? "Voters_RegParty = ? AND "  				: "Voters_RegParty IS NULL AND ";
+	$sql_clause .= defined $_[7] ? "Voters_ReasonCode = ? AND "      	: "Voters_ReasonCode IS NULL AND ";
+	$sql_clause .= defined $_[8] ? "Voters_Status = ? AND " 					: "Voters_Status IS NULL AND ";
+	$sql_clause .= defined $_[9] ? "VotersMailingAddress_ID = ? AND "	: "VotersMailingAddress_ID IS NULL AND ";
+	$sql_clause .= defined $_[10] ? "Voters_IDRequired = ? AND " 			: "Voters_IDRequired IS NULL AND ";
+	$sql_clause .= defined $_[11] ? "Voters_IDMet = ? AND " 					: "Voters_IDMet IS NULL AND ";
+	$sql_clause .= defined $_[12] ? "Voters_ApplyDate = ? AND "				: "Voters_ApplyDate IS NULL AND ";
+	$sql_clause .= defined $_[13] ? "Voters_RegSource = ? AND "  			: "Voters_RegSource IS NULL AND ";
+	$sql_clause .= defined $_[14] ? "Voters_DateInactive = ? AND " 		: "Voters_DateInactive IS NULL AND ";
+	$sql_clause .= defined $_[15] ? "Voters_DatePurged = ? AND " 			: "Voters_DatePurged IS NULL AND ";
+	$sql_clause .= defined $_[16] ? "Voters_CountyVoterNumber = ?"		: "Voters_CountyVoterNumber IS NULL";
+	
+	my $stmt = $self->{"dbh"}->prepare($sql_clause);
+
+	$stmt->execute(
+				defined $_[0] ? $_[0] : (),
+				defined $_[1] ? $_[1] : (),
+				defined $_[2] ? $_[2] : (),
+				defined $_[3] ? $_[3] : (),
+				defined $_[4] ? $_[4] : (),
+				defined $_[5] ? $_[5] : (),
+				defined $_[6] ? $_[6] : (),
+				defined $_[7] ? $_[7] : (),
+				defined $_[8] ? $_[8] : (),
+				defined $_[9] ? $_[9] : (),
+				defined $_[10] ? $_[10] : (),
+				defined $_[11] ? $_[11] : (),
+				defined $_[12] ? $_[12] : (),
+				defined $_[13] ? $_[13] : (),
+				defined $_[14] ? $_[14] : (),
+				defined $_[15] ? $_[15] : (),
+				defined $_[16] ? $_[16] : ()
+	);
+
+	return $stmt->fetchrow_hashref();
+}
+
+
 
 sub ParseDatesToDB {
 	my $self = shift;
