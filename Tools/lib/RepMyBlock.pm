@@ -1502,6 +1502,60 @@ sub SlowReturnMiddleNameByID {
 	return $stmt->fetchrow_hashref();
 }
 
+sub SlowAddLastName {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("INSERT INTO DataLastName SET DataLastName_Text = ?, DataLastName_Compress = ?");
+	$stmt->execute(NameCase($_[0]), ReturnCompressed($_[0]));
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS DataLastName_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowAddFirstName {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("INSERT INTO DataFirstName SET DataFirstName_Text = ?, DataFirstName_Compress = ?");
+	$stmt->execute(NameCase($_[0]), ReturnCompressed($_[0]));
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS DataFirstName_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}
+
+sub SlowAddMiddleName {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("INSERT INTO DataMiddleName SET DataMiddleName_Text = ?, DataMiddleName_Compress = ?");
+	$stmt->execute(NameCase($_[0]), ReturnCompressed($_[0]));
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS DataMiddleName_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}	
+
+sub SlowAddStreet {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("INSERT INTO DataStreet SET DataStreet_Name = ?");
+	$stmt->execute(NameCase($_[0]));
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS DataStreet_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}	
+
+sub SlowAddCity {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("INSERT INTO DataCity SET DataCity_Name = ?");
+	$stmt->execute(NameCase($_[0]));
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS DataCity_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}	
+
+sub SlowAddTown {
+	my $self = shift;
+	my $stmt = $self->{"dbh"}->prepare("INSERT INTO DataDistrictTown SET DataDistrictTown_Name = ?");
+	$stmt->execute(NameCase($_[0]));
+	$stmt = $self->{"dbh"}->prepare("SELECT LAST_INSERT_ID() AS DataDistrictTown_ID");
+  $stmt->execute();
+	return $stmt->fetchrow_hashref();
+}	
+
 sub SlowReturnAddress {
 	my $self = shift;
 	
