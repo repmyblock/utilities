@@ -20,8 +20,7 @@ my $StopCounterPass = 0;
 #### This can be extrapoled from the INIT DB File
 my $LastSeenBOEFile = "2022-04-25";
 my $DataDistrictCycle_ID = "2";
-my $RawTableName = "VotersRaw_NYS";
-
+my $RawTableName = "NY_Raw_20220425";
 
 my $Counter = int($ARGV[0]);
 my $CounterBeg = int($ARGV[1]);
