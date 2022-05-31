@@ -146,7 +146,7 @@ sub InitializeVoterFile {
 	my $dbh = shift;
 		
 	# Read the Table Directory in the file
-	my $filename = '/home/usracct/.rmbvoter';
+	my $filename = $ENV{PATH} . '/.rmbvoter';
 	open(my $fh, '<:encoding(UTF-8)', $filename) or die "Could not open file '$filename' $!";
 	my $tabledate = <$fh>;
 	chomp($tabledate);
@@ -160,7 +160,7 @@ sub InitDatabase {
 	my $self = shift;
 	my $params = shift;
 	
-	my $cfg = new Config::Simple('/home/usracct/.repmyblockdb');
+	my $cfg = new Config::Simple($ENV{PATH} . '/.repmyblockdb');
 
 	### NEED TO FIND THE ID of that table.
 	#dbname_voters: NYSVoters
