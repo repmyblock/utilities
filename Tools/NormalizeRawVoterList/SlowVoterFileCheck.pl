@@ -17,16 +17,20 @@ use RMBSchemas;
 use RepMyBlock::NY;
 my $StopCounterPass = 0;
 
-
 #### This can be extrapoled from the INIT DB File
 my $LastSeenBOEFile = "2022-04-25";
 my $DataDistrictCycle_ID = "2";
 my $RawTableName = "NY_Raw_20220425";
 
 my $Counter = int($ARGV[0]);
+my $CounterBeg = int($ARGV[1]);
 
-
-print "Slow Line by Line check of the Database\n";
+if ($CounterBeg == 0) {
+		$CounterBeg = 1;
+}
+	
+	
+print "Slow Line by Line check of the Database $CounterBeg\n";
 
 ### Connecting and Initializing.
 my $RepMyBlock 		= RepMyBlock::NY->new();
@@ -65,7 +69,7 @@ my $PercentComp = 0;
 my $timetocompletion = 0;
 
 
-for (my $i = 1; $i < $Counter; $i++) {
+for (my $i = $CounterBeg; $i < $Counter; $i++) {
 	print "\033c";
 	print "\033[1;1H";
 	
@@ -115,12 +119,15 @@ for (my $i = 1; $i < $Counter; $i++) {
 	printf ("\tNY_Raw_ID\t\tID: %-8d \n", $result->{'NY_Raw_ID'} );
 
 	my $LastNameID = $RepMyBlock->SlowReturnLastName($result->{'LastName'});
+	$LastNameID = $RepMyBlock->SlowAddLastName ($result->{'LastName'}) if (! defined $LastNameID->{'DataLastName_ID'});
 	printf ("\tLastName\t\tID: %8d %-50s\n", $LastNameID->{'DataLastName_ID'}, $result->{'LastName'});
 
 	my $FistNameID = $RepMyBlock->SlowReturnFirstName($result->{'FirstName'});
+	$FistNameID = $RepMyBlock->SlowAddFirstName ($result->{'FirstName'}) if (! defined $FistNameID->{'DataFirstName_ID'});
 	printf ("\tFirstName\t\tID: %8d %-50s\n", $FistNameID->{'DataFirstName_ID'}, $result->{'FirstName'});
 	
 	my $MiddleNameID = $RepMyBlock->SlowReturnMiddleName($result->{'MiddleName'});
+	$MiddleNameID = $RepMyBlock->SlowAddMiddleName ($result->{'MiddleName'}) if (! defined $MiddleNameID->{'DataMiddleName_ID'});
 	printf ("\tMiddleName\t\tID: %8d %-50s\n", $MiddleNameID->{'DataMiddleName_ID'}, $result->{'MiddleName'});
 
 	printf ("\tSuffix\t\t\tID: %-8d %-50s\n", -1, $result->{'Suffix'});	
@@ -129,6 +136,7 @@ for (my $i = 1; $i < $Counter; $i++) {
 	printf ("\tResPreStreet\t\tID: %-8d %-50s\n", -1, $result->{'ResPreStreet'});	
 	
 	my $Street = $RepMyBlock->SlowRetunStreet($result->{'ResStreetName'});
+	$Street = $RepMyBlock->SlowAddStreet ($result->{'ResStreetName'}) if (! defined $Street->{'DataStreet_ID'});
 	printf ("\tResStreetName\t\tID: %8d %-50s\n", $Street->{'DataStreet_ID'}, $result->{'ResStreetName'});	
 	
 	printf ("\tResPostStDir\t\tID: %-8d %-50s\n", -1, $result->{'ResPostStDir'});	
@@ -137,6 +145,7 @@ for (my $i = 1; $i < $Counter; $i++) {
 	printf ("\tResNonStdFormat\t\tID: %-8d %-50s\n", -1, $result->{'ResNonStdFormat'});	
 
 	my $City = $RepMyBlock->SlowReturnCity($result->{'ResCity'});
+	$City = $RepMyBlock->SlowAddCity($result->{'ResCity'}) if (! defined $City->{'DataCity_ID'});
 	printf ("\tResCity\t\t\tID: %8d %-50s\n", $City->{'DataCity_ID'}, $result->{'ResCity'});
 	
 	printf ("\tResZip\t\t\tID: %-8d %-50s\n", -1, $result->{'ResZip'});	
@@ -158,6 +167,7 @@ for (my $i = 1; $i < $Counter; $i++) {
 	printf ("\tLegisDistr\t\tID: %-8d %-50s\n", -1, $result->{'LegisDistr'});	
 	
 	my $Town = $RepMyBlock->SlowRetunTown($result->{'TownCity'});
+	$Town = $RepMyBlock->SlowAddTown($result->{'TownCity'}) if (! defined $Town->{'DataDistrictTown_ID'});
 	printf ("\tTownCity\t\tID: %8d %-50s\n", $Town->{'DataDistrictTown_ID'}, $result->{'TownCity'});	
 	
 	printf ("\tWard\t\t\tID: %-8d %-50s\n", -1, $result->{'Ward'});	
@@ -179,6 +189,11 @@ for (my $i = 1; $i < $Counter; $i++) {
 	printf ("\tVoterMadeInactive\tID: %-8d %-50s\n", -1, $result->{'VoterMadeInactive'});	
 	printf ("\tVoterPurged\t\tID: %-8d %-50s\n", -1, $result->{'VoterPurged'});	
 	printf ("\tUniqNYSVoterID\t\tID: %-8d %-60s\n", -1, $result->{'UniqNYSVoterID'});	
+		
+	####################################################
+	### ADRESS FUCTIONS                              ###
+	####################################################
+	### We need to add the house in the data
 	
 	printf ("\nFinding the Compress information for State: $RepMyBlock::DataStateID\n");
 	my $Address = $RepMyBlock->SlowReturnAddress(
@@ -271,20 +286,14 @@ for (my $i = 1; $i < $Counter; $i++) {
 			}
 		
 		} else {	
-			
-			print "Count not find this information in the VoterByIndex\n";
-			print "Exiting\n";
-			exit();
-	
+		
 			$VotersIndexes = $RepMyBlock->SlowInsertVotersIndexes(
 				$RepMyBlock::DataStateID,
 				$LastNameID->{'DataLastName_ID'}, $FistNameID->{'DataFirstName_ID'}, 
 				$MiddleNameID->{'DataMiddleName_ID'}, $result->{'Suffix'}, 
 				$result->{'DOB'}, $result->{'UniqNYSVoterID'}
 			);
-		}
-		
-		
+		}	
 	}
 		
 	my $VotersByIndex = $RepMyBlock->SlowReturnVotersByVoterIndexID($VotersIndexes->{'VotersIndexes_ID'});
