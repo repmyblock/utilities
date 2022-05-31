@@ -136,7 +136,7 @@ my $LastNameID = $RepMyBlock->SlowReturnLastName($result->{'LastName'});
 	printf ("\tResPreStreet\t\tID: %-8d %-50s\n", -1, $result->{'ResPreStreet'});	
 	
 	my $Street = $RepMyBlock->SlowRetunStreet($result->{'ResStreetName'});
-	$Street = $RepMyBlock->SlowAddStreet ($result->{'ResStreetName'}) if (! defined $Street->{'DataStreet_ID'} && length($result->{'ResStreetName'} > 0);
+	$Street = $RepMyBlock->SlowAddStreet ($result->{'ResStreetName'}) if (! defined $Street->{'DataStreet_ID'} && length($result->{'ResStreetName'} > 0));
 	printf ("\tResStreetName\t\tID: %8d %-50s\n", $Street->{'DataStreet_ID'}, $result->{'ResStreetName'});	
 	
 	printf ("\tResPostStDir\t\tID: %-8d %-50s\n", -1, $result->{'ResPostStDir'});	
@@ -145,7 +145,7 @@ my $LastNameID = $RepMyBlock->SlowReturnLastName($result->{'LastName'});
 	printf ("\tResNonStdFormat\t\tID: %-8d %-50s\n", -1, $result->{'ResNonStdFormat'});	
 
 	my $City = $RepMyBlock->SlowReturnCity($result->{'ResCity'});
-	$City = $RepMyBlock->SlowAddCity($result->{'ResCity'}) if (! defined $City->{'DataCity_ID'} && length($result->{'ResCity'} > 0);
+	$City = $RepMyBlock->SlowAddCity($result->{'ResCity'}) if (! defined $City->{'DataCity_ID'} && length($result->{'ResCity'} > 0));
 	printf ("\tResCity\t\t\tID: %8d %-50s\n", $City->{'DataCity_ID'}, $result->{'ResCity'});
 	
 	printf ("\tResZip\t\t\tID: %-8d %-50s\n", -1, $result->{'ResZip'});	
@@ -167,7 +167,7 @@ my $LastNameID = $RepMyBlock->SlowReturnLastName($result->{'LastName'});
 	printf ("\tLegisDistr\t\tID: %-8d %-50s\n", -1, $result->{'LegisDistr'});	
 	
 	my $Town = $RepMyBlock->SlowRetunTown($result->{'TownCity'});
-	$Town = $RepMyBlock->SlowAddTown($result->{'TownCity'}) if (! defined $Town->{'DataDistrictTown_ID'} && length($result->{'TownCity'} > 0);
+	$Town = $RepMyBlock->SlowAddTown($result->{'TownCity'}) if (! defined $Town->{'DataDistrictTown_ID'} && length($result->{'TownCity'} > 0));
 	printf ("\tTownCity\t\tID: %8d %-50s\n", $Town->{'DataDistrictTown_ID'}, $result->{'TownCity'});	
 	
 	printf ("\tWard\t\t\tID: %-8d %-50s\n", -1, $result->{'Ward'});	
