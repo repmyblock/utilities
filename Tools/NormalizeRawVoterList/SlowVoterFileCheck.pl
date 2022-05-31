@@ -118,16 +118,16 @@ for (my $i = $CounterBeg; $i < $Counter; $i++) {
 	print "Processing and finding IDs:\n";
 	printf ("\tNY_Raw_ID\t\tID: %-8d \n", $result->{'NY_Raw_ID'} );
 
-	my $LastNameID = $RepMyBlock->SlowReturnLastName($result->{'LastName'});
-	$LastNameID = $RepMyBlock->SlowAddLastName ($result->{'LastName'}) if (! defined $LastNameID->{'DataLastName_ID'});
+my $LastNameID = $RepMyBlock->SlowReturnLastName($result->{'LastName'});
+	$LastNameID = $RepMyBlock->SlowAddLastName ($result->{'LastName'}) if (! defined $LastNameID->{'DataLastName_ID'} && length($result->{'LastName'} > 0));
 	printf ("\tLastName\t\tID: %8d %-50s\n", $LastNameID->{'DataLastName_ID'}, $result->{'LastName'});
 
 	my $FistNameID = $RepMyBlock->SlowReturnFirstName($result->{'FirstName'});
-	$FistNameID = $RepMyBlock->SlowAddFirstName ($result->{'FirstName'}) if (! defined $FistNameID->{'DataFirstName_ID'});
+	$FistNameID = $RepMyBlock->SlowAddFirstName ($result->{'FirstName'}) if (! defined $FistNameID->{'DataFirstName_ID'} && length($result->{'FirstName'} > 0));
 	printf ("\tFirstName\t\tID: %8d %-50s\n", $FistNameID->{'DataFirstName_ID'}, $result->{'FirstName'});
 	
 	my $MiddleNameID = $RepMyBlock->SlowReturnMiddleName($result->{'MiddleName'});
-	$MiddleNameID = $RepMyBlock->SlowAddMiddleName ($result->{'MiddleName'}) if (! defined $MiddleNameID->{'DataMiddleName_ID'});
+	$MiddleNameID = $RepMyBlock->SlowAddMiddleName ($result->{'MiddleName'}) if (! defined $MiddleNameID->{'DataMiddleName_ID'} && length($result->{'MiddleName'} > 0));
 	printf ("\tMiddleName\t\tID: %8d %-50s\n", $MiddleNameID->{'DataMiddleName_ID'}, $result->{'MiddleName'});
 
 	printf ("\tSuffix\t\t\tID: %-8d %-50s\n", -1, $result->{'Suffix'});	
@@ -136,7 +136,7 @@ for (my $i = $CounterBeg; $i < $Counter; $i++) {
 	printf ("\tResPreStreet\t\tID: %-8d %-50s\n", -1, $result->{'ResPreStreet'});	
 	
 	my $Street = $RepMyBlock->SlowRetunStreet($result->{'ResStreetName'});
-	$Street = $RepMyBlock->SlowAddStreet ($result->{'ResStreetName'}) if (! defined $Street->{'DataStreet_ID'});
+	$Street = $RepMyBlock->SlowAddStreet ($result->{'ResStreetName'}) if (! defined $Street->{'DataStreet_ID'} && length($result->{'ResStreetName'} > 0);
 	printf ("\tResStreetName\t\tID: %8d %-50s\n", $Street->{'DataStreet_ID'}, $result->{'ResStreetName'});	
 	
 	printf ("\tResPostStDir\t\tID: %-8d %-50s\n", -1, $result->{'ResPostStDir'});	
@@ -145,7 +145,7 @@ for (my $i = $CounterBeg; $i < $Counter; $i++) {
 	printf ("\tResNonStdFormat\t\tID: %-8d %-50s\n", -1, $result->{'ResNonStdFormat'});	
 
 	my $City = $RepMyBlock->SlowReturnCity($result->{'ResCity'});
-	$City = $RepMyBlock->SlowAddCity($result->{'ResCity'}) if (! defined $City->{'DataCity_ID'});
+	$City = $RepMyBlock->SlowAddCity($result->{'ResCity'}) if (! defined $City->{'DataCity_ID'} && length($result->{'ResCity'} > 0);
 	printf ("\tResCity\t\t\tID: %8d %-50s\n", $City->{'DataCity_ID'}, $result->{'ResCity'});
 	
 	printf ("\tResZip\t\t\tID: %-8d %-50s\n", -1, $result->{'ResZip'});	
@@ -167,7 +167,7 @@ for (my $i = $CounterBeg; $i < $Counter; $i++) {
 	printf ("\tLegisDistr\t\tID: %-8d %-50s\n", -1, $result->{'LegisDistr'});	
 	
 	my $Town = $RepMyBlock->SlowRetunTown($result->{'TownCity'});
-	$Town = $RepMyBlock->SlowAddTown($result->{'TownCity'}) if (! defined $Town->{'DataDistrictTown_ID'});
+	$Town = $RepMyBlock->SlowAddTown($result->{'TownCity'}) if (! defined $Town->{'DataDistrictTown_ID'} && length($result->{'TownCity'} > 0);
 	printf ("\tTownCity\t\tID: %8d %-50s\n", $Town->{'DataDistrictTown_ID'}, $result->{'TownCity'});	
 	
 	printf ("\tWard\t\t\tID: %-8d %-50s\n", -1, $result->{'Ward'});	
