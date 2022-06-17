@@ -9,7 +9,7 @@ BEGIN {
 }
 
 # Change the Package name each time below.
-package C210830_Prospect;
+package C220614_WeekAdminReport;
 
 use strict;
 use warnings;
@@ -26,24 +26,40 @@ use Data::Dumper;
 my $ConnectToDatabase;
 my $ConnectToRMBProdDB;
 
-my $Database = "NoInUserRightNow";
-my $ExtraValue = 1;
-my $TableToQuery = "SELECT * FROM AdminNotif LEFT JOIN SystemUser ON (SystemUser.SystemUser_ID = AdminNotif.SystemUser_ID) WHERE (AdminNotif_PrivA & ?) > 0";
-#my $MailToPeople = "SELECT * FROM MailReportTo";
-my $RMB_SystemQuery = "SELECT * FROM SystemUser WHERE SystemUser_createtime > DATE_SUB(CURDATE(), INTERVAL 1 DAY);";
-my $RMB_TotalQuery = "SELECT COUNT(*) AS TotalMembers FROM SystemUser";
+my $ExtraValue = 1;   # This is the flag for the query.
 
-my $RMB_SystemTempQuery = "SELECT * FROM SystemUserTemporary WHERE SystemUserTemporary_createtime > DATE_SUB(CURDATE(), INTERVAL 1 DAY);";
-my $RMB_TotalTempQuery = "SELECT COUNT(*) AS TotalMembers FROM SystemUserTemporary";
+# The AdminNotifA Need to be into the format of Priviledge. To Be fixed one day.
+my $TableToQuery = "SELECT DISTINCT SystemUser.SystemUser_ID, Team.Team_ID, SystemUser_FirstName, SystemUser_LastName, SystemUser_email, " . 
+										"Team_Name, Team_AccessCode, Team_WebCode, Team_EmailCode, Team_Public " .
+										"FROM RepMyBlock.TeamMember " .
+										"LEFT JOIN AdminNotif ON (TeamMember.Team_ID = AdminNotif.Team_ID AND TeamMember.SystemUser_ID = AdminNotif.SystemUser_ID) " .
+										"LEFT JOIN Team ON (Team.Team_ID = TeamMember.Team_ID) " .
+										"LEFT JOIN SystemUser ON (TeamMember.SystemUser_ID = SystemUser.SystemUser_ID) " . 
+										"WHERE TeamMember_Active = 'yes' AND Team_Active = 'yes' AND Team.Team_ID IS NOT NULL AND " . 
+										"SystemUser_emailverified = 'both' AND AdminNotif_PrivA = '8'";
 
-my $SocDemsProdQueryTotal = "SELECT sum(MemberPledge_Amount) as TotalAmount, count(MemberPledge_FirstName) as TotalMembers FROM MemberPledge";
+my $TableAttempsQuery = "SELECT * FROM RepMyBlock.Team " .
+												"LEFT JOIN SystemUserEmail ON (SystemUserEmail.SystemUserEmail_WebCode = Team.Team_WebCode) " .
+												"WHERE Team_ID = ? AND SystemUserEmail_Received > DATE_SUB(NOW(), INTERVAL 1 WEEK)";
 
+my $TableMembersQuery = "SELECT * FROM RepMyBlock.TeamMember " . 
+												"LEFT JOIN AdminNotif ON (TeamMember.Team_ID = AdminNotif.Team_ID AND TeamMember.SystemUser_ID = AdminNotif.SystemUser_ID) " . 
+												"LEFT JOIN Team ON (Team.Team_ID = TeamMember.Team_ID) " . 
+												"LEFT JOIN SystemUser ON (TeamMember.SystemUser_ID = SystemUser.SystemUser_ID) " . 
+												"WHERE Team_Active = 'yes' AND Team.Team_ID = ? AND SystemUser.SystemUser_ID > 1 " . 
+												"ORDER BY SystemUser_lastlogintime DESC";
+												
 my %CacheReturnRaw = ();
-my %RMBMembers = ();
-my %RMBTempMembers = ();
+my $TotalEmails = 0;
+
+
+## Not being used yet.
 my %RMBTotalQuery = ();
 my %RMBTempTotalQuery = ();
-my $TotalEmails = 0;
+my %RMBMembers = ();
+my %RMBTempMembers= ();
+
+
 
 our %SystemUserEmail;
 our $IgnoreSentEmail = 1;
@@ -62,11 +78,12 @@ sub AttachedFiles {
 
 sub ExecuteQuery {
 	my $self = shift;
-	$TotalEmails = $ConnectToDatabase->ExecuteQuery($TableToQuery, \%CacheReturnRaw, $ExtraValue);
-	$ConnectToRMBProdDB->ExecuteQuery($RMB_SystemQuery, \%RMBMembers);
-	$ConnectToRMBProdDB->ExecuteQuery($RMB_TotalQuery, \%RMBTotalQuery);
-	$ConnectToRMBProdDB->ExecuteQuery($RMB_SystemTempQuery, \%RMBTempMembers);
-	$ConnectToRMBProdDB->ExecuteQuery($RMB_TotalTempQuery, \%RMBTempTotalQuery);
+	$TotalEmails = $ConnectToDatabase->ExecuteQuery($TableToQuery, \%CacheReturnRaw);
+
+	#$ConnectToRMBProdDB->ExecuteQuery($RMB_SystemQuery, \%RMBMembers);
+	#$ConnectToRMBProdDB->ExecuteQuery($RMB_TotalQuery, \%RMBTotalQuery);
+	#$ConnectToRMBProdDB->ExecuteQuery($RMB_SystemTempQuery, \%RMBTempMembers);
+	#$ConnectToRMBProdDB->ExecuteQuery($RMB_TotalTempQuery, \%RMBTempTotalQuery);
 	#$ConnectToSocDemProdDB->ExecuteQuery($SocDemsProdQueryTotal, \%SocDemsTotals);
 	return $TotalEmails;
 }
@@ -76,62 +93,78 @@ sub PrepareEmail {
   my $self = {}; 
   
   my $Frame = Frame->new();
-	
-	${$_[1]}{'Subject'} = "[RepMyBlock Users] New Users Report for $TodayDate";
+	${$_[1]}{'TestTo'} = "theo.chino\@gmail.com";
+	${$_[1]}{'Subject'} = "[RepMyBlock Users] New Users Report for the week ending $TodayDate";
 	${$_[1]}{'To'} = "\"" . $CacheReturnRaw{$_[0]}{'SystemUser_FirstName'} . " " . $CacheReturnRaw{$_[0]}{'SystemUser_LastName'} . "\" <" . $CacheReturnRaw{$_[0]}{'SystemUser_email'} . ">";
 	${$_[1]}{'RawEmail'} =  $CacheReturnRaw{$_[0]}{'SystemUser_email'};
-	my $EmailToSendForFooter = $CacheReturnRaw{$_[0]}{'SystemUser_FirstName'} . " " . $CacheReturnRaw{$_[0]}{'SystemUser_LastName'} . " at" . $CacheReturnRaw{$_[0]}{'SystemUser_email'};
+	my $EmailToSendForFooter = $CacheReturnRaw{$_[0]}{'SystemUser_FirstName'} . " " . $CacheReturnRaw{$_[0]}{'SystemUser_LastName'} . " at " . $CacheReturnRaw{$_[0]}{'SystemUser_email'};
 	${$_[1]}{'From'} = "\"Automated Reporter\" <no-reply\@repmyblock.org>";	
 	${$_[1]}{'BodyText'} = ReturnEmailText();
-	${$_[1]}{'BodyHTML'} = Frame::TopEmail() . ReturnEmailHTML() . Frame::BottomEmail($EmailToSendForFooter);
+	${$_[1]}{'BodyHTML'} = Frame::TopEmail() . ReturnEmailHTML($CacheReturnRaw{$_[0]}{'Team_ID'}, $CacheReturnRaw{$_[0]}{'Team_Name'}) . Frame::BottomEmail($EmailToSendForFooter);
 }
 
 sub ReturnEmailHTML {
-	my $TotalBigMoney = big_money($RMBMembers{'0'}{'TotalAmount'});
+	
+	my %CacheReturnAttemps = ();
+	my %CacheReturnMembers = ();
+
+	my $TotalPeopleAttemps = $ConnectToDatabase->ExecuteQuery($TableAttempsQuery, \%CacheReturnAttemps, $_[0]);
+	my $TotalMembers = $ConnectToDatabase->ExecuteQuery($TableMembersQuery, \%CacheReturnMembers, $_[0]);
+		
+	my $ActivePeople = 0;
+	
+	for(my $i = 0; $i < $TotalMembers; $i++) {
+		$ActivePeople++ if ($CacheReturnMembers{$i}{'TeamMember_Active'} eq 'yes');
+	}
+	
 	my $text =<<EOF;
+
+<P><H1>$_[1]</H1></P>
 	
-<P><H2>Stats for $TodayDate</H2></P>
+<P><H2>Stats for the week ending $TodayDate</H2></P>
 
 <P>
-	<B>Total members:</B> $RMBTotalQuery{'0'}{'TotalMembers'}<BR>
-  <B>New Temporary Signup:</B> $RMBTempTotalQuery{'0'}{'TotalMembers'}<BR>
+	<B>Total members:</B> $ActivePeople<BR>
+  <B>New Temporary Signup:</B> $TotalPeopleAttemps<BR>
 </P>
 
-<P><H2>New Unfinished Signups</H2></P>
+<P><H2>New Signup Request Received</H2></P>
 
 <P>
-<TABLE style="max-width: 700px;" border="1" width="100%" cellspacing="1" cellpadding="1">
+<TABLE border="1" width="100%" cellspacing="1" cellpadding="1">
 
 	<TR style="1px solid black;">
-		<TH style="1px solid black;">Username</TD>
-		<TH style="1px solid black;">IP</TD>
-		<TH style="1px solid black;">Signup</TD>
+		<TH style="1px solid black;">Email from</TH>
+		<TH style="1px solid black;">Tracking Number</TH>
+		<TH style="1px solid black;">Received on</TH>
 	</TR>
 EOF
 
-	if ( keys %RMBMembers > 0 ) {
-
+	if ( $TotalPeopleAttemps > 0 ) {
 		use Date::Manip;
 		use DateTime;
 		use DateTime::Format::DateManip;
 	
 		#$text .= "<PRE>" . Dumper(%SocDemsMembers) . "</PRE>";
-		foreach my $var (sort keys %RMBMembers) {
+
+		for(my $i = 0; $i < $TotalPeopleAttemps; $i++) {
 			my $outputtime = "";
-			my $date = ParseDate($RMBTempMembers{$var}{'SystemTemporaryUser_createtime'});
-			$date = DateTime::Format::DateManip->parse_datetime($date);
-			eval{ $outputtime = $date->strftime("%H:%M:%S <I>(%m/%d)</I>"); };
-	  
+				my $date = ParseDate($CacheReturnAttemps{$i}{'SystemUserEmail_Received'});
+				$date = DateTime::Format::DateManip->parse_datetime($date);
+				eval{ $outputtime = $date->strftime("%m/%d/%Y at %I:%M:%S %p"); };
+					
 	    $text .= "<TR style=\"1px solid black;\">" . 
-	    	"<TD style=\"1px solid black;\">" . $RMBTempMembers{$var}{'SystemTemporaryUser_username'} . "</TD>" .
-	    	"<TD style=\"1px solid black;\">" . $RMBTempMembers{$var}{'SystemTemporaryUser_IP'} . "</TD>" .
-	    	"<TD style=\"1px solid black;\" ALIGN=RIGHT>" . $outputtime  . "</TD></TR>" .
+	    	"<TD style=\"1px solid black;\">" . $CacheReturnAttemps{$i}{'SystemUserEmail_AddFrom'} . "</TD>" .
+	    	"<TD style=\"1px solid black;\">" . $CacheReturnAttemps{$i}{'SystemUserEmail_MailCode'} . "</TD>" .
+	    	"<TD style=\"1px solid black;\" ALIGN=RIGHT>" . $outputtime  . "</TD>" .
 	    "</TR>\n";
+			
 		}
+		
 	} else {
 		
 		$text .= "<TR style=\"1px solid black;\">" . 
-	    	"<TD style=\"1px solid black;\" COLSPAN=4 ALIGN=CENTER>No new temporary members signed up on $TodayDate</TD></TR>\n";
+	    	"<TD style=\"1px solid black;\" COLSPAN=4 ALIGN=CENTER>No new signup attemps this week</TD></TR>\n";
 	
 	}
 	
@@ -140,43 +173,39 @@ $text .=<<EOF;
 </TABLE>
 </P>
 
-<P><H2>New Transformations</H2></P>
+<P><H2>Active Members</H2></P>
 
 <P>
-<TABLE style="max-width: 700px;" border="1" width="100%" cellspacing="1" cellpadding="1">
-
-	<TR style="1px solid black;">
-		<TH style="1px solid black;">First&nbsp;Name</TD>
-		<TH style="1px solid black;">Last&nbsp;Name</TD>
-		<TH style="1px solid black;">AD/ED</TD>
-		<TH style="1px solid black;">Signup</TD>
-	</TR>
+<TABLE border="1" width="100%" cellspacing="1" cellpadding="1">
+<TR style="1px solid black;"><TH style="1px solid black;">Name</TH><TH style="1px solid black;">Email</TH><TH style="1px solid black;">Last Login</TH></TR>
 EOF
 
-	if ( keys %RMBMembers > 0 ) {
+	if ( $TotalMembers > 0 ) {
 
 		use Date::Manip;
 		use DateTime;
 		use DateTime::Format::DateManip;
 	
 		#$text .= "<PRE>" . Dumper(%SocDemsMembers) . "</PRE>";
-		foreach my $var (sort keys %RMBMembers) {
-			my $outputtime = "";
-			my $date = ParseDate($RMBMembers{$var}{'SystemUser_createtime'});
-			$date = DateTime::Format::DateManip->parse_datetime($date);
-			eval{ $outputtime = $date->strftime("%H:%M:%S <I>(%m/%d)</I>"); };
-	  
-	    $text .= "<TR style=\"1px solid black;\">" . 
-	    	"<TD style=\"1px solid black;\">" . $RMBMembers{$var}{'SystemUser_FirstName'} . "</TD>" .
-	    	"<TD style=\"1px solid black;\">" . $RMBMembers{$var}{'SystemUser_LastName'} . "</TD>" .
-	    	"<TD style=\"1px solid black;\" ALIGN=CENTER>" . $RMBMembers{$var}{'SystemUser_EDAD'} . "</TD>" .
-	    	"<TD style=\"1px solid black;\" ALIGN=RIGHT>" . $outputtime  . "</TD></TR>" .
-	    "</TR>\n";
+		
+		for(my $i = 0; $i < $TotalMembers; $i++) {
+			if ($CacheReturnMembers{$i}{'TeamMember_Active'} eq 'yes') {
+				my $outputtime = "";
+					my $date = ParseDate($CacheReturnMembers{$i}{'SystemUser_lastlogintime'});
+					$date = DateTime::Format::DateManip->parse_datetime($date);
+					eval{ $outputtime = $date->strftime("%m/%d/%Y <I>(%I:%M %p)</I>"); };
+						
+		    $text .= "<TR style=\"1px solid black;\">" . 
+		    	"<TD style=\"1px solid black;\">" . $CacheReturnMembers{$i}{'SystemUser_FirstName'} . " " .  $CacheReturnMembers{$i}{'SystemUser_LastName'} . "</TD>" .
+		    	"<TD style=\"1px solid black;\">" . $CacheReturnMembers{$i}{'SystemUser_email'} . "</TD>" .
+		    	"<TD style=\"1px solid black;\" ALIGN=RIGHT>" . $outputtime  . "</TD>" .
+		    "</TR>\n";
+			}
 		}
 	} else {
 		
 		$text .= "<TR style=\"1px solid black;\">" . 
-	    	"<TD style=\"1px solid black;\" COLSPAN=4 ALIGN=CENTER>No new members signed up on $TodayDate</TD></TR>\n";
+	    	"<TD style=\"1px solid black;\" COLSPAN=4 ALIGN=CENTER>No active members</TD></TR>\n";
 	
 	}
 	
@@ -184,8 +213,6 @@ EOF
 $text .=<<EOF;
 </TABLE>
 </P>
-
-
 
 
 EOF
@@ -207,7 +234,7 @@ sub InitDatabase {
 	my $dbh = shift;
 	
 	$ConnectToDatabase->InitDatabase(".db_mysqldb02_RepMyBlock");
-	$ConnectToRMBProdDB->InitDatabase();
+	$ConnectToRMBProdDB->InitDatabase(".db_mysqldb02_RepMyBlock");
 }
 
 
@@ -215,8 +242,8 @@ sub InitDatabase {
 sub new {
 	my $class = shift; 
   my $self = {}; 
-  $ConnectToDatabase	= SendEmail->new($Database);   
-  $ConnectToRMBProdDB	= RemoteDB->new($Database);   
+  $ConnectToDatabase	= SendEmail->new();   
+  $ConnectToRMBProdDB	= RemoteDB->new();   
   return bless $self, $class;
 }
 

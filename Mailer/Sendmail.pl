@@ -2,7 +2,6 @@
 
 use Cwd 'getcwd';
 
-
 BEGIN {
 	my $module_path = getcwd();
 	unshift @INC, $ENV{'HOME'} . "/SendEmail/Modules";
@@ -19,10 +18,11 @@ use Email::Send;
 use Email::Abstract;
 use ServermailDB;
 use File::Slurp;
+use Email::Valid;
 #use Time::HiRes qw ( clock );
 
 my $ModuleToSend;
-my $EmailToSendForTest  = "theo\@repmyblock.nyc";
+my $EmailToSendForTest  = "theo\@repmyblock.org";
 my $Flag_Test = 0;
 
 if ($ARGV[0] eq 'customemail') {
@@ -107,120 +107,129 @@ for ( my $i = 0; $i < $TotalEmails; $i++) {
 	
 	} else {
 		
-	
 		if ( $Flag_Test == 2) {
 			print "Test TimeStamp Flag 2: " . $TimeStamp . "\n";
-			$SystemUserEmail{'To'} = $EmailToSendForTest;
+			$SystemUserEmail{'To'} = Email::Valid->address($EmailToSendForTest);
 			$Subject = $TimeStamp . " - Custom - " . $SystemUserEmail{'Subject'};
-		
 		
 		} elsif ( $Flag_Test == 0 ) {
 			print "Test TimeStamp Flag 0:" . $TimeStamp . "\n";
-			$SystemUserEmail{'To'} = $SystemUserEmail{'TestTo'};
+			$SystemUserEmail{'To'} = Email::Valid->address($SystemUserEmail{'TestTo'});
 			$Subject = $TimeStamp . " - " . $SystemUserEmail{'Subject'};
+			print "Sending to: " . $SystemUserEmail{'To'} . "\n";
 			
 		} else {
 			$Subject = $SystemUserEmail{'Subject'};
-			$ServerMailDB->InsertSentEmail($SystemUserEmail{'RawEmail'}, $ZentModule_ID, \%SentEmailTable);
-		}
-
-		print "Sending to: " . $SystemUserEmail{'To'} . "\n";
-		if (undef $SystemUserEmail{'To'}) {
-			print "No recipients ... exiting\n";
-			exit();
-		}
-	
-		my $htmlmail = Email::MIME->create_html(
-		    header => [],
-		    body => $SystemUserEmail{'BodyHTML'},
-		    body_attributes => {
-		    disposition => 'inline' },
-		    text_body => $SystemUserEmail{'BodyText'});
-		
-		# ----- Create base message
-		my $email = Email::MIME->create(
-		    header => [
-		        From => $SystemUserEmail{'From'},
-		        To => $SystemUserEmail{'To'},
-		        Bcc => $SystemUserEmail{'BCC'},
-		        Reply-To => $SystemUserEmail{'Reply-To'},
-		        Subject => $Subject,
-				],
-		    attributes => { content_type => "multipart/mixed" },
-		    parts => [$htmlmail]
-		);
-		
-		
-		
-		# ----- Add attachments
-		
-		print "\nNumber of attached files: " . @attach . "\n";		
-		if ( @attach > 0 && length($attach[0]) > 0) {
-			my $Content_ID = strftime('%Y%M%d', localtime);
-			$Content_ID .= "_" . rand(100);
-			$Content_ID =~ s/\.//;
-			print "\nAttachment Content_ID: $Content_ID\n";
+			$SystemUserEmail{'To'} = Email::Valid->address($SystemUserEmail{'RawEmail'});
 			
-			for (my $l=0; $l < @attach ; $l++) {
-				$body[$l] = read_file($attach[$l]);			
-				next unless $attach[$l];
-				($mimetype,$encoding) = MIME::Types::by_suffix($attach[$l]);
-				
-				print "Attachment $l Mimetype: $mimetype - ";
-				print "Encoding: $encoding\n";
-				my ($Filename) = ($attach[$l]) =~ /([^\/]+)$/;
-				my ($FilenameWO) = ($Filename) =~ /([^\.]*)\.*/;
-				
-				
-				$att = Email::MIME->create(
-					attributes => {
-						content_type => $mimetype,
-						filename => $Filename,
-						encoding => $encoding,
-						name => $FilenameWO,
-						disposition => "attachment"
-					},
-					header => [ 'Content-ID' => "${Content_ID}_$l" ],
-					body => $body[$l]
-				);
-				
-				$att->header_set('MIME-Version');
-				$att->header_set('Date');
-				$email->parts_add([$att]);
+			if ( $SystemUserEmail{'To'} ? 0 : 1) {
+				print "No recipients ... exiting\n";
+				$ServerMailDB->InsertSentEmail($SystemUserEmail{'RawEmail'} . " - ERROR", $ZentModule_ID, \%SentEmailTable);
+			} else {
+				$ServerMailDB->InsertSentEmail($SystemUserEmail{'RawEmail'}, $ZentModule_ID, \%SentEmailTable);
 			}
-		}	
+		}
+		
+		### If the Email in SystemUserEmail is present, then send.
+		print "Sending to: " . $SystemUserEmail{'To'} . "\n";
+		
+		if ( $SystemUserEmail{'To'} ? 1 : 0) {
+			
 	
-		# ----- Send mail
-		if ( $Flag_SendEmail == 1 ) {
+			my $htmlmail = Email::MIME->create_html(
+			    header => [],
+			    body => $SystemUserEmail{'BodyHTML'},
+			    body_attributes => {
+			    disposition => 'inline' },
+			    text_body => $SystemUserEmail{'BodyText'});
 			
-			use Email::Sender::Simple qw(sendmail);
-			use Email::Sender::Transport::SMTP qw();
-			use Try::Tiny;
+			# ----- Create base message
+			my $email = Email::MIME->create(
+			    header => [
+			        From => $SystemUserEmail{'From'},
+			        To => $SystemUserEmail{'To'},
+			        Bcc => $SystemUserEmail{'BCC'},
+			        Reply-To => $SystemUserEmail{'Reply-To'},
+			        Subject => $Subject,
+					],
+			    attributes => { content_type => "multipart/mixed" },
+			    parts => [$htmlmail]
+			);
 			
-			print " -> " . $SystemUserEmail{'From'} . " to " . $SystemUserEmail{'To'};
-			 
-			try {
-			  sendmail(
-			    $email,
-			    {
-			      from => $FromDomain,
-			      transport => Email::Sender::Transport::SMTP->new({
-			          host =>"localhost",
-			          port =>"25",
-			      })
-			    }
-			  );
-			} catch {
-			    warn "sending failed: $_";
-			};
 			
-			if ($Flag_Test == 0 || $Flag_Test == 2) {
+			
+			# ----- Add attachments
+			
+			print "\nNumber of attached files: " . @attach . "\n";		
+			if ( @attach > 0 && length($attach[0]) > 0) {
+				my $Content_ID = strftime('%Y%M%d', localtime);
+				$Content_ID .= "_" . rand(100);
+				$Content_ID =~ s/\.//;
+				print "\nAttachment Content_ID: $Content_ID\n";
 				
-				if ($SentEmailCounter++ >= $CounterTest) {
-					print "\n";
-					exit();
+				for (my $l=0; $l < @attach ; $l++) {
+					$body[$l] = read_file($attach[$l]);			
+					next unless $attach[$l];
+					($mimetype,$encoding) = MIME::Types::by_suffix($attach[$l]);
+					
+					print "Attachment $l Mimetype: $mimetype - ";
+					print "Encoding: $encoding\n";
+					my ($Filename) = ($attach[$l]) =~ /([^\/]+)$/;
+					my ($FilenameWO) = ($Filename) =~ /([^\.]*)\.*/;
+					
+					
+					$att = Email::MIME->create(
+						attributes => {
+							content_type => $mimetype,
+							filename => $Filename,
+							encoding => $encoding,
+							name => $FilenameWO,
+							disposition => "attachment"
+						},
+						header => [ 'Content-ID' => "${Content_ID}_$l" ],
+						body => $body[$l]
+					);
+					
+					$att->header_set('MIME-Version');
+					$att->header_set('Date');
+					$email->parts_add([$att]);
 				}
 			}	
+		
+			# ----- Send mail
+			if ( $Flag_SendEmail == 1 ) {
+				
+				use Email::Sender::Simple qw(sendmail);
+				use Email::Sender::Transport::SMTP qw();
+				use Try::Tiny;
+				
+				print " -> " . $SystemUserEmail{'From'} . " to " . $SystemUserEmail{'To'};
+				 
+				try {
+				  sendmail(
+				    $email,
+				    {
+				      from => $FromDomain,
+				      transport => Email::Sender::Transport::SMTP->new({
+				          host =>"localhost",
+				          port =>"25",
+				      })
+				    }
+				  );
+				} catch {
+				    warn "sending failed: $_";
+				};
+				
+				if ($Flag_Test == 0 || $Flag_Test == 2) {
+					
+					if ($SentEmailCounter++ >= $CounterTest) {
+						print "\n";
+						exit();
+					}
+				}	
+			}
+		} else {
+			print "No recipients ... not trying to send.\n";
 		}
 		
 		print "\n";

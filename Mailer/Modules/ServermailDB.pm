@@ -18,7 +18,7 @@ sub new {
 	#my $ConfigFile = $ENV{'HOME'} . "/SendEmail/Modules/" . $TempConfigFile;
 	
 	my $TempConfigFile = ".db_mysqldb01_ServerMail";
-	my $ConfigFile = getcwd() . "/Modules/" . $TempConfigFile;
+	my $ConfigFile = $ENV{'HOME'} . "/" . $TempConfigFile;
 	
 	print "ConfigFile: $ConfigFile\n";	
 	my $cfg = new Config::Simple($ConfigFile);

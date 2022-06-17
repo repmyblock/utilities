@@ -20,12 +20,12 @@ sub InitDatabase {
 	my $self = shift;
 	my $params = shift;
 	
-	my $TempConfigFile = ".db_mysqldb01_ServerMail";
-	
-	if (defined ($params)) {
-		$TempConfigFile = $params;
+	if (! defined ($params)) {
+		print "SendEmail.pm: Param is not defined. Exiting ...\n";
+		exit();
 	}
-	my $ConfigFile = getcwd() . "/Modules/" . $TempConfigFile;
+	
+	my $ConfigFile = $ENV{'HOME'} . "/" . $params;
 	
 	print "ConfigFile: $ConfigFile\n";	
 	my $cfg = new Config::Simple($ConfigFile);

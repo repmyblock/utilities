@@ -4,6 +4,7 @@ package Frame;
 
 use strict;
 use warnings;
+use Cwd;
 
 my $FrontEndWebsite = "https://repmyblock.org";
 my $EmailToSendForFooter = "";
@@ -59,6 +60,8 @@ sub RemoveMiddleSpaces {
 }
 
 sub TopEmail {
+	
+	my $PicPath = getcwd . "/pics/repmyblock.png";
 return 
 
 # HEADER
@@ -289,7 +292,7 @@ return
 				           "font-size: 16px; line-height: 22px; padding: 0px 0px 0px 0px;\">" .
 				
 										"<A HREF=\"" . $FrontEndWebsite . "\">" .
-											"<img src=\"/root/SendEmail/pics/repmyblock.png\" " . 
+											"<img src=\"$PicPath\" " . 
 #											"srcset=\"data:image/png;base64," . Logo_RepMyBlock() . " 1x\" " .
 											"alt=\"RepMyBlock Logo\" align=\"LEFT\">" .						
 										"</A>\n" .
@@ -305,6 +308,8 @@ sub BottomEmail {
 	
 	my $EmailToSendForFooter = $_[0];
 	
+	my $PicPath = getcwd . "/pics/RepMyBlockFooter.jpg";
+	
 	return				
 # SUBURBAN BUTTON GROUP END
 			"<TR><TD>" .
@@ -314,7 +319,7 @@ sub BottomEmail {
 			"</TD></TR>" .
 			"<TR>" . 
 #			"<TD background=\"cid:CID__Footer_Logo__CID\" alt=\"RepMyBlockFooter.jpg\" style=\"padding: 20px;text-align: center;\">\n" .
-			"<TD background=\"/root/SendEmail/pics/RepMyBlockFooter.jpg\" alt=\"RepMyBlockFooter.jpg\" style=\"padding: 20px;text-align: center;\">\n" .
+			"<TD background=\"$PicPath\" alt=\"RepMyBlockFooter.jpg\" style=\"padding: 20px;text-align: center;\">\n" .
 #			"<TD background=\"data:image/jpeg;base64," . Footer_RepMyBlock() . "\" alt=\"RepMyBlockFooter.jpg\" style=\"padding: 20px;text-align: center;\">\n" .
 			"<div style=\"font-size: 18px;font-weight: 700;font-style: italic;\">REP MY BLOCK</div>\n" .
 			"<div class=\"FooterInfo\">Represent your community by running for your County Committee</div>\n" .
