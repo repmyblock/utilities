@@ -44,7 +44,7 @@ def main():
 
     stop_time = time.time()
 
-    print(f"Phython is loading the DB Information in {stop_time - start_time:.6f} seconds")
+    print(f"Python is loading the DB Information in {stop_time - start_time:.6f} seconds")
 
     name = input("What is the name you are seeking?\n").strip().lower()
 
