@@ -1,10 +1,10 @@
 #include "Voter.h"
 
 Voter::Voter(int votersIndexesId, int dataHouseId, Gender gender, const std::string& uniqStateVoterId,
-             	const std::string& regParty, ReasonCode reasonCode, Status status, int mailingAddressId,
-             	bool idRequired, bool idMet, int applyDate, RegSource regSource,
-							int dateInactive, int datePurged, const std::string& countyVoterNumber,
-             	bool rmbActive)
+              const std::string& regParty, ReasonCode reasonCode, Status status, int mailingAddressId,
+              bool idRequired, bool idMet, int applyDate, RegSource regSource,
+              int dateInactive, int datePurged, const std::string& countyVoterNumber,
+              bool rmbActive)
     : votersIndexesId(votersIndexesId), dataHouseId(dataHouseId), gender(gender), uniqStateVoterId(uniqStateVoterId),
       regParty(regParty), reasonCode(reasonCode), status(status), mailingAddressId(mailingAddressId),
       idRequired(idRequired), idMet(idMet), applyDate(applyDate), regSource(regSource), dateInactive(dateInactive),
@@ -21,20 +21,20 @@ bool Voter::operator==(const Voter& other) const {
 
 // Do VoterIdx
 VoterIdx::VoterIdx(int dataLastNameId, int dataFirstNameId, int dataMiddleNameId, const std::string& dataNameSuffix,
-      							int dataDOB, const std::string& dataUniqStateId) 
-     : 	dataLastNameId(dataLastNameId), dataFirstNameId(dataFirstNameId), dataMiddleNameId(dataMiddleNameId),
-     		dataNameSuffix(dataNameSuffix),	dataDOB(dataDOB), dataUniqStateId(dataUniqStateId) {}
+                    int dataDOB, const std::string& dataUniqStateId) 
+     :  dataLastNameId(dataLastNameId), dataFirstNameId(dataFirstNameId), dataMiddleNameId(dataMiddleNameId),
+        dataNameSuffix(dataNameSuffix), dataDOB(dataDOB), dataUniqStateId(dataUniqStateId) {}
 
 bool VoterIdx::operator==(const VoterIdx& other) const {
-		return 	dataLastNameId == other.dataLastNameId && dataFirstNameId == other.dataFirstNameId && 
-						dataMiddleNameId == other.dataMiddleNameId && dataNameSuffix == other.dataNameSuffix &&
-						dataDOB == other.dataDOB && dataUniqStateId == other.dataUniqStateId;
+    return  dataLastNameId == other.dataLastNameId && dataFirstNameId == other.dataFirstNameId && 
+            dataMiddleNameId == other.dataMiddleNameId && dataNameSuffix == other.dataNameSuffix &&
+            dataDOB == other.dataDOB && dataUniqStateId == other.dataUniqStateId;
 }
 
 // Do Data Address
 DataAddress::DataAddress(const std::string& dataHouseNumber, const std::string& dataFracAddress, const std::string& dataPreStreet,
-								int dataStreetId,	const std::string& dataPostStreet, int dataCityId, int dataCountyId,
-								const std::string& dataZipcode, const std::string& dataZip4,int CordinateId, int PGOSMosmid)
+                int dataStreetId, const std::string& dataPostStreet, int dataCityId, int dataCountyId,
+                const std::string& dataZipcode, const std::string& dataZip4,int CordinateId, int PGOSMosmid)
     : dataHouseNumber(dataHouseNumber), dataFracAddress(dataFracAddress), dataPreStreet(dataPreStreet), dataStreetId(dataStreetId),
       dataPostStreet(dataPostStreet), dataCityId(dataCityId), dataCountyId(dataCountyId), dataZipcode(dataZipcode),
       dataZip4(dataZip4), CordinateId(CordinateId), PGOSMosmid(PGOSMosmid) {}
@@ -49,7 +49,7 @@ bool DataAddress::operator==(const DataAddress& other) const {
 
 // Do Voter Complement d'infos.
 VoterComplementInfo::VoterComplementInfo(int VotersId, const std::string& VCIPrevName, const std::string& VCIPrevAddress,
-																					int VCIdataCountyId, int VCILastYearVote, int VCILastDateVote, const std::string& VCIOtherParty)
+                                          int VCIdataCountyId, int VCILastYearVote, int VCILastDateVote, const std::string& VCIOtherParty)
     : VotersId(VotersId), VCIPrevName(VCIPrevName), VCIPrevAddress(VCIPrevAddress), VCIdataCountyId(VCIdataCountyId),
       VCILastYearVote(VCILastYearVote), VCILastDateVote(VCILastDateVote), VCIOtherParty(VCIOtherParty) {}
 
@@ -61,7 +61,7 @@ bool VoterComplementInfo::operator==(const VoterComplementInfo& other) const {
 
 // Do Data Mailing Address
 DataMailingAddress::DataMailingAddress(const std::string& dataMailAdrL1, const std::string& dataMailAdrL2, 
-      																	const std::string& dataMailAdrL3, const std::string& dataMailAdrL4)
+                                        const std::string& dataMailAdrL3, const std::string& dataMailAdrL4)
     : dataMailAdrL1(dataMailAdrL1), dataMailAdrL2(dataMailAdrL2), dataMailAdrL3(dataMailAdrL3), dataMailAdrL4(dataMailAdrL4) {}
 
 bool DataMailingAddress::operator==(const DataMailingAddress& other) const {
@@ -71,9 +71,9 @@ bool DataMailingAddress::operator==(const DataMailingAddress& other) const {
 
 // Do Data District
 DataDistrict::DataDistrict(int dataCountyId, int dataElectoral, int dataStateAssembly, int dataStateSenate, int dataLegislative,
-      											const std::string& dataWard, int DataCongress)
+                            const std::string& dataWard, int DataCongress)
     : dataCountyId(dataCountyId), dataElectoral(dataElectoral), dataStateAssembly(dataStateAssembly), 
-    	dataStateSenate(dataStateSenate),  dataLegislative(dataLegislative), dataWard(dataWard), DataCongress(DataCongress) {}
+      dataStateSenate(dataStateSenate),  dataLegislative(dataLegislative), dataWard(dataWard), DataCongress(DataCongress) {}
 
 bool DataDistrict::operator==(const DataDistrict& other) const {
     return dataCountyId == other.dataCountyId && dataElectoral == other.dataElectoral && dataStateAssembly == other.dataStateAssembly &&
@@ -91,7 +91,7 @@ bool DataDistrictTemporal::operator==(const DataDistrictTemporal& other) const {
 
 // Do Data House
 DataHouse::DataHouse(int dataAddressId, const std::string& dataHouse_Type, const std::string& dataHouse_Apt, 
-							int dataDistrictTownId, int dataStreetNonStdFormatId, int dataHouseBIN)
+              int dataDistrictTownId, int dataStreetNonStdFormatId, int dataHouseBIN)
     : dataAddressId(dataAddressId), dataHouse_Type(dataHouse_Type), dataHouse_Apt(dataHouse_Apt), dataDistrictTownId(dataDistrictTownId),
       dataStreetNonStdFormatId(dataStreetNonStdFormatId), dataHouseBIN(dataHouseBIN) {}
 
