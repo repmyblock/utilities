@@ -238,10 +238,6 @@ void DatabaseConnector::executeSimpleQuery(const std::string& sql, int DBCount) 
   CLOCK_END
 }
 
-
-
-
-
 /*******************
  *** VOTER TABLE ***
  *******************
@@ -491,48 +487,21 @@ bool DatabaseConnector::SaveDbVoterIdx(VoterIdxMap& Map) {
     for(auto it = Map.begin(); it != Map.end(); ++it) {
       const VoterIdx& voterIdx = it->first;
       int TableId = it->second;   
-      bool foundField = false;
-    
-      if (Map[voterIdx] == 0) {
-        // (`DataLastName_ID`, `DataFirstName_ID`, `DataMiddleName_ID`, `VotersIndexes_DOB`, `DataState_ID`, `VotersIndexes_UniqStateVoterID`)            
+         
+      if (Map[voterIdx] == 0 && voterIdx.dataUniqStateId.length() > 0) {
+        
+        // (`DataLastName_ID`, `DataFirstName_ID`, `DataMiddleName_ID`, `VotersIndexes_DOB`, `DataState_ID`, `VotersIndexes_UniqStateVoterID`)                    
         std::string tmpsql = "null,";
-          
-        if (voterIdx.dataLastNameId > 0) {
-          tmpsql +=  "\"" + std::to_string(voterIdx.dataLastNameId) + "\","; foundField = true;
-        } else { tmpsql += "null,"; }
-             
-        if (voterIdx.dataFirstNameId > 0) {
-          tmpsql +=  "\"" + std::to_string(voterIdx.dataFirstNameId) + "\","; foundField = true;
-        } else { tmpsql += "null,"; }
-
-        if (voterIdx.dataMiddleNameId > 0) {
-          tmpsql +=  "\"" + std::to_string(voterIdx.dataMiddleNameId) + "\","; foundField = true;
-        } else { tmpsql += "null,"; }
-        
-        if (voterIdx.dataNameSuffix.length() > 0) {
-          tmpsql +=  "\"" + CustomEscapeString(nameCase(voterIdx.dataNameSuffix)) + "\","; foundField = true;
-        } else { tmpsql += "null,"; }
-
-        if (voterIdx.dataDOB > 0) {
-          tmpsql +=  "\"" + std::to_string(voterIdx.dataDOB) + "\","; foundField = true;
-        } else { tmpsql += "null,"; }
-
-        if (StateID > 0) {
-          tmpsql +=  "\"" + std::to_string(StateID) + "\","; foundField = true;
-        } else { 
-          std::cout << HI_RED << "State ID is missing in SaveDbVoterIdx" <<NC << std::endl;
-          exit(1);  
-        }
-        
-        if (voterIdx.dataUniqStateId.length() > 0) {
-          tmpsql +=  "\"" + CustomEscapeString(ToUpperAccents(voterIdx.dataUniqStateId)) + "\""; foundField = true;
-        } else { tmpsql += "null"; }
-                  
-        if ( foundField == true) {          
-          sql += ReturnDBInjest("(" + tmpsql + ")", currentBatchCount);
-          foundField = false;
-          ++currentBatchCount;
-        }
+        tmpsql += (voterIdx.dataLastNameId > 0) ? ("\"" + std::to_string(voterIdx.dataLastNameId) + "\",") : "null,";     
+        tmpsql += (voterIdx.dataFirstNameId > 0) ? ("\"" + std::to_string(voterIdx.dataFirstNameId) + "\",") : "null,";     
+        tmpsql += (voterIdx.dataMiddleNameId > 0) ? ("\"" + std::to_string(voterIdx.dataMiddleNameId) + "\",") : "null,";     
+        tmpsql += (voterIdx.dataNameSuffix.length() > 0) ? ("\"" + CustomEscapeString(nameCase(voterIdx.dataNameSuffix)) + "\",") : "null,";     
+        tmpsql += (voterIdx.dataDOB > 0) ? ("\"" + std::to_string(voterIdx.dataDOB) + "\",") : "null,";     
+        tmpsql += (StateID > 0) ? ("\"" + std::to_string(StateID) + "\",") : "null,";     
+        tmpsql += (voterIdx.dataUniqStateId.length() > 0) ? ("\"" + CustomEscapeString(ToUpperAccents(voterIdx.dataUniqStateId)) + "\"") : "null";     
+       
+        sql += ReturnDBInjest("(" + tmpsql + ")", currentBatchCount);
+        ++currentBatchCount;
         SaveLast = true;
       } 
       
@@ -774,7 +743,7 @@ bool DatabaseConnector::SaveDbDataDistrict(DataDistrictMap& Map) {
         tmpsql += (dataDistrict.dataStateSenate > 0) ? ("\"" + std::to_string(dataDistrict.dataStateSenate) + "\",") : "null,";     
         tmpsql += (dataDistrict.dataLegislative > 0) ? ("\"" + std::to_string(dataDistrict.dataLegislative) + "\",") : "null,";     
         tmpsql += (dataDistrict.dataWard.length() > 0) ? ("\"" + CustomEscapeString(ToUpperAccents(dataDistrict.dataWard)) + "\",") : "null,";      
-        tmpsql += (dataDistrict.DataCongress > 0) ? ("\"" + std::to_string(dataDistrict.DataCongress) + "\",") : "null,";     
+        tmpsql += (dataDistrict.DataCongress > 0) ? ("\"" + std::to_string(dataDistrict.DataCongress) + "\"") : "null";     
      
         sql += ReturnDBInjest("(" + tmpsql + ")", currentBatchCount);
         ++currentBatchCount;
@@ -1110,7 +1079,7 @@ bool DatabaseConnector::SaveDbDataAddress(DataAddressMap& Map) {
         tmpsql += (dataAddress.dataZipcode.length() > 0) ? ("\"" + CustomEscapeString(ToUpperAccents(dataAddress.dataZipcode)) + "\",") : "null,";      
         tmpsql += (dataAddress.dataZip4.length() > 0) ? ("\"" + CustomEscapeString(ToUpperAccents(dataAddress.dataZip4)) + "\",") : "null,";      
         tmpsql += (dataAddress.CordinateId > 0) ? ("\"" + std::to_string(dataAddress.CordinateId) + "\",") : "null,";     
-        tmpsql += (dataAddress.PGOSMosmid > 0) ? ("\"" + std::to_string(dataAddress.PGOSMosmid) + "\",") : "null,";     
+        tmpsql += (dataAddress.PGOSMosmid > 0) ? ("\"" + std::to_string(dataAddress.PGOSMosmid) + "\"") : "null";     
        
         sql += ReturnDBInjest("(" + tmpsql + ")", currentBatchCount);
         ++currentBatchCount;
@@ -1210,10 +1179,10 @@ bool DatabaseConnector::SaveDbDataMailingAddress(DataMailingAddressMap& Map) {
         // (`DataMailingAddress_Line1`, `DataMailingAddress_Line2`, `DataMailingAddress_Line3`, `DataMailingAddress_Line4`)
         std::string tmpsql = "null,";
       
-        tmpsql += (DataMailingAddress.dataMailAdrL1.length() > 0) ? ("\"" + CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL1)) + "\",") : "null,";      
-        tmpsql += (DataMailingAddress.dataMailAdrL2.length() > 0) ? ("\"" + CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL2)) + "\",") : "null,";      
-        tmpsql += (DataMailingAddress.dataMailAdrL3.length() > 0) ? ("\"" + CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL3)) + "\",") : "null,";      
-        tmpsql += (DataMailingAddress.dataMailAdrL4.length() > 0) ? ("\"" + CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL4)) + "\",") : "null,";      
+        tmpsql += (DataMailingAddress.dataMailAdrL1.length() > 0) ? ("\"" + CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL1)) + "\",") : "null,";
+        tmpsql += (DataMailingAddress.dataMailAdrL2.length() > 0) ? ("\"" + CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL2)) + "\",") : "null,";
+        tmpsql += (DataMailingAddress.dataMailAdrL3.length() > 0) ? ("\"" + CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL3)) + "\",") : "null,";
+        tmpsql += (DataMailingAddress.dataMailAdrL4.length() > 0) ? ("\"" + CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL4)) + "\"") : "null";
      
         sql += ReturnDBInjest("(" + tmpsql + ")", currentBatchCount);
         ++currentBatchCount;
