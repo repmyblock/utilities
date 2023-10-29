@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 
 //RawFilesInjest injest(filename, filecontent);
 
@@ -29,19 +30,25 @@ void RawFilesInjest::loadFile(const std::string& filename) {
     std::vector<std::string> fields;
     std::string field;
     bool inQuotes = false;
+    
+    auto trim = [](const std::string& str) -> std::string {
+	    auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
+	    auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
+	    return (start < end) ? std::string(start, end) : std::string();
+		};
 
     for (char c : line) {
       if (c == '"') {
         inQuotes = !inQuotes;
   	  } else if (c == ',' && !inQuotes) {
-        fields.push_back(field);
+        fields.push_back(trim(field));
         field.clear();
       } else {
       	field += toupper(c);
     	}
   	}
 
-    fields.push_back(field); // Add the last field
+    fields.push_back(trim(field)); // Add the last field
     return fields;
 	};
   	
@@ -99,7 +106,6 @@ void RawFilesInjest::loadFile(const std::string& filename) {
       voter.purgeDate 										= fields[44];
       voter.sboeId 												= fields[45];
   		voter.voterHistory 									= fields[46];
-  		
   		voters.push_back(voter);
   		
   		if ( ++TotalFileCounter % 500000 == 0 ) {
@@ -107,7 +113,7 @@ void RawFilesInjest::loadFile(const std::string& filename) {
   		}
 
     } else {  	
-    	std::cout << "Error with the numbers of fields" << std::endl;
+    	std::cout << "Error with the numbers of fields at line " << TotalFileCounter << std::endl;
     	exit(1);
     }
 	}

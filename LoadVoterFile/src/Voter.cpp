@@ -21,15 +21,31 @@ bool Voter::operator==(const Voter& other) const {
 
 // Do VoterIdx
 VoterIdx::VoterIdx(int dataLastNameId, int dataFirstNameId, int dataMiddleNameId, const std::string& dataNameSuffix,
-      							int dataBOB, const std::string& dataUniqStateId) 
+      							int dataDOB, const std::string& dataUniqStateId) 
      : 	dataLastNameId(dataLastNameId), dataFirstNameId(dataFirstNameId), dataMiddleNameId(dataMiddleNameId),
-     		dataNameSuffix(dataNameSuffix),	dataBOB(dataBOB), dataUniqStateId(dataUniqStateId) {}
+     		dataNameSuffix(dataNameSuffix),	dataDOB(dataDOB), dataUniqStateId(dataUniqStateId) {}
 
 bool VoterIdx::operator==(const VoterIdx& other) const {
 		return 	dataLastNameId == other.dataLastNameId && dataFirstNameId == other.dataFirstNameId && 
 						dataMiddleNameId == other.dataMiddleNameId && dataNameSuffix == other.dataNameSuffix &&
-						dataBOB == other.dataBOB && dataUniqStateId == other.dataUniqStateId;
+						dataDOB == other.dataDOB && dataUniqStateId == other.dataUniqStateId;
 }
+
+// Do Data Address
+DataAddress::DataAddress(const std::string& dataHouseNumber, const std::string& dataFracAddress, const std::string& dataPreStreet,
+								int dataStreetId,	const std::string& dataPostStreet, int dataCityId, int dataCountyId,
+								const std::string& dataZipcode, const std::string& dataZip4,int CordinateId, int PGOSMosmid)
+    : dataHouseNumber(dataHouseNumber), dataFracAddress(dataFracAddress), dataPreStreet(dataPreStreet), dataStreetId(dataStreetId),
+      dataPostStreet(dataPostStreet), dataCityId(dataCityId), dataCountyId(dataCountyId), dataZipcode(dataZipcode),
+      dataZip4(dataZip4), CordinateId(CordinateId), PGOSMosmid(PGOSMosmid) {}
+
+bool DataAddress::operator==(const DataAddress& other) const {
+    return dataHouseNumber == other.dataHouseNumber && dataFracAddress == other.dataFracAddress && dataPreStreet == other.dataPreStreet &&
+           dataStreetId == other.dataStreetId && dataPostStreet == other.dataPostStreet && dataCityId == other.dataCityId &&
+           dataCountyId == other.dataCountyId && dataZipcode == other.dataZipcode && dataZip4 == other.dataZip4 &&
+           CordinateId == other.CordinateId && PGOSMosmid == other.PGOSMosmid;
+}
+// Do Data Address
 
 // Do Voter Complement d'infos.
 VoterComplementInfo::VoterComplementInfo(int VotersId, const std::string& VCIPrevName, const std::string& VCIPrevAddress,
@@ -85,20 +101,7 @@ bool DataHouse::operator==(const DataHouse& other) const {
            dataHouseBIN == other.dataHouseBIN ;
 }
 
-// Do Data Address
-DataAddress::DataAddress(const std::string& dataHouseNumber, const std::string& dataFracAddress, const std::string& dataPreStreet,
-								int dataStreetId,	const std::string& dataPostStreet, int dataCityId, int dataCountyId,
-								const std::string& dataZipcode, const std::string& dataZip4,int CordinateId, int PGOSMosmid)
-    : dataHouseNumber(dataHouseNumber), dataFracAddress(dataFracAddress), dataPreStreet(dataPreStreet), dataStreetId(dataStreetId),
-      dataPostStreet(dataPostStreet), dataCityId(dataCityId), dataCountyId(dataCountyId), dataZipcode(dataZipcode),
-      dataZip4(dataZip4), CordinateId(CordinateId), PGOSMosmid(PGOSMosmid) {}
 
-bool DataAddress::operator==(const DataAddress& other) const {
-    return dataHouseNumber == other.dataHouseNumber && dataFracAddress == other.dataFracAddress && dataPreStreet == other.dataPreStreet &&
-           dataStreetId == other.dataStreetId && dataPostStreet == other.dataPostStreet && dataCityId == other.dataCityId &&
-           dataCountyId == other.dataCountyId && dataZipcode == other.dataZipcode && dataZip4 == other.dataZip4 &&
-           CordinateId == other.CordinateId && PGOSMosmid == other.PGOSMosmid;
-}
 
 namespace std {
     size_t hash<Voter>::operator()(const Voter& voter) const { return hash<int>()(voter.votersIndexesId); }

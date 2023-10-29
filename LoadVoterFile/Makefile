@@ -7,7 +7,7 @@ LDIR =../lib
 
 LIBS=-lmysqlcppconn -lpthread
 
-_DEPS = Voter.h DatabaseConnector.h DataCollector.h RawFilesInjest.h 
+_DEPS = Voter.h DataConnector.h DatabaseConnector.h DataCollector.h RawFilesInjest.h 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 _OBJ = DatabaseConnector.o DataCollector.o RawFilesInjest.o Voter.o main.o 
@@ -22,4 +22,4 @@ ProcessCD: $(OBJ)
 .PHONY: clean
 
 clean:
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
+	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~ ProcessCD

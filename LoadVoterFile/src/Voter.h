@@ -1,27 +1,108 @@
 #ifndef VOTER_H
 #define VOTER_H
 
+#define GREEN		"\e[0;32m"
+#define RED			"\e[0;31m"
+#define YELLOW	"\e[1;33m"
+#define PINK		"\e[1;35m"
+
+#define HI_WHITE 		"\e[1;97m"
+#define HI_CYAN			"\e[1;96m"
+#define HI_RED 			"\e[1;91m"
+#define HI_PINK			"\e[1;95m"
+#define HI_YELLOW		"\e[1;93m"
+
+#define HI_BK_BLACK	"\e[0;100m"
+#define HI_BK_BLUE	"\e[0;104m"
+
+#define NC					"\e[0m"
+
+/*
+\e[0;30m 	Black
+\e[0;31m 	Red
+\e[0;32m 	Green
+\e[0;33m 	Yellow
+\e[0;34m 	Blue
+\e[0;35m 	Purple
+\e[0;36m 	Cyan
+\e[0;37m 	White
+
+\e[1;30m 	Black
+\e[1;31m 	Red
+\e[1;32m 	Green
+\e[1;33m 	Yellow
+\e[1;34m 	Blue
+\e[1;35m 	Purple
+\e[1;36m 	Cyan
+\e[1;37m 	White
+
+Value 	Color
+\e[40m 	Black
+\e[41m 	Red
+\e[42m 	Green
+\e[43m 	Yellow
+\e[44m 	Blue
+\e[45m 	Purple
+\e[46m 	Cyan
+\e[47m 	White
+
+Value 	Color
+\e[0;90m 	Black
+\e[0;91m 	Red
+\e[0;92m 	Green
+\e[0;93m 	Yellow
+\e[0;94m 	Blue
+\e[0;95m 	Purple
+\e[0;96m 	Cyan
+\e[0;97m 	White
+
+\e[1;90m 	Black
+\e[1;91m 	Red
+\e[1;92m 	Green
+\e[1;93m 	Yellow
+\e[1;94m 	Blue
+\e[1;95m 	Purple
+\e[1;96m 	Cyan
+\e[1;97m 	White
+
+\e[0;100m 	Black
+\e[0;101m 	Red
+\e[0;102m 	Green
+\e[0;103m 	Yellow
+\e[0;104m 	Blue
+\e[0;105m 	Purple
+\e[0;106m 	Cyan
+\e[0;107m 	White
+
+*/
+
 #include <string>
 #include <unordered_map>
+
+#define NIL 		-2
+#define NILSTRG	""
+#define TO_INT_OR_NIL(str) ((str).empty() ? NIL : std::stoi(str))
+#define TO_STR_OR_NIL(str) ((str).empty() ? NILSTRG : str)
 
 // Used to represent NULL or unspecified reason code
 
 enum class Gender {
-	Male, Female, Other, Undetermined, Unspecified  
+	Male, Female, Other, 	Undisclosed, Undetermined, Unspecified, Intersex, Undefined  
 };
 
 enum class ReasonCode {
   AdjudgedIncompetent, Death, Duplicate, Felon, MailCheck, MovedOutCounty,
-  NCOA, NVRA, ReturnMail, VoterRequest, Other, Court, Inactive, Unspecified
+  NCOA, NVRA, ReturnMail, VoterRequest, Other, Court, Inactive, Unspecified,
+  Undefined
 };
 
 enum class Status {
   Active, ActiveMilitary, ActiveSpecialFederal, ActiveSpecialPresidential, 
-  ActiveUOCAVA, Inactive, Purged, Prereg17YearOlds, Confirmation, Unspecified
+  ActiveUOCAVA, Inactive, Purged, Prereg17YearOlds, Confirmation, Unspecified, Undefined
 };
 
 enum class RegSource {
-	Agency, CBOE, DMV, LocalRegistrar, MailIn, School, Unspecified
+	Agency, CBOE, DMV, LocalRegistrar, MailIn, School, Unspecified, Undefined
 };
 
 struct Voter {
@@ -56,7 +137,7 @@ struct VoterIdx {
 	int dataFirstNameId;
 	int dataMiddleNameId;
 	std::string dataNameSuffix;
-	int dataBOB;
+	int dataDOB;
 	std::string dataUniqStateId;
 		
 	VoterIdx(int dataLastNameId, int dataFirstNameId, int dataMiddleNameId, const std::string& dataNameSuffix,
@@ -98,7 +179,7 @@ struct DataDistrict {
 	int dataStateAssembly;
 	int dataStateSenate;
 	int dataLegislative;
-	const std::string& dataWard;
+	std::string dataWard;
 	int DataCongress;
 		
 	DataDistrict(int dataCountyId, int dataElectoral, int dataStateAssembly, int dataStateSenate, int dataLegislative,
@@ -118,8 +199,8 @@ struct DataDistrictTemporal {
 
 struct DataHouse {
 	int dataAddressId;
-	const std::string& dataHouse_Type;
-	const std::string& dataHouse_Apt;
+	std::string dataHouse_Type;
+	std::string dataHouse_Apt;
 	int dataDistrictTownId;
 	int dataStreetNonStdFormatId;
 	int dataHouseBIN;
@@ -131,15 +212,15 @@ struct DataHouse {
 };
 
 struct DataAddress {
-	const std::string& dataHouseNumber;
-	const std::string& dataFracAddress;
-	const std::string& dataPreStreet;
+	std::string dataHouseNumber;
+	std::string dataFracAddress;
+	std::string dataPreStreet;
 	int dataStreetId;
-	const std::string& dataPostStreet;
+	std::string dataPostStreet;
 	int dataCityId;
 	int dataCountyId;
-	const std::string& dataZipcode;
-	const std::string& dataZip4;
+	std::string dataZipcode;
+	std::string dataZip4;
 	int CordinateId;
 	int PGOSMosmid;
 		
@@ -250,8 +331,6 @@ struct VoterInfoRawReplaced {
   bool sboeId;													//	SBOEID
   bool voterHistory;										//	VoterHistory
 };
-
-
 
 namespace std {
   template <> struct hash<Voter> { std::size_t operator()(const Voter& voter) const; };
