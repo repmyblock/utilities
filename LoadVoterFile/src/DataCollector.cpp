@@ -359,13 +359,13 @@ void DatabaseConnector::executeSimpleSave(int DBCount) {
       prev_size = sql.length(); 
 
       switch (DBCount) {    
-        case DBFIELDID_STREET: sql += ReturnDBInjest("(null, \"" + CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_MIDDLENAME: sql += ReturnDBInjest("(null, \"" + CustomEscapeString(nameCase(str)) + "\",\"" +  CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_LASTNAME: sql += ReturnDBInjest("(null, \"" + CustomEscapeString(nameCase(str)) + "\",\"" + CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_FIRSTNAME: sql += ReturnDBInjest("(null, \"" + CustomEscapeString(nameCase(str)) + "\",\"" + CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_DISTRICTTOWN: sql += ReturnDBInjest("(null, \"" + CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_CITY: sql += ReturnDBInjest("(null, \"" + CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_NONSTDFORMAT: sql += ReturnDBInjest("(null, \"" + CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
+        case DBFIELDID_STREET: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
+        case DBFIELDID_MIDDLENAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" +  dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
+        case DBFIELDID_LASTNAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" + dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
+        case DBFIELDID_FIRSTNAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" + dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
+        case DBFIELDID_DISTRICTTOWN: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
+        case DBFIELDID_CITY: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
+        case DBFIELDID_NONSTDFORMAT: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
       }
       
       if (sql.length() > prev_size) { currentBatchCount++;  SaveLast = true; }
@@ -475,13 +475,13 @@ void DataCollector::executeSimpleQuery(const std::string& sql, int DBCount) {
     Voters_RecLastSeen date
 */
 
-/*
-bool DatabaseConnector::LoadVoters(VoterMap& Map) {
-  executeLoadVotersQuery("SELECT * FROM Voters WHERE DataState_ID = \"" + std::to_string(StateID) + "\"", Map);
+
+bool DataCollector::LoadData(VoterMap& Map) {
+  executeLoadDataQuery("SELECT * FROM Voters WHERE DataState_ID = \"" + std::to_string(StateID) + "\"", Map);
   return true;
 }
 
-void DatabaseConnector::executeLoadVotersQuery(const std::string& sql, VoterMap& Map) {
+void DataCollector::executeLoadDataQuery(const std::string& sql, VoterMap& Map) {
   CLOCK_START 
   try {     
     SQL_QUERY_START
@@ -513,7 +513,11 @@ void DatabaseConnector::executeLoadVotersQuery(const std::string& sql, VoterMap&
   CLOCK_END
 }
 
-bool DatabaseConnector::SaveDbVoters(VoterMap& Map) { 
+bool DataCollector::SaveDataBase(VoterMap& Map) { 
+	
+	std::cout << HI_WHITE << "Saving Voters" << NC << std::endl;
+		
+	const std::string query = "INSERT INTO Voters VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
   int currentBatchCount = 0;
@@ -533,8 +537,6 @@ bool DatabaseConnector::SaveDbVoters(VoterMap& Map) {
       RegSource regSource; int dateInactive; int datePurged; std::string countyVoterNumber; bool rmbActive;
   */
   
-  
-  /*
   try {      
   	auto it = Map.begin();
     while (it != Map.end()) {
@@ -546,9 +548,9 @@ bool DatabaseConnector::SaveDbVoters(VoterMap& Map) {
 	        tmpsql += (voter.votersIndexesId > 0) ? ("\"" + std::to_string(voter.votersIndexesId) + "\",") : "null,"; 
 	        tmpsql += (voter.dataHouseId > 0) ? ("\"" + std::to_string(voter.dataHouseId) + "\",") : "null,"; 
 	        tmpsql += (voter.gender != Gender::Undefined) ? ("\"" + genderToString(voter.gender) + "\",") : "null,";
-	        tmpsql += (voter.uniqStateVoterId.length() > 0) ? ("\"" + CustomEscapeString(ToUpperAccents(voter.uniqStateVoterId)) + "\",") : "null,";
+	        tmpsql += (voter.uniqStateVoterId.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(ToUpperAccents(voter.uniqStateVoterId)) + "\",") : "null,";
 	        tmpsql +=  "\"" + std::to_string(StateID) + "\",";
-	        tmpsql += (voter.regParty.length() > 0) ? ("\"" + CustomEscapeString(ToUpperAccents(voter.regParty)) + "\",") : "null,";
+	        tmpsql += (voter.regParty.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(ToUpperAccents(voter.regParty)) + "\",") : "null,";
 	        tmpsql += (voter.reasonCode != ReasonCode::Undefined) ? ("\"" + reasonCodeToString(voter.reasonCode) + "\",") : "null,";    
 	        tmpsql += (voter.status != Status::Undefined) ? ("\"" + statusToString(voter.status) + "\",") : "null,";    
 	        tmpsql += (voter.mailingAddressId > 0) ? ("\"" + std::to_string(voter.mailingAddressId) + "\",") : "null,";   
@@ -558,7 +560,7 @@ bool DatabaseConnector::SaveDbVoters(VoterMap& Map) {
 	        tmpsql += "\"" + regSourceToString(voter.regSource) + "\","; 
 	        tmpsql += (voter.dateInactive > 0) ? ("\"" + std::to_string(voter.dateInactive) + "\",") : "null,";   
 	        tmpsql += (voter.datePurged > 0) ? ("\"" + std::to_string(voter.datePurged) + "\",") : "null,";   
-	        tmpsql += (voter.countyVoterNumber.length() > 0) ? ("\"" + CustomEscapeString(ToUpperAccents(voter.countyVoterNumber)) + "\",") : "null,";    
+	        tmpsql += (voter.countyVoterNumber.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(ToUpperAccents(voter.countyVoterNumber)) + "\",") : "null,";    
 	        tmpsql += (voter.rmbActive > 0) ? ("\"" + std::to_string(voter.rmbActive) + "\",") : "null,";   
 	        tmpsql += "NOW(), NOW()";
                   
@@ -597,7 +599,7 @@ bool DatabaseConnector::SaveDbVoters(VoterMap& Map) {
     sql += " WHERE Voters_ID >= " + std::to_string(SimpleLastDbID[DBFIELDID_VOTERS]);   
   }
     
-  executeLoadVotersQuery(sql, Map);
+  executeLoadDataQuery(sql, Map);
   return true;
 }
 
@@ -615,8 +617,8 @@ bool DatabaseConnector::SaveDbVoters(VoterMap& Map) {
     VotersIndexes_UniqStateVoterID char(20)
 */
 
-/*
-void DatabaseConnector::executeLoadVotersIdxQuery(const std::string& sql, VoterIdxMap& Map) {
+
+void DataCollector::executeLoadDataQuery(const std::string& sql, VoterIdxMap& Map) {
   CLOCK_START
   try {
     SQL_QUERY_START
@@ -644,13 +646,17 @@ void DatabaseConnector::executeLoadVotersIdxQuery(const std::string& sql, VoterI
   CLOCK_END
 }
 
-bool DatabaseConnector::LoadVotersIdx(VoterIdxMap& Map) {
+bool DataCollector::LoadData(VoterIdxMap& Map) {
   CHECK_FIELD
-  executeLoadVotersIdxQuery("SELECT * FROM VotersIndexes WHERE DataState_ID = \"" + std::to_string(StateID) + "\"", Map);
+  executeLoadDataQuery("SELECT * FROM VotersIndexes WHERE DataState_ID = \"" + std::to_string(StateID) + "\"", Map);
   return true;
 }
 
-bool DatabaseConnector::SaveDbVoterIdx(VoterIdxMap& Map) {  
+bool DataCollector::SaveDataBase(VoterIdxMap& Map) {  
+	
+	std::cout << HI_WHITE << "Saving VotersIndexes" << NC << std::endl;
+		
+	const std::string query = "INSERT INTO VotersIndexes VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
   int currentBatchCount = 0;
@@ -668,10 +674,10 @@ bool DatabaseConnector::SaveDbVoterIdx(VoterIdxMap& Map) {
         tmpsql += (voterIdx.dataLastNameId > 0) ? ("\"" + std::to_string(voterIdx.dataLastNameId) + "\",") : "null,";     
         tmpsql += (voterIdx.dataFirstNameId > 0) ? ("\"" + std::to_string(voterIdx.dataFirstNameId) + "\",") : "null,";     
         tmpsql += (voterIdx.dataMiddleNameId > 0) ? ("\"" + std::to_string(voterIdx.dataMiddleNameId) + "\",") : "null,";     
-        tmpsql += (voterIdx.dataNameSuffix.length() > 0) ? ("\"" + CustomEscapeString(nameCase(voterIdx.dataNameSuffix)) + "\",") : "null,";     
+        tmpsql += (voterIdx.dataNameSuffix.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(nameCase(voterIdx.dataNameSuffix)) + "\",") : "null,";     
         tmpsql += (voterIdx.dataDOB > 0) ? ("\"" + std::to_string(voterIdx.dataDOB) + "\",") : "null,";     
         tmpsql += (StateID > 0) ? ("\"" + std::to_string(StateID) + "\",") : "null,";     
-        tmpsql += (voterIdx.dataUniqStateId.length() > 0) ? ("\"" + CustomEscapeString(ToUpperAccents(voterIdx.dataUniqStateId)) + "\"") : "null";     
+        tmpsql += (voterIdx.dataUniqStateId.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(ToUpperAccents(voterIdx.dataUniqStateId)) + "\"") : "null";     
        
         sql += ReturnDBInjest("(" + tmpsql + ")", currentBatchCount);
         ++currentBatchCount;
@@ -707,7 +713,7 @@ bool DatabaseConnector::SaveDbVoterIdx(VoterIdxMap& Map) {
     sql += " WHERE VotersIndexes_ID >= " + std::to_string(SimpleLastDbID[DBFIELDID_VOTERSIDX]);   
   }
  
-  executeLoadVotersIdxQuery(sql, Map);
+  executeLoadDataQuery(sql, Map);
   Map[VoterIdx(NIL,NIL,NIL,NILSTRG,NIL,NILSTRG)] = -2;
   return true;
 }
@@ -726,8 +732,7 @@ bool DatabaseConnector::SaveDbVoterIdx(VoterIdxMap& Map) {
     VotersComplementInfo_OtherParty varchar(100)
 */
 
-/*
-void DatabaseConnector::executeLoadVotersComplementInfoQuery(const std::string& sql, VoterComplementInfoMap& Map){
+void DataCollector::executeLoadDataQuery(const std::string& sql, VoterComplementInfoMap& Map){
   CLOCK_START 
   try {     
     SQL_QUERY_START
@@ -756,13 +761,17 @@ void DatabaseConnector::executeLoadVotersComplementInfoQuery(const std::string& 
   CLOCK_END
 }
 
-bool DatabaseConnector::LoadVotersComplementInfo(VoterComplementInfoMap& Map) {
+bool DataCollector::LoadData(VoterComplementInfoMap& Map) {
   CHECK_FIELD
-  executeLoadVotersComplementInfoQuery("SELECT * FROM VotersComplementInfo", Map);
+  executeLoadDataQuery("SELECT * FROM VotersComplementInfo", Map);
   return true;
 }
 
-bool DatabaseConnector::SaveDbVotersComplementInfo(VoterComplementInfoMap& Map) { 
+bool DataCollector::SaveDataBase(VoterComplementInfoMap& Map) { 
+	
+	std::cout << HI_WHITE << "Saving VotersComplementInfo" << NC << std::endl;
+		
+	const std::string query = "INSERT INTO VotersComplementInfo VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
   int currentBatchCount = 0;
@@ -782,12 +791,12 @@ bool DatabaseConnector::SaveDbVotersComplementInfo(VoterComplementInfoMap& Map) 
 
 	        std::string tmpsql = "null,"; 
 	        tmpsql += (voterComplementInfo.VotersId > 0) ? ("\"" + std::to_string(voterComplementInfo.VotersId) + "\",") : "null,";     
-	        tmpsql += (voterComplementInfo.VCIPrevName.length() > 0) ? ("\"" + CustomEscapeString(nameCase(voterComplementInfo.VCIPrevName)) + "\",") : "null,";      
-	        tmpsql += (voterComplementInfo.VCIPrevAddress.length() > 0) ? ("\"" + CustomEscapeString(voterComplementInfo.VCIPrevAddress) + "\",") : "null,";      
+	        tmpsql += (voterComplementInfo.VCIPrevName.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(nameCase(voterComplementInfo.VCIPrevName)) + "\",") : "null,";      
+	        tmpsql += (voterComplementInfo.VCIPrevAddress.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(voterComplementInfo.VCIPrevAddress) + "\",") : "null,";      
 	        tmpsql += (voterComplementInfo.VCIdataCountyId > 0) ? ("\"" + std::to_string(voterComplementInfo.VCIdataCountyId) + "\",") : "null,";     
 	        tmpsql += (voterComplementInfo.VCILastYearVote > 0) ? ("\"" + std::to_string(voterComplementInfo.VCILastYearVote) + "\",") : "null,";     
 	        tmpsql += (voterComplementInfo.VCILastDateVote > 0) ? ("\"" + std::to_string(voterComplementInfo.VCILastDateVote) + "\",") : "null,";     
-	        tmpsql += (voterComplementInfo.VCIOtherParty.length() > 0) ? ("\"" + CustomEscapeString(voterComplementInfo.VCIOtherParty) + "\"") : "null";      
+	        tmpsql += (voterComplementInfo.VCIOtherParty.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(voterComplementInfo.VCIOtherParty) + "\"") : "null";      
 	          
 	        sql += ReturnDBInjest("(" + tmpsql + ")", currentBatchCount);
 	        ++currentBatchCount;
@@ -823,7 +832,7 @@ bool DatabaseConnector::SaveDbVotersComplementInfo(VoterComplementInfoMap& Map) 
     sql += " WHERE VotersComplementInfo >= " + std::to_string(SimpleLastDbID[DBFIELDID_VOTERSCMINFO]);    
   }
  
-  executeLoadVotersComplementInfoQuery(sql, Map);
+  executeLoadDataQuery(sql, Map);
   Map[VoterComplementInfo(NIL,NILSTRG,NILSTRG,NIL,NIL,NIL,NILSTRG)] = -2;
   return true;
 }
@@ -959,14 +968,17 @@ bool DataCollector::SaveDataBase(DataDistrictMap& Map) {
   DataDistrict_ID int UN
 */
 
-/*
-bool DatabaseConnector::LoadDataDistrictTemporal(DataDistrictTemporalMap& Map) {
+bool DataCollector::LoadData(DataDistrictTemporalMap& Map) {
   CHECK_FIELD
-  executeLoadDataDistrictTemporalQuery("SELECT * FROM DataDistrictTemporal", Map);
+  executeLoadDataQuery("SELECT * FROM DataDistrictTemporal", Map);
   return true;
 }
 
-bool DatabaseConnector::SaveDbDataDistrictTemporal(DataDistrictTemporalMap& Map) {  
+bool DataCollector::SaveDataBase(DataDistrictTemporalMap& Map) {  
+	
+	std::cout << HI_WHITE << "Saving DataDistrictTemporal" << NC << std::endl;
+		
+	const std::string query = "INSERT INTO DataDistrictTemporal VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
   int currentBatchCount = 0;
@@ -981,7 +993,7 @@ bool DatabaseConnector::SaveDbDataDistrictTemporal(DataDistrictTemporalMap& Map)
       int dataDistrictId;
   */
   
-  /*
+  
   try { 
     for(auto it = Map.begin(); it != Map.end(); ++it) {
       const DataDistrictTemporal& dataDistrictTemporal = it->first;
@@ -1016,7 +1028,7 @@ bool DatabaseConnector::SaveDbDataDistrictTemporal(DataDistrictTemporalMap& Map)
       }
       
       if( currentBatchCount == batchSize) {
-        sql = "INSERT INTO VotersIndexes VALUES " + sql;
+        sql = "INSERT INTO DataDistrictTemporal VALUES " + sql;
         SQL_QUERY_START
         SQL_QUERY_END 
         sql.clear();  
@@ -1026,7 +1038,7 @@ bool DatabaseConnector::SaveDbDataDistrictTemporal(DataDistrictTemporalMap& Map)
     } 
   
     if( SaveLast == true ) {
-      sql = "INSERT INTO VotersIndexes VALUES " + sql;
+      sql = "INSERT INTO DataDistrictTemporal VALUES " + sql;
       SQL_QUERY_START
       SQL_QUERY_END 
       sql.clear();  // Clearing the SQL string to start afresh for the next batch
@@ -1037,18 +1049,7 @@ bool DatabaseConnector::SaveDbDataDistrictTemporal(DataDistrictTemporalMap& Map)
   return true;
 }
 
-/**********************************
- *** DATADISTRICTTEMPORAL TABLE ***
- **********************************
-  Table: DataDistrictTemporal
-    DataDistrictTemporal_ID int UN AI PK 
-    DataDistrictCycle_ID int UN 
-    DataHouse_ID int UN 
-    DataDistrict_ID int UN
-*/
-
-/*
-void DatabaseConnector::executeLoadDataDistrictTemporalQuery(const std::string& sql, DataDistrictTemporalMap& Map) {
+void DataCollector::executeLoadDataQuery(const std::string& sql, DataDistrictTemporalMap& Map) {
   CLOCK_START
   try {     
     SQL_QUERY_START
@@ -1520,7 +1521,7 @@ bool DataCollector::LoadStateAbbrev(VoterMap& voterMap) {
 
 int DataCollector::LoadStateAbbrev(const std::string& StateAbbrev) {
   CHECK_FIELD
-  std::string sql = "SELECT * FROM " + std::string(DBFIELD_STATEABBREV) + " WHERE DataState_Abbrev = \"" + CustomEscapeString(StateAbbrev) + "\"";
+  std::string sql = "SELECT * FROM " + std::string(DBFIELD_STATEABBREV) + " WHERE DataState_Abbrev = \"" + dbConnection.CustomEscapeString(StateAbbrev) + "\"";
 
   int index;
   try {
