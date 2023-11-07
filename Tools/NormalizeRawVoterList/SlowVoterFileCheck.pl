@@ -227,6 +227,9 @@ my $LastNameID = $RepMyBlock->SlowReturnLastName($result->{'LastName'});
 	####################################################
 	### DISTRICT FUCTIONS                            ###
 	####################################################
+	##
+	## This is somewhat complicated because the Datahouse points to GROUP_ID
+	## First we need to find the Data ADDRESS_ID with DataHouse_Apt belong to a DataDistrictTemporal_GroupID
 	
 	### This to read the districts
 	my $District = $RepMyBlock->SlowReturnDistrict(
@@ -254,6 +257,11 @@ my $LastNameID = $RepMyBlock->SlowReturnLastName($result->{'LastName'});
 	#	$result->{'DataDistrict_CivilCourt'}, 
 	#	$result->{'DataDistrict_Judicial'}		
 	# );
+	
+	
+	### Only active people get a district.
+	### $District->{'DataDistrict_ID'}
+
 
 
 	####################################################
@@ -360,6 +368,10 @@ my $LastNameID = $RepMyBlock->SlowReturnLastName($result->{'LastName'});
 	} else {
 			$RepMyBlock->SlowUpdateVoterLastSeen($Voter->{'Voters_ID'}, $LastSeenBOEFile);
 	}
+	
+	
+	
+	
 	
 	print "\n";
 	printf ("\tVoterHistory\t\tID: %8d %-1500s\n", undef, $result->{'VoterHistory'});	

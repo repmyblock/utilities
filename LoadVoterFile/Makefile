@@ -1,6 +1,6 @@
-IDIR =../include
-CC=g++ -O3
-CFLAGS=-I$(IDIR) -std=c++17  # Ensure this flag is here
+IDIR =src
+CC=g++
+CFLAGS= -std=c++17 -g  -I$(IDIR)
 
 ODIR=src
 LDIR =../lib
@@ -10,14 +10,14 @@ LIBS=-lmysqlcppconn -lpthread
 _DEPS = Voter.h DataConnector.h DatabaseConnector.h DataCollector.h RawFilesInjest.h 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = DatabaseConnector.o DataCollector.o RawFilesInjest.o Voter.o main.o 
+_OBJ = DatabaseConnector.o DataCollector.o RawFilesInjest.o Voter.o ProcessCD.o 
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: %.cpp $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 ProcessCD: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 .PHONY: clean
 

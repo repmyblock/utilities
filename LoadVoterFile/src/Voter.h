@@ -1,36 +1,41 @@
 #ifndef VOTER_H
 #define VOTER_H
 
-#define GREEN   "\e[0;32m"
 #define RED     "\e[0;31m"
-#define YELLOW  "\e[1;33m"
-#define PINK    "\e[1;35m"
+#define GREEN   "\e[0;32m"
+#define YELLOW  "\e[0;33m"
+#define PINK    "\e[0;35m"
+#define WHITE   "\e[0;37m"
 
-#define HI_WHITE    "\e[1;97m"
-#define HI_CYAN     "\e[1;96m"
 #define HI_RED      "\e[1;91m"
-#define HI_PINK     "\e[1;95m"
 #define HI_YELLOW   "\e[1;93m"
+#define HI_BLUE   	"\e[1;94m"
+#define HI_PINK     "\e[1;95m"
+#define HI_CYAN     "\e[1;96m"
+#define HI_WHITE    "\e[1;97m"
+#define HI_GREEN    "\e[1;92m"
 
 #define HI_BK_BLACK "\e[0;100m"
 #define HI_BK_BLUE  "\e[0;104m"
 
 /*
-\e[0;30m  Black \e[0;31m  Red \e[0;32m  Green \e[0;33m  Yellow \e[0;34m  Blue \e[0;35m  Purple \e[0;36m  Cyan \e[0;37m  White
-\e[1;30m  Black \e[1;31m  Red \e[1;32m  Green \e[1;33m  Yellow \e[1;34m  Blue \e[1;35m  Purple \e[1;36m  Cyan \e[1;37m  White
-\e[40m  Black \e[41m  Red \e[42m  Green \e[43m  Yellow \e[44m  Blue \e[45m  Purple \e[46m  Cyan \e[47m  White
-\e[0;90m  Black \e[0;91m  Red \e[0;92m  Green \e[0;93m  Yellow \e[0;94m  Blue \e[0;95m  Purple \e[0;96m  Cyan \e[0;97m  White
-\e[1;90m  Black \e[1;91m  Red \e[1;92m  Green \e[1;93m  Yellow \e[1;94m  Blue \e[1;95m  Purple \e[1;96m  Cyan \e[1;97m  White
-\e[0;100m Black \e[0;101m Red \e[0;102m Green \e[0;103m Yellow \e[0;104m Blue \e[0;105m Purple \e[0;106m Cyan \e[0;107m White
+	\e[0;30m  Black \e[0;31m  Red \e[0;32m  Green \e[0;33m  Yellow \e[0;34m  Blue \e[0;35m  Purple \e[0;36m  Cyan \e[0;37m  White
+	\e[1;30m  Black \e[1;31m  Red \e[1;32m  Green \e[1;33m  Yellow \e[1;34m  Blue \e[1;35m  Purple \e[1;36m  Cyan \e[1;37m  White
+	\e[40m  	Black \e[41m  	Red \e[42m  	Green \e[43m  	Yellow \e[44m		 Blue \e[45m  	Purple \e[46m  	 Cyan \e[47m  	White
+	\e[0;90m  Black \e[0;91m  Red \e[0;92m  Green \e[0;93m  Yellow \e[0;94m  Blue \e[0;95m  Purple \e[0;96m  Cyan \e[0;97m  White
+	\e[1;90m  Black \e[1;91m  Red \e[1;92m  Green \e[1;93m  Yellow \e[1;94m  Blue \e[1;95m  Purple \e[1;96m  Cyan \e[1;97m  White
+	\e[0;100m Black \e[0;101m Red \e[0;102m Green \e[0;103m Yellow \e[0;104m Blue \e[0;105m Purple \e[0;106m Cyan \e[0;107m White
 */
 
 #define NC          "\e[0m"
 
 #include <string>
 #include <unordered_map>
+#include <optional>
 
 #define NIL     -2
 #define NILSTRG ""
+
 #define TO_INT_OR_NIL(str) ((str).empty() ? NIL : std::stoi(str))
 #define TO_STR_OR_NIL(str) ((str).empty() ? NILSTRG : str)
 
@@ -112,12 +117,13 @@ struct VoterComplementInfo {
 };
   
 struct DataMailingAddress {
+	uint32_t id;
   std::string dataMailAdrL1;
   std::string dataMailAdrL2;
   std::string dataMailAdrL3;
   std::string dataMailAdrL4;
     
-  DataMailingAddress(const std::string& dataMailAdrL1, const std::string& dataMailAdrL2, 
+  DataMailingAddress(uint32_t id, const std::string& dataMailAdrL1, const std::string& dataMailAdrL2, 
                       const std::string& dataMailAdrL3, const std::string& dataMailAdrL4);
       
   bool operator==(const DataMailingAddress& other) const;

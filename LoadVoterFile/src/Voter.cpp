@@ -60,13 +60,13 @@ bool VoterComplementInfo::operator==(const VoterComplementInfo& other) const {
 }
 
 // Do Data Mailing Address
-DataMailingAddress::DataMailingAddress(const std::string& dataMailAdrL1, const std::string& dataMailAdrL2, 
+DataMailingAddress::DataMailingAddress(uint32_t id, const std::string& dataMailAdrL1, const std::string& dataMailAdrL2, 
                                         const std::string& dataMailAdrL3, const std::string& dataMailAdrL4)
-    : dataMailAdrL1(dataMailAdrL1), dataMailAdrL2(dataMailAdrL2), dataMailAdrL3(dataMailAdrL3), dataMailAdrL4(dataMailAdrL4) {}
+    : id(id), dataMailAdrL1(dataMailAdrL1), dataMailAdrL2(dataMailAdrL2), dataMailAdrL3(dataMailAdrL3), dataMailAdrL4(dataMailAdrL4) {}
 
 bool DataMailingAddress::operator==(const DataMailingAddress& other) const {
-    return dataMailAdrL1 == other.dataMailAdrL1 && dataMailAdrL2 == other.dataMailAdrL2 && dataMailAdrL3 == other.dataMailAdrL3 &&
-           dataMailAdrL4 == other.dataMailAdrL4;
+    return id == id && dataMailAdrL1 == other.dataMailAdrL1 && dataMailAdrL2 == other.dataMailAdrL2 && 
+    				dataMailAdrL3 == other.dataMailAdrL3 && dataMailAdrL4 == other.dataMailAdrL4;
 }
 
 // Do Data District
@@ -107,7 +107,7 @@ namespace std {
     size_t hash<Voter>::operator()(const Voter& voter) const { return hash<int>()(voter.votersIndexesId); }
     size_t hash<VoterIdx>::operator()(const VoterIdx& voteridx) const { return hash<string>()(voteridx.dataUniqStateId); }
     size_t hash<VoterComplementInfo>::operator()(const VoterComplementInfo& votercomplementinfo) const { return hash<int>()(votercomplementinfo.VotersId); }
-    size_t hash<DataMailingAddress>::operator()(const DataMailingAddress& datamailingaddress) const { return hash<string>()(datamailingaddress.dataMailAdrL1); }
+    size_t hash<DataMailingAddress>::operator()(const DataMailingAddress& datamailingaddress) const { return hash<uint32_t>()(datamailingaddress.id); }
     size_t hash<DataDistrict>::operator()(const DataDistrict& datadistrict) const { return hash<int>()(datadistrict.dataCountyId); }
     size_t hash<DataDistrictTemporal>::operator()(const DataDistrictTemporal& datadistricttemporal) const { return hash<int>()(datadistricttemporal.dataHouseId); }
     size_t hash<DataHouse>::operator()(const DataHouse& datahouse) const { return hash<int>()(datahouse.dataAddressId); }
