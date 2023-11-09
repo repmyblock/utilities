@@ -179,6 +179,7 @@ std::string RawFilesInjest::ToUpperAccents(const std::string& input) {
 		  continue;
 		}
 		
+		
     if (std::isalpha(c)) {
         try {
             result += std::toupper(c);

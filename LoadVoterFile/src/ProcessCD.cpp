@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
     CollectNonStdFormat.LoadNonStdFormat(NonStdFormat);
     std::cout << PrintCurrentTime() << "End Thread 4" << NC << std::endl;
 	});
-	
+
 	VoterGroup4.get();
 	 	
  	std::cout << PrintCurrentTime() << "Numbers of First Names in Database:\t" << HI_YELLOW << CollectFirstName.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectFirstName.returnQueryTimes() << NC << " milliseconds" << std::endl;
@@ -140,29 +140,42 @@ int main(int argc, char* argv[]) {
 		}
 	});
 	
+	CollectFirstName.TriggerSaveFirstNameDB();
+	CollectCity.TriggerSaveCityDB();
+	
 	auto VoterGroup6 = std::async(std::launch::async, [&]() {
   	for (int i = 0; i < injest.getTotalVoters() ; i++) {
 	    VotersFilesGroup2 = injest.getVoters(i);
-	    CollectMiddleName.CheckIndex(VotersFilesGroup2.middleName);
+	    CollectMiddleName.CheckIndex(VotersFilesGroup2.middleName);		
 			CollectStreetName.CheckIndex(VotersFilesGroup2.residentialStreetName);
-		}
+	}
 	});
+
+	CollectMiddleName.TriggerSaveMiddleNameDB();
+	CollectStreetName.TriggerSaveStreetNameDB();
 
 	auto VoterGroup7 = std::async(std::launch::async, [&]() {
   	for (int i = 0; i < injest.getTotalVoters() ; i++) {
 	    VotersFilesGroup3 = injest.getVoters(i);
-			CollectLastName.CheckIndex(VotersFilesGroup3.lastName);
+			CollectLastName.CheckIndex(VotersFilesGroup3.lastName);			
 	    CollectStateAbbrev.CheckIndex(StateNameAbbrev);	    
 		}
 	});
+
+	CollectLastName.TriggerSaveLastNameDB();
 	
 	auto VoterGroup8 = std::async(std::launch::async, [&]() {
   	for (int i = 0; i < injest.getTotalVoters() ; i++) {
 	    VotersFilesGroup4 = injest.getVoters(i);
+
 			CollectDistrictTown.CheckIndex(VotersFilesGroup4.townCity);
+	
 	    CollectNonStdFormat.CheckIndex(VotersFilesGroup4.residentialNonStandartAddress);
 		}
 	});
+	
+	CollectDistrictTown.TriggerSaveDistrictTownDB();
+	CollectNonStdFormat.TriggerSaveNonStdFormatDB();
 
 	VoterGroup5.get();
 	VoterGroup6.get();
@@ -171,6 +184,21 @@ int main(int argc, char* argv[]) {
 	
 	std::cout << PrintCurrentTime() << "Loaded " << NC << HI_YELLOW << injest.getTotalVoters() << NC << " raws voters" << std::endl; 
 	
+	
+	std::cout << PrintCurrentTime() << HI_GREEN << "After triggers " << NC<< std::endl;
+  
+	std::cout << PrintCurrentTime() << "Numbers of First Names in Database:\t" << HI_YELLOW << CollectFirstName.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectFirstName.returnQueryTimes() << NC << " milliseconds" << std::endl;
+  std::cout << PrintCurrentTime() << "Numbers of Last Names in Database:\t" << HI_YELLOW << CollectLastName.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectLastName.returnQueryTimes() << NC << " milliseconds" << std::endl;
+ 	std::cout << PrintCurrentTime() << "Numbers of Middle Names in Database:\t" << HI_YELLOW << CollectMiddleName.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectMiddleName.returnQueryTimes() << NC << " milliseconds" << std::endl;
+  std::cout << PrintCurrentTime() << "Numbers of Street Names in Database:\t" << HI_YELLOW << CollectStreetName.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectStreetName.returnQueryTimes() << NC << " milliseconds" << std::endl;
+  std::cout << PrintCurrentTime() << "Numbers of Abbrev Names in Database:\t" << HI_YELLOW << CollectStateAbbrev.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectStateAbbrev.returnQueryTimes() << NC << " milliseconds" << std::endl;
+  std::cout << PrintCurrentTime() << "Numbers of State Names in Database:\t" << HI_YELLOW << CollectStateName.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectStateName.returnQueryTimes() << NC << " milliseconds" << std::endl;
+  std::cout << PrintCurrentTime() << "Numbers of District Town in Database:\t" << HI_YELLOW << CollectDistrictTown.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectDistrictTown.returnQueryTimes() << NC << " milliseconds" << std::endl;
+  std::cout << PrintCurrentTime() << "Numbers of Local City in Database:\t" << HI_YELLOW << CollectCity.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectCity.returnQueryTimes() << NC << " milliseconds" << std::endl;
+  std::cout << PrintCurrentTime() << "Numbers of Load Non Std in Database:\t" << HI_YELLOW << CollectNonStdFormat.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectNonStdFormat.returnQueryTimes() << NC << " milliseconds" << std::endl;
+  std::cout << PrintCurrentTime() << "Numbers of Load County in Database:\t" << HI_YELLOW << CollectCounty.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectCounty.returnQueryTimes() << NC << " milliseconds" << std::endl;
+
+	 				
 /*****************************************************************
  * Data Mailing Address                                          *
  *****************************************************************/

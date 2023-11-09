@@ -103,6 +103,12 @@ public:
   bool SaveDataBase(DataDistrictTemporalMap&);
   bool SaveDataBase(DataHouseMap&);
   bool SaveDataBase(DataAddressMap&);
+  
+  // To Print the data
+	void DataCollector::PrintTable(const VoterMap&);
+	void DataCollector::PrintTable(VoterComplementInfoMap&);
+	void DataCollector::PrintTable(DataMailingAddressMap&);
+
 
   // These are to read the data of the simple loads.
   int ReturnIndex(const std::string&);

@@ -68,18 +68,6 @@ int DataCollector::returnQueryTimes(void) {
 }
 
 /*
-void DataCollector::executeQuery(const std::string& query) {
-	
-	std::cout << "Getting the information from Database Connectors: " << dbConnection.printBasic() <<  std::endl;
-	
-//  sql::Connection* connection = dbConnection.getConnection();
- // sql::Statement* statement = connection->createStatement();
- // statement->execute(query);
- // delete statement;
-}
-*/
-
-/*
 DataCollector::DataCollector(const std::string StateAbbrev) : con(nullptr) {
   if (connect()) { 
     StateID = LoadStateAbbrev(StateAbbrev);
@@ -89,164 +77,11 @@ DataCollector::DataCollector(const std::string StateAbbrev) : con(nullptr) {
   }
 }
 */
-/*
-void DataCollector::PrintVoterTable(const VoterMap& Map) {
-	
-	int Counter = 0;
-	
-	for(auto it = Map.begin(); it != Map.end(); ++it) {
-	  const Voter& voter = it->first;
-	  int TableId = it->second;
-
-  	std::cout << HI_WHITE << ++Counter << NC << " - Uniq ID: " << HI_PINK << voter.uniqStateVoterId << NC << std::endl;	  
-	  std::cout << "\tIndexesID:\t"     << HI_YELLOW << voter.votersIndexesId << NC << std::endl;
-  	std::cout << "\tHouseID:\t"       << HI_YELLOW << voter.dataHouseId << NC << std::endl;
-  	std::cout << "\tGender:\t\t"      << HI_YELLOW << genderToString(voter.gender) << NC << std::endl;
-  	std::cout << "\tParty Code:\t"    << HI_YELLOW << voter.regParty << NC << std::endl;
-  	std::cout << "\tReason Code:\t"   << HI_YELLOW << reasonCodeToString(voter.reasonCode) << NC << std::endl;
-  	std::cout << "\tStatus:\t\t"      << HI_YELLOW << statusToString(voter.status) << NC << std::endl;
-  	std::cout << "\tMailing AddID:\t" << HI_YELLOW << voter.mailingAddressId << NC << std::endl;
-  	std::cout << "\tID Required:\t"   << HI_YELLOW << boolToString(voter.idRequired) << NC << std::endl;
-  	std::cout << "\tID Met:\t\t"      << HI_YELLOW << boolToString(voter.idMet) << NC << std::endl;
-  	std::cout << "\tApply Date:\t"    << HI_YELLOW << voter.applyDate << NC << std::endl;
-  	std::cout << "\tReg Source:\t"    << HI_YELLOW << regSourceToString(voter.regSource) << NC << std::endl;
-  	std::cout << "\tDate Inactive:\t" << HI_YELLOW << voter.dateInactive << NC << std::endl;
-  	std::cout << "\tDate Purged:\t"   << HI_YELLOW << voter.datePurged << NC << std::endl;
-  	std::cout << "\tCounty Reg #:\t"  << HI_YELLOW << voter.countyVoterNumber << NC << std::endl;
-  	std::cout << "\tRMB Active:\t"    << HI_YELLOW << boolToString(voter.rmbActive) << NC << std::endl;
-		std::cout << std::endl;
-	}
-}
-
-void DataCollector::PrintDataMailingAddressTable(DataMailingAddressMap& Map) {
-	int Counter = 0;
-	
-	for(auto it = Map.begin(); it != Map.end(); ++it) {
-		const DataMailingAddress& mailingaddr = it->first;
-	  int TableId = it->second;
-
-  	std::cout << HI_WHITE << ++Counter << NC << " - Data ID: " << HI_PINK;
-
-		DataMailingAddress Data(NIL, mailingaddr.dataMailAdrL1, mailingaddr.dataMailAdrL2, mailingaddr.dataMailAdrL3, mailingaddr.dataMailAdrL4);
-		int value = Map[Data];
-
-  	std::cout << value << NC << std::endl;	  
-	  std::cout << "\tMailing Line1:\t" << HI_YELLOW << mailingaddr.dataMailAdrL1 << NC << std::endl;
-  	std::cout << "\tMailing Line2:\t" << HI_YELLOW << mailingaddr.dataMailAdrL2 << NC << std::endl;
-  	std::cout << "\tMailing Line3:\t" << HI_YELLOW << mailingaddr.dataMailAdrL3 << NC << std::endl;
-  	std::cout << "\tMailing Line4:\t" << HI_YELLOW << mailingaddr.dataMailAdrL4 << NC << std::endl;
-		std::cout << std::endl;
-	}
-}
-
-
-void DataCollector::PrintVotersComplementInfoTable(VoterComplementInfoMap& Map) {
-	int Counter = 0;
-	
-	for(auto it = Map.begin(); it != Map.end(); ++it) {
-		const VoterComplementInfo& compinfo = it->first;
-	  int TableId = it->second;
-
-  	std::cout << HI_WHITE << ++Counter << NC << " - Data ID: " << HI_PINK;
-
-		//DataMailingAddress Data(mailingaddr.dataMailAdrL1, mailingaddr.dataMailAdrL2, mailingaddr.dataMailAdrL3, mailingaddr.dataMailAdrL4);
-		//int value = Map[Data];
-		
-	  std::cout << "\tVoter ID:\t" << HI_YELLOW << compinfo.VotersId << NC << std::endl;
-  	std::cout << "\tPrevious Name:\t" << HI_YELLOW << compinfo.VCIPrevName << NC << std::endl;
-  	std::cout << "\tPrev Address:\t" << HI_YELLOW << compinfo.VCIPrevAddress << NC << std::endl;
-  	std::cout << "\tCounty ID:\t" << HI_YELLOW << compinfo.VCIdataCountyId << NC << std::endl;
-  	std::cout << "\tLast Year Voted:\t" << HI_YELLOW << compinfo.VCILastYearVote << NC << std::endl;
-  	std::cout << "\tLast Vote:\t" << HI_YELLOW << compinfo.VCILastDateVote << NC << std::endl;
-  	std::cout << "\tOther Party:\t" << HI_YELLOW << compinfo.VCIOtherParty << NC << std::endl;
-		std::cout << std::endl;
-	}
-}
-
-// Special functions
-std::string DataCollector::boolToString(bool source) {
-  if (source == true) return "yes";
-  if (source == false) return "no";
-  return NILSTRG;
-}
-
-std::string DataCollector::genderToString(Gender gender) {
-  switch (gender) {
-    case Gender::Male: return "Male";
-    case Gender::Female: return "Female";
-    case Gender::Other: return "Other";
-    case Gender::Undetermined: return "Undetermined";
-    case Gender::Unspecified: return "Unspecified";
-    default: return NILSTRG;
-  }
-}
-
-std::string DataCollector::reasonCodeToString(ReasonCode code) {
-  switch (code) {
-    case ReasonCode::AdjudgedIncompetent: return "AdjudgedIncompetent";
-    case ReasonCode::Death: return "Death";
-    case ReasonCode::Duplicate: return "Duplicate";
-    case ReasonCode::Felon: return "Felon";
-    case ReasonCode::MailCheck: return "MailCheck";
-    case ReasonCode::MovedOutCounty: return "MovedOutCounty";
-    case ReasonCode::NCOA: return "NCOA";
-    case ReasonCode::NVRA: return "NVRA";
-    case ReasonCode::ReturnMail: return "ReturnMail";
-    case ReasonCode::VoterRequest: return "VoterRequest";
-    case ReasonCode::Other: return "Other";
-    case ReasonCode::Court: return "Court";
-    case ReasonCode::Inactive: return "Inactive";
-    case ReasonCode::Unspecified: return "Unspecified";
-    default: return NILSTRG;
-  }
-}
-
-std::string DataCollector::statusToString(Status status) {
-  switch (status) {
-    case Status::Active: return "Active";
-    case Status::ActiveMilitary: return "ActiveMilitary";
-    case Status::ActiveSpecialFederal: return "ActiveSpecialFederal";
-    case Status::ActiveSpecialPresidential: return "ActiveSpecialPresidential";
-    case Status::ActiveUOCAVA: return "ActiveUOCAVA";
-    case Status::Inactive: return "Inactive";
-    case Status::Purged: return "Purged";
-    case Status::Prereg17YearOlds: return "Prereg17YearOlds";
-    case Status::Confirmation: return "Confirmation";
-    case Status::Unspecified: return "Unspecified";
-    default: return NILSTRG;
-  }
-}
-
-std::string DataCollector::regSourceToString(RegSource source) {
-  switch (source) {
-    case RegSource::Agency: return "Agency";
-    case RegSource::CBOE: return "CBOE";
-    case RegSource::DMV: return "DMV";
-    case RegSource::LocalRegistrar: return "LocalRegistrar";
-    case RegSource::MailIn: return "MailIn";
-    case RegSource::School: return "School";
-    case RegSource::Unspecified: return "Unspecified";
-    case RegSource::OVR: return "OVR";
-    default: return NILSTRG;
-  }
-}
 
 
 
-DatabaseConnector::DatabaseConnector(const std::string StateAbbrev) : con(nullptr) {
-  if (connect()) { 
-    StateID = LoadStateAbbrev(StateAbbrev);
-  } else {
-    std::cerr << "Failed to connect to the database." << std::endl;
-    exit(1);
-  }
-}
 
-DatabaseConnector::~DatabaseConnector() {
-  if(con != nullptr) {
-    delete con;
-  }
-}
+
 
 /*
 To Save Space and remove the redundant but the incoming variable's name MUST be sql.
@@ -274,22 +109,6 @@ void DatabaseConnector::XXXNAME_FUNCTION_XXXXX(const std::string& sql, DataHouse
   auto end = std::chrono::high_resolution_clock::now(); 
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   std::cout << "Execution time in " << duration.count() << " milliseconds." << std::endl;
-*/
-
-/*
-bool DatabaseConnector::connect() {
-  try {
-    sql::mysql::MySQL_Driver* driver;
-    driver = sql::mysql::get_mysql_driver_instance();
-    con = driver->connect(DB_HOST + ":" + std::to_string(DB_PORT), DB_USER, DB_PASS);
-    con->setSchema(DB_NAME);
-
-    return true;
-  } catch (sql::SQLException &e) {
-    std::cerr << std::endl << "DatabaseConnector::connect Error: Could not connect to database." << e.what() << std::endl;
-    return false;
-  }
-}
 */
 
 int DataCollector::CheckIndex(const std::string& query) {
@@ -343,9 +162,7 @@ int DataCollector::countNotFoundinDB (void) {
 	return CountNotFoundinDB;
 }
 
-/*
-
-void DatabaseConnector::executeSimpleSave(int DBCount) {
+void DataCollector::executeSimpleSave(int DBCount) {
   std::string sql;
   int batchSize = SQLBATCH;
   int currentBatchCount = 0;
@@ -353,39 +170,37 @@ void DatabaseConnector::executeSimpleSave(int DBCount) {
   bool SaveLast = false;
 
   CLOCK_START
-
   try {
     for(const std::string& str : FieldToAddToDB) {
       prev_size = sql.length(); 
 
-      switch (DBCount) {    
-        case DBFIELDID_STREET: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_MIDDLENAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" +  dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_LASTNAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" + dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_FIRSTNAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" + dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_DISTRICTTOWN: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_CITY: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
-        case DBFIELDID_NONSTDFORMAT: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
-      }
-      
-      if (sql.length() > prev_size) { currentBatchCount++;  SaveLast = true; }
-
-      if(currentBatchCount == batchSize || &str == &FieldToAddToDB.back()) {
-        sql = returnInsertString(DBCount) + sql;
-
-        if( currentBatchCount == batchSize) {
-          SQL_QUERY_START
-          SQL_QUERY_END 
-          sql.clear();  
-          currentBatchCount = 0;
-          SaveLast = false;
-        }
-      } 
-    }
-          
+			if (str.length() > 0) {
+	      switch (DBCount) {    
+  	      case DBFIELDID_STREET: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
+    	    case DBFIELDID_MIDDLENAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" +  dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
+	        case DBFIELDID_LASTNAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" + dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
+	        case DBFIELDID_FIRSTNAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" + dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
+	        case DBFIELDID_DISTRICTTOWN: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
+	        case DBFIELDID_CITY: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
+	        case DBFIELDID_NONSTDFORMAT: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
+	      }
+	      
+	      if (sql.length() > prev_size) { currentBatchCount++;  SaveLast = true; }
+	      if(currentBatchCount == batchSize || &str == &FieldToAddToDB.back()) {
+	        if( currentBatchCount == batchSize) {
+	        	sql = returnInsertString(DBCount) + sql;
+	          SQL_INSERT
+	          sql.clear();
+	          currentBatchCount = 0;
+	          SaveLast = false;
+	        }
+	      }	       
+	    }
+	  }
+	      
     if( SaveLast == true && sql.length() > 0 ) {
-      SQL_QUERY_START
-      SQL_QUERY_END 
+    	sql = returnInsertString(DBCount) + sql;
+      SQL_INSERT
       sql.clear();
     }             
    } SQL_EXEPTION  
@@ -393,7 +208,7 @@ void DatabaseConnector::executeSimpleSave(int DBCount) {
   CLOCK_END
 }
 
-std::string DatabaseConnector::returnInsertString(int DBCount) {
+std::string DataCollector::returnInsertString(int DBCount) {
   switch (DBCount) {
     case DBFIELDID_STREET:        return "INSERT INTO " + std::string(DBFIELD_STREET) + " VALUES "; break;
     case DBFIELDID_MIDDLENAME:    return "INSERT INTO " + std::string(DBFIELD_MIDDLENAME) + " VALUES "; break;
@@ -406,8 +221,6 @@ std::string DatabaseConnector::returnInsertString(int DBCount) {
   std::cout << RED << "Problem constructing SQL string in returnInsertString in DBCount: " << FieldNames[DBCount] << NC << std::endl;
   exit(1);
 }
-
-*/
 
 void DataCollector::executeSimpleQuery(const std::string& sql, int DBCount) {
   CLOCK_START
@@ -575,8 +388,7 @@ bool DataCollector::SaveDataBase(VoterMap& Map) {
       
       if( currentBatchCount == batchSize) {
         sql = "INSERT INTO Voters VALUES " + sql;
-        SQL_QUERY_START
-        SQL_QUERY_END 
+        SQL_INSERT
         sql.clear();  
         currentBatchCount = 0;
         SaveLast = false;
@@ -585,8 +397,7 @@ bool DataCollector::SaveDataBase(VoterMap& Map) {
   
     if( SaveLast == true ) {
       sql = "INSERT INTO Voters VALUES " + sql;
-      SQL_QUERY_START
-      SQL_QUERY_END 
+      SQL_INSERT
       sql.clear();
     }
     
@@ -602,6 +413,34 @@ bool DataCollector::SaveDataBase(VoterMap& Map) {
   executeLoadDataQuery(sql, Map);
   return true;
 }
+
+
+void DataCollector::PrintTable(const VoterMap& Map) {
+	int Counter = 0;
+	for(auto it = Map.begin(); it != Map.end(); ++it) {
+	  const Voter& voter = it->first;
+	  int TableId = it->second;
+
+  	std::cout << HI_WHITE << ++Counter << NC << " - Uniq ID: " << HI_PINK << voter.uniqStateVoterId << NC << std::endl;	  
+	  std::cout << "\tIndexesID:\t"     << HI_YELLOW << voter.votersIndexesId << NC << std::endl;
+  	std::cout << "\tHouseID:\t"       << HI_YELLOW << voter.dataHouseId << NC << std::endl;
+  	std::cout << "\tGender:\t\t"      << HI_YELLOW << genderToString(voter.gender) << NC << std::endl;
+  	std::cout << "\tParty Code:\t"    << HI_YELLOW << voter.regParty << NC << std::endl;
+  	std::cout << "\tReason Code:\t"   << HI_YELLOW << reasonCodeToString(voter.reasonCode) << NC << std::endl;
+  	std::cout << "\tStatus:\t\t"      << HI_YELLOW << statusToString(voter.status) << NC << std::endl;
+  	std::cout << "\tMailing AddID:\t" << HI_YELLOW << voter.mailingAddressId << NC << std::endl;
+  	std::cout << "\tID Required:\t"   << HI_YELLOW << boolToString(voter.idRequired) << NC << std::endl;
+  	std::cout << "\tID Met:\t\t"      << HI_YELLOW << boolToString(voter.idMet) << NC << std::endl;
+  	std::cout << "\tApply Date:\t"    << HI_YELLOW << voter.applyDate << NC << std::endl;
+  	std::cout << "\tReg Source:\t"    << HI_YELLOW << regSourceToString(voter.regSource) << NC << std::endl;
+  	std::cout << "\tDate Inactive:\t" << HI_YELLOW << voter.dateInactive << NC << std::endl;
+  	std::cout << "\tDate Purged:\t"   << HI_YELLOW << voter.datePurged << NC << std::endl;
+  	std::cout << "\tCounty Reg #:\t"  << HI_YELLOW << voter.countyVoterNumber << NC << std::endl;
+  	std::cout << "\tRMB Active:\t"    << HI_YELLOW << boolToString(voter.rmbActive) << NC << std::endl;
+		std::cout << std::endl;
+	}
+}
+
 
 /**************************
  *** VOTERINDEXES TABLE ***
@@ -689,8 +528,7 @@ bool DataCollector::SaveDataBase(VoterIdxMap& Map) {
       
       if( currentBatchCount == batchSize) {
         sql = "INSERT INTO VotersIndexes VALUES " + sql;
-        SQL_QUERY_START
-        SQL_QUERY_END 
+        SQL_INSERT
         sql.clear();  
         currentBatchCount = 0;
         SaveLast = false;
@@ -699,8 +537,7 @@ bool DataCollector::SaveDataBase(VoterIdxMap& Map) {
   
     if( SaveLast == true ) {
       sql = "INSERT INTO VotersIndexes VALUES " + sql;
-      SQL_QUERY_START
-      SQL_QUERY_END 
+  		SQL_INSERT
       sql.clear();
     }
     
@@ -807,25 +644,24 @@ bool DataCollector::SaveDataBase(VoterComplementInfoMap& Map) {
 	      ++it;  // Move to next element
 	    }
 	      
-      if( currentBatchCount == batchSize) {
-        sql = "INSERT INTO VotersComplementInfo VALUES " + sql;
-        SQL_QUERY_START
-        SQL_QUERY_END 
-        sql.clear();  
+	 		if( currentBatchCount == batchSize) {
+        sql = query + sql;
+        SQL_INSERT
+        sql.clear();
         currentBatchCount = 0;
         SaveLast = false;
       }
-    } 
-  
-    if( SaveLast == true ) {
-      sql = "INSERT INTO VotersComplementInfo VALUES " + sql;
-      SQL_QUERY_START
-      SQL_QUERY_END  
+	  } 
+	  
+    if( SaveLast == true && currentBatchCount > 0) {        
+      sql = query + sql;
+      SQL_INSERT
       sql.clear();
     }
-  } SQL_EXEPTION  
-  CLOCK_END
-  
+    
+	} SQL_EXEPTION  
+	CLOCK_END
+	  
   sql.clear();
   sql = "SELECT * FROM VotersComplementInfo";
   if ( SimpleLastDbID[DBFIELDID_VOTERSCMINFO] > 0) {
@@ -836,6 +672,30 @@ bool DataCollector::SaveDataBase(VoterComplementInfoMap& Map) {
   Map[VoterComplementInfo(NIL,NILSTRG,NILSTRG,NIL,NIL,NIL,NILSTRG)] = -2;
   return true;
 }
+
+void DataCollector::PrintTable(VoterComplementInfoMap& Map) {
+	int Counter = 0;
+	
+	for(auto it = Map.begin(); it != Map.end(); ++it) {
+		const VoterComplementInfo& compinfo = it->first;
+	  int TableId = it->second;
+
+  	std::cout << HI_WHITE << ++Counter << NC << " - Data ID: " << HI_PINK;
+
+		//DataMailingAddress Data(mailingaddr.dataMailAdrL1, mailingaddr.dataMailAdrL2, mailingaddr.dataMailAdrL3, mailingaddr.dataMailAdrL4);
+		//int value = Map[Data];
+		
+	  std::cout << "\tVoter ID:\t" << HI_YELLOW << compinfo.VotersId << NC << std::endl;
+  	std::cout << "\tPrevious Name:\t" << HI_YELLOW << compinfo.VCIPrevName << NC << std::endl;
+  	std::cout << "\tPrev Address:\t" << HI_YELLOW << compinfo.VCIPrevAddress << NC << std::endl;
+  	std::cout << "\tCounty ID:\t" << HI_YELLOW << compinfo.VCIdataCountyId << NC << std::endl;
+  	std::cout << "\tLast Year Voted:\t" << HI_YELLOW << compinfo.VCILastYearVote << NC << std::endl;
+  	std::cout << "\tLast Vote:\t" << HI_YELLOW << compinfo.VCILastDateVote << NC << std::endl;
+  	std::cout << "\tOther Party:\t" << HI_YELLOW << compinfo.VCIOtherParty << NC << std::endl;
+		std::cout << std::endl;
+	}
+}
+
 
 /**************************
  *** DATADISTRICT TABLE ***
@@ -929,7 +789,6 @@ bool DataCollector::SaveDataBase(DataDistrictMap& Map) {
       } 
       
       if( currentBatchCount == batchSize) {
-      	std::cout << HI_YELLOW << "WHAT IS THE SQL HERE IN BATCH SIZE: " << NC << HI_PINK << sql << NC << std::endl;   
         sql = query + sql;
         SQL_INSERT
         sql.clear();
@@ -939,7 +798,6 @@ bool DataCollector::SaveDataBase(DataDistrictMap& Map) {
     } 
   
     if( SaveLast == true && currentBatchCount > 0) {        
-     	std::cout << HI_YELLOW << "WHAT IS THE SQL HERE IN LAST: " << NC << HI_PINK << sql << NC << std::endl;
       sql = query + sql;
       SQL_INSERT
       sql.clear();
@@ -1028,9 +886,8 @@ bool DataCollector::SaveDataBase(DataDistrictTemporalMap& Map) {
       }
       
       if( currentBatchCount == batchSize) {
-        sql = "INSERT INTO DataDistrictTemporal VALUES " + sql;
-        SQL_QUERY_START
-        SQL_QUERY_END 
+        sql = query + sql;
+        SQL_INSERT
         sql.clear();  
         currentBatchCount = 0;
         SaveLast = false;
@@ -1038,9 +895,8 @@ bool DataCollector::SaveDataBase(DataDistrictTemporalMap& Map) {
     } 
   
     if( SaveLast == true ) {
-      sql = "INSERT INTO DataDistrictTemporal VALUES " + sql;
-      SQL_QUERY_START
-      SQL_QUERY_END 
+      sql = query + sql;
+      SQL_INSERT
       sql.clear();  // Clearing the SQL string to start afresh for the next batch
     }   
   } SQL_EXEPTION  
@@ -1149,7 +1005,6 @@ bool DataCollector::SaveDataBase(DataHouseMap& Map) {
       }
       
       if( currentBatchCount == batchSize) {
-      	std::cout << HI_YELLOW << "WHAT IS THE SQL HERE IN BATCH SIZE: " << NC << HI_PINK << sql << NC << std::endl;   
         sql = query + sql;
         SQL_INSERT
         sql.clear();
@@ -1159,7 +1014,6 @@ bool DataCollector::SaveDataBase(DataHouseMap& Map) {
     } 
   
     if( SaveLast == true && currentBatchCount > 0) {        
-     	std::cout << HI_YELLOW << "WHAT IS THE SQL HERE IN LAST: " << NC << HI_PINK << sql << NC << std::endl;
       sql = query + sql;
       SQL_INSERT
       sql.clear();
@@ -1282,7 +1136,6 @@ bool DataCollector::SaveDataBase(DataAddressMap& Map) {
       }
     
  			if( currentBatchCount == batchSize) {
-      	std::cout << HI_YELLOW << "WHAT IS THE SQL HERE IN BATCH SIZE: " << NC << HI_PINK << sql << NC << std::endl;   
         sql = query + sql;
         SQL_INSERT
         sql.clear();
@@ -1292,7 +1145,6 @@ bool DataCollector::SaveDataBase(DataAddressMap& Map) {
     } 
   
     if( SaveLast == true && currentBatchCount > 0) {        
-     	std::cout << HI_YELLOW << "WHAT IS THE SQL HERE IN LAST: " << NC << HI_PINK << sql << NC << std::endl;
       sql = query + sql;
       SQL_INSERT
       sql.clear();
@@ -1426,6 +1278,27 @@ bool DataCollector::SaveDataBase(DataMailingAddressMap& Map) {
   return true;
 }
 
+void DataCollector::PrintTable(DataMailingAddressMap& Map) {
+	int Counter = 0;
+	
+	for(auto it = Map.begin(); it != Map.end(); ++it) {
+		const DataMailingAddress& mailingaddr = it->first;
+	  int TableId = it->second;
+
+  	std::cout << HI_WHITE << ++Counter << NC << " - Data ID: " << HI_PINK;
+
+		DataMailingAddress Data(NIL, mailingaddr.dataMailAdrL1, mailingaddr.dataMailAdrL2, mailingaddr.dataMailAdrL3, mailingaddr.dataMailAdrL4);
+		int value = Map[Data];
+
+  	std::cout << value << NC << std::endl;	  
+	  std::cout << "\tMailing Line1:\t" << HI_YELLOW << mailingaddr.dataMailAdrL1 << NC << std::endl;
+  	std::cout << "\tMailing Line2:\t" << HI_YELLOW << mailingaddr.dataMailAdrL2 << NC << std::endl;
+  	std::cout << "\tMailing Line3:\t" << HI_YELLOW << mailingaddr.dataMailAdrL3 << NC << std::endl;
+  	std::cout << "\tMailing Line4:\t" << HI_YELLOW << mailingaddr.dataMailAdrL4 << NC << std::endl;
+		std::cout << std::endl;
+	}
+}
+
 /***************************
  *** DATAFIRSTNAME TABLE ***
  ***************************
@@ -1442,8 +1315,7 @@ bool DataCollector::LoadFirstName(VoterMap& voterMap) {
   return true;
 }
 
-/*
-bool DatabaseConnector::TriggerSaveFirstNameDB(void) {
+bool DataCollector::TriggerSaveFirstNameDB(void) {
   executeSimpleSave(DBFIELDID_FIRSTNAME);
   executeSimpleQuery("SELECT * FROM " + std::string(DBFIELD_FIRSTNAME) + " WHERE " + std::string(DBFIELD_FIRSTNAME) + "_ID >= " + 
                       std::to_string(SimpleLastDbID[DBFIELDID_FIRSTNAME]), DBFIELDID_FIRSTNAME);  
@@ -1465,8 +1337,7 @@ bool DataCollector::LoadLastName(VoterMap& voterMap) {
   return true;
 }
 
-/*
-bool DatabaseConnector::TriggerSaveLastNameDB(void) {
+bool DataCollector::TriggerSaveLastNameDB(void) {
   executeSimpleSave(DBFIELDID_LASTNAME);
   executeSimpleQuery("SELECT * FROM " + std::string(DBFIELD_LASTNAME) + " WHERE " + std::string(DBFIELD_LASTNAME) + "_ID >= " + 
                       std::to_string(SimpleLastDbID[DBFIELDID_LASTNAME]), DBFIELDID_LASTNAME);
@@ -1488,8 +1359,7 @@ bool DataCollector::LoadMiddleName(VoterMap& voterMap) {
   return true;
 }
 
-/*
-bool DatabaseConnector::TriggerSaveMiddleNameDB(void) {
+bool DataCollector::TriggerSaveMiddleNameDB(void) {
   executeSimpleSave(DBFIELDID_MIDDLENAME);
   executeSimpleQuery("SELECT * FROM " + std::string(DBFIELD_MIDDLENAME) + " WHERE " + std::string(DBFIELD_MIDDLENAME) + "_ID >= " + 
                       std::to_string(SimpleLastDbID[DBFIELDID_MIDDLENAME]), DBFIELDID_MIDDLENAME);
@@ -1547,8 +1417,7 @@ bool DataCollector::LoadStreetName(VoterMap& voterMap) {
   return true;
 }
 
-/*
-bool DatabaseConnector::TriggerSaveStreetNameDB(void) {
+bool DataCollector::TriggerSaveStreetNameDB(void) {
   executeSimpleSave(DBFIELDID_STREET);
   executeSimpleQuery("SELECT * FROM " + std::string(DBFIELD_STREET) + " WHERE " + std::string(DBFIELD_STREET) + "_ID >= " + 
                       std::to_string(SimpleLastDbID[DBFIELDID_STREET]), DBFIELDID_STREET);
@@ -1569,8 +1438,8 @@ bool DataCollector::LoadDistrictTown(VoterMap& voterMap) {
   return true;
 }
 
-/*
-bool DatabaseConnector::TriggerSaveDistrictTownDB(void) {
+
+bool DataCollector::TriggerSaveDistrictTownDB(void) {
   executeSimpleSave(DBFIELDID_DISTRICTTOWN);
   executeSimpleQuery("SELECT * FROM " + std::string(DBFIELD_DISTRICTTOWN) + " WHERE " + std::string(DBFIELD_DISTRICTTOWN) + "_ID >= " + 
                       std::to_string(SimpleLastDbID[DBFIELDID_DISTRICTTOWN]), DBFIELDID_DISTRICTTOWN);  
@@ -1591,8 +1460,7 @@ bool DataCollector::LoadCity(VoterMap& voterMap) {
   return true;
 }
 
-/*
-bool DatabaseConnector::TriggerSaveCityDB(void) {
+bool DataCollector::TriggerSaveCityDB(void) {
   executeSimpleSave(DBFIELDID_CITY);
   executeSimpleQuery("SELECT * FROM " + std::string(DBFIELD_CITY) + " WHERE " + std::string(DBFIELD_CITY) + "_ID >= " + 
                       std::to_string(SimpleLastDbID[DBFIELDID_CITY]), DBFIELDID_CITY);  
@@ -1613,9 +1481,7 @@ bool DataCollector::LoadNonStdFormat(VoterMap& voterMap) {
   return true;
 }
 
-/*
-
-bool DatabaseConnector::TriggerSaveNonStdFormatDB(void) {
+bool DataCollector::TriggerSaveNonStdFormatDB(void) {
   executeSimpleSave(DBFIELDID_NONSTDFORMAT);
   executeSimpleQuery("SELECT * FROM " + std::string(DBFIELD_NONSTDFORMAT) + " WHERE " + std::string(DBFIELD_NONSTDFORMAT) + "_ID >= " + 
                       std::to_string(SimpleLastDbID[DBFIELDID_NONSTDFORMAT]), DBFIELDID_NONSTDFORMAT);  
@@ -1814,6 +1680,10 @@ std::string DataCollector::RemoveAllSpacesString(const std::string& name) {
   
   return ToUpperAccents(cleanedName);
 }
+
+
+
+
 
 // Special Fields in the database 
 bool DataCollector::stringToBool(const std::string& str) {
