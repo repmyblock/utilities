@@ -22,19 +22,19 @@ const std::string  DB_PASS = "usracct";
 const std::string  DB_NAME = "RepMyBlockTwo";
   
 class DatabaseConnector {
-	public:
-	  DatabaseConnector();
-	  ~DatabaseConnector();
-	  // bool connect();
-	  sql::Connection* getConnection(void);
- 		std::string CustomEscapeString(const std::string&);
- 		sql::ResultSet* executeQuery(const std::string&);
- 		void executeInsert(const std::string&);
- 		void deleteResource(sql::ResultSet*);
-	    
-	private:
-	  sql::Connection* con;
-	  sql::mysql::MySQL_Driver* driver;
+  public:
+    DatabaseConnector();
+    ~DatabaseConnector();
+    // bool connect();
+    sql::Connection* getConnection(void);
+    std::string CustomEscapeString(const std::string&);
+    sql::ResultSet* executeQuery(const std::string&);
+    void executeInsert(const std::string&);
+    void deleteResource(sql::ResultSet*);
+      
+  private:
+    sql::Connection* con;
+    sql::mysql::MySQL_Driver* driver;
 };
 
 #endif //DATABASECONNECTOR_H

@@ -1,4 +1,3 @@
-
 #include "Voter.h"
 #include "DataCollector.h"
 #include "DatabaseConnector.h"
@@ -18,7 +17,7 @@
 #include <cstdint>
 
 #define COUNTER         100000
-#define SQLBATCH        10
+#define SQLBATCH        20000
 
 #define SQL_QUERY_START   sql::ResultSet* res = dbConnection.executeQuery(sql);  
 #define SQL_QUERY_END     dbConnection.deleteResource(res);
@@ -40,20 +39,6 @@
 
 #define SQL_INT_OR_NIL(str) (res->isNull(str)? NIL : res->getInt(str))
 #define SQL_UPPERSTR_OR_NIL(str) (res->isNull(str)) ? NILSTRG : ToUpperAccents(res->getString(str))
-
-
-
-#include <iostream>
-
-/*
-void DataCollector::DataCollector() : con(nullptr) {}
-
-void DataCollector::~DataCollector() {
-  if(con != nullptr) {
-    delete con;
-  }
-}
-*/
 
 void DataCollector::collectData() {
     std::cout << "Collecting data..." << std::endl;     
@@ -78,43 +63,10 @@ DataCollector::DataCollector(const std::string StateAbbrev) : con(nullptr) {
 }
 */
 
-
-
-
-
-
-/*
-To Save Space and remove the redundant but the incoming variable's name MUST be sql.
-void DatabaseConnector::XXXNAME_FUNCTION_XXXXX(const std::string& sql, DataHouseMap& Map) {
-  // Replaced with CLOCK_START
-  auto start = std::chrono::high_resolution_clock::now();
-
-  try {   
-    // Replaced with SQL_QUERY_START  
-    sql::Statement* stmt = con->createStatement(); 
-    sql::ResultSet* res = stmt->executeQuery(sql);
- 
-    //
-    // The SQL ITSELF MUST BE HERE
-    //
-
-    // Replaced with SQL_QUERY_END
-    delete res; 
-    delete stmt;
-  } 
-  // Replaced with SQL_EXEPTION
-  catch (sql::SQLException &e) { std::cerr << "Error: Could not execute query. " << e.what() << std::endl; exit(1); }
-  
-  // Replaced with CLOCK_END
-  auto end = std::chrono::high_resolution_clock::now(); 
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  std::cout << "Execution time in " << duration.count() << " milliseconds." << std::endl;
-*/
-
 int DataCollector::CheckIndex(const std::string& query) {
   if (query.length() < 1) return NIL;
     
-  if (dataMap[query] == 0 ) { 
+  if (dataMap[query] == 0 ) {
     FieldToAddToDB.push_back(query);
     dataMap[query] = -1; 
     CountNotFoundinDB++;
@@ -162,6 +114,45 @@ int DataCollector::countNotFoundinDB (void) {
   return CountNotFoundinDB;
 }
 
+void DataCollector::PrintLineAsHex(const std::string& line) {
+  std::stringstream hexStream;
+
+  // For each character in the string, convert it to hex and append it to the stringstream
+  for (unsigned char c : line) {
+    hexStream << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(c) << "(" << c << ") ";
+  }
+
+  // Print the stringstream's content
+  std::cout << hexStream.str() << std::endl;
+}
+
+
+/*
+To Save Space and remove the redundant but the incoming variable's name MUST be sql.
+void DatabaseConnector::XXXNAME_FUNCTION_XXXXX(const std::string& sql, DataHouseMap& Map) {
+  // Replaced with CLOCK_START
+  auto start = std::chrono::high_resolution_clock::now();
+
+  try {   
+    // Replaced with SQL_QUERY_START  
+    sql::ResultSet* res = dbConnection.executeQuery(sql); 
+ 
+    //
+    // The SQL ITSELF MUST BE HERE
+    //
+
+    // Replaced with SQL_QUERY_END
+    delete res; 
+  } 
+  // Replaced with SQL_EXEPTION
+  catch (sql::SQLException &e) { std::cerr << "Error: Could not execute query. " << e.what() << std::endl; exit(1); }
+  
+  // Replaced with CLOCK_END
+  auto end = std::chrono::high_resolution_clock::now(); 
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  std::cout << "Execution time in " << duration.count() << " milliseconds." << std::endl;
+*/
+
 void DataCollector::executeSimpleSave(int DBCount) {
   std::string sql;
   int batchSize = SQLBATCH;
@@ -172,12 +163,13 @@ void DataCollector::executeSimpleSave(int DBCount) {
   CLOCK_START
   try {
     for(const std::string& str : FieldToAddToDB) {
+      
       prev_size = sql.length(); 
 
       if (str.length() > 0) {
         switch (DBCount) {    
           case DBFIELDID_STREET: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
-          case DBFIELDID_MIDDLENAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" +  dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
+          case DBFIELDID_MIDDLENAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" + dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
           case DBFIELDID_LASTNAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" + dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
           case DBFIELDID_FIRSTNAME: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\",\"" + dbConnection.CustomEscapeString(RemoveAllSpacesString(str)) + "\")", currentBatchCount); break;
           case DBFIELDID_DISTRICTTOWN: sql += ReturnDBInjest("(null, \"" + dbConnection.CustomEscapeString(nameCase(str)) + "\")", currentBatchCount); break;
@@ -327,9 +319,6 @@ void DataCollector::executeLoadDataQuery(const std::string& sql, VoterMap& Map) 
 }
 
 bool DataCollector::SaveDataBase(VoterMap& Map) { 
-  
-  std::cout << HI_WHITE << "Saving Voters" << NC << std::endl;
-    
   const std::string query = "INSERT INTO Voters VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
@@ -491,10 +480,7 @@ bool DataCollector::LoadData(VoterIdxMap& Map) {
   return true;
 }
 
-bool DataCollector::SaveDataBase(VoterIdxMap& Map) {  
-  
-  std::cout << HI_WHITE << "Saving VotersIndexes" << NC << std::endl;
-    
+bool DataCollector::SaveDataBase(VoterIdxMap& Map) {      
   const std::string query = "INSERT INTO VotersIndexes VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
@@ -605,9 +591,6 @@ bool DataCollector::LoadData(VoterComplementInfoMap& Map) {
 }
 
 bool DataCollector::SaveDataBase(VoterComplementInfoMap& Map) { 
-  
-  std::cout << HI_WHITE << "Saving VotersComplementInfo" << NC << std::endl;
-    
   const std::string query = "INSERT INTO VotersComplementInfo VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
@@ -621,13 +604,13 @@ bool DataCollector::SaveDataBase(VoterComplementInfoMap& Map) {
     while (it != Map.end()) {
       const VoterComplementInfo& voterComplementInfo = it->first;
           
-      if (Map[voterComplementInfo] == 0) {
-        if ( voterComplementInfo.VCIPrevName.length() > 0 || voterComplementInfo.VCIPrevName.length() > 0 || 
-              voterComplementInfo.VCIPrevAddress.length() > 0 || voterComplementInfo.VCIdataCountyId > 0 || voterComplementInfo.VCILastYearVote > 0 || 
+      if (Map[voterComplementInfo] == 0 && voterComplementInfo.VotersId > 0) {
+        if ( voterComplementInfo.VCIPrevName.length() > 0 || voterComplementInfo.VCIPrevAddress.length() > 0 || 
+              voterComplementInfo.VCIdataCountyId > 0 || voterComplementInfo.VCILastYearVote > 0 || 
               voterComplementInfo.VCILastDateVote > 0 || voterComplementInfo.VCIOtherParty.length() > 0 ) {
 
           std::string tmpsql = "null,"; 
-          tmpsql += (voterComplementInfo.VotersId > 0) ? ("\"" + std::to_string(voterComplementInfo.VotersId) + "\",") : "null,";     
+          tmpsql += (voterComplementInfo.VotersId > 0) ? ("\"" + std::to_string(voterComplementInfo.VotersId) + "\",") : "null,";
           tmpsql += (voterComplementInfo.VCIPrevName.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(nameCase(voterComplementInfo.VCIPrevName)) + "\",") : "null,";      
           tmpsql += (voterComplementInfo.VCIPrevAddress.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(voterComplementInfo.VCIPrevAddress) + "\",") : "null,";      
           tmpsql += (voterComplementInfo.VCIdataCountyId > 0) ? ("\"" + std::to_string(voterComplementInfo.VCIdataCountyId) + "\",") : "null,";     
@@ -665,7 +648,7 @@ bool DataCollector::SaveDataBase(VoterComplementInfoMap& Map) {
   sql.clear();
   sql = "SELECT * FROM VotersComplementInfo";
   if ( SimpleLastDbID[DBFIELDID_VOTERSCMINFO] > 0) {
-    sql += " WHERE VotersComplementInfo >= " + std::to_string(SimpleLastDbID[DBFIELDID_VOTERSCMINFO]);    
+    sql += " WHERE VotersComplementInfo_ID >= " + std::to_string(SimpleLastDbID[DBFIELDID_VOTERSCMINFO]);    
   }
  
   executeLoadDataQuery(sql, Map);
@@ -750,9 +733,7 @@ void DataCollector::executeLoadDataQuery(const std::string& sql, DataDistrictMap
 }
 
 
-bool DataCollector::SaveDataBase(DataDistrictMap& Map) {  
-  std::cout << HI_WHITE << "Saving DataDistrict" << NC << std::endl;
-    
+bool DataCollector::SaveDataBase(DataDistrictMap& Map) {      
   const std::string query = "INSERT INTO DataDistrict VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
@@ -833,9 +814,6 @@ bool DataCollector::LoadData(DataDistrictTemporalMap& Map) {
 }
 
 bool DataCollector::SaveDataBase(DataDistrictTemporalMap& Map) {  
-  
-  std::cout << HI_WHITE << "Saving DataDistrictTemporal" << NC << std::endl;
-    
   const std::string query = "INSERT INTO DataDistrictTemporal VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
@@ -968,9 +946,7 @@ bool DataCollector::LoadData(DataHouseMap& Map) {
   return true;
 }
 
-bool DataCollector::SaveDataBase(DataHouseMap& Map) {  
-  std::cout << HI_WHITE << "Saving DataHouseMap" << NC << std::endl;
-    
+bool DataCollector::SaveDataBase(DataHouseMap& Map) {     
   const std::string query = "INSERT INTO DataHouse VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
@@ -1083,15 +1059,11 @@ void DataCollector::executeLoadDataQuery(const std::string& sql, DataAddressMap&
 
 bool DataCollector::LoadData(DataAddressMap& Map) {
   CHECK_FIELD
-  std::cout << HI_WHITE << "Loading DataAddressMap" << NC << std::endl;
   executeLoadDataQuery("SELECT * FROM DataAddress", Map);
   return true;
 }
 
 bool DataCollector::SaveDataBase(DataAddressMap& Map) {  
-  
-  std::cout << HI_WHITE << "Saving DataAddressMap" << NC << std::endl;
-    
   const std::string query = "INSERT INTO DataAddress VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
@@ -1229,26 +1201,23 @@ bool DataCollector::SaveDataBase(DataMailingAddressMap& Map) {
           DataMailingAddress.dataMailAdrL3.length() > 0 || DataMailingAddress.dataMailAdrL4.length() > 0) {
             
           // (`DataMailingAddress_Line1`, `DataMailingAddress_Line2`, `DataMailingAddress_Line3`, `DataMailingAddress_Line4`)
-          std::string tmpsql = "null,";
-      
+          
+          std::string tmpsql = "null,";      
           tmpsql += (DataMailingAddress.dataMailAdrL1.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL1)) + "\",") : "null,";
           tmpsql += (DataMailingAddress.dataMailAdrL2.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL2)) + "\",") : "null,";
           tmpsql += (DataMailingAddress.dataMailAdrL3.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL3)) + "\",") : "null,";
           tmpsql += (DataMailingAddress.dataMailAdrL4.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(nameCase(DataMailingAddress.dataMailAdrL4)) + "\"") : "null";
      
           sql += ReturnDBInjest("(" + tmpsql + ")", currentBatchCount);
-         ++currentBatchCount;
+          ++currentBatchCount;
           SaveLast = true;  
         }
         it = Map.erase(it);
       } else {
         ++it;   
       }
-            
-      // std::cout << HI_CYAN << "CURRENT BATCH COUNT: " << NC << HI_PINK << currentBatchCount << NC << std::endl;     
-            
+      
       if( currentBatchCount == batchSize) {
-        std::cout << HI_YELLOW << "WHAT IS THE SQL HERE IN BATCH SIZE: " << NC << HI_PINK << sql << NC << std::endl;   
         sql = query + sql;
         SQL_INSERT
         sql.clear();
@@ -1258,7 +1227,6 @@ bool DataCollector::SaveDataBase(DataMailingAddressMap& Map) {
     } 
   
     if( SaveLast == true && currentBatchCount > 0) {        
-      std::cout << HI_YELLOW << "WHAT IS THE SQL HERE IN LAST: " << NC << HI_PINK << sql << NC << std::endl;
       sql = query + sql;
       SQL_INSERT
       sql.clear();
@@ -1607,12 +1575,10 @@ void DataCollector::exitIfSequenceFound(const std::string& str, const std::strin
   }
 }
 
-
-
 std::string DataCollector::nameCase(const std::string& input) {
   std::string result;
   bool capitalizeNext = true;
-  
+   
   for (unsigned char c : input) {
     if (capitalizeNext) {
       if (isalpha(c)) { 
@@ -1669,7 +1635,9 @@ std::string DataCollector::nameCase(const std::string& input) {
     // If the character is a space, capitalize the next character
     if (c == ' ') { capitalizeNext = true; }   
   }
+ 
   return result;
+
 }
 
 std::string DataCollector::RemoveAllSpacesString(const std::string& name) {
@@ -1680,10 +1648,6 @@ std::string DataCollector::RemoveAllSpacesString(const std::string& name) {
   
   return ToUpperAccents(cleanedName);
 }
-
-
-
-
 
 // Special Fields in the database 
 bool DataCollector::stringToBool(const std::string& str) {

@@ -66,7 +66,7 @@ DataMailingAddress::DataMailingAddress(uint32_t id, const std::string& dataMailA
 
 bool DataMailingAddress::operator==(const DataMailingAddress& other) const {
     return id == id && dataMailAdrL1 == other.dataMailAdrL1 && dataMailAdrL2 == other.dataMailAdrL2 && 
-    				dataMailAdrL3 == other.dataMailAdrL3 && dataMailAdrL4 == other.dataMailAdrL4;
+            dataMailAdrL3 == other.dataMailAdrL3 && dataMailAdrL4 == other.dataMailAdrL4;
 }
 
 // Do Data District

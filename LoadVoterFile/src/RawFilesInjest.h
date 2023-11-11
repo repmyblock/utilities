@@ -26,21 +26,21 @@ public:
   RawFilesInjest();
   ~RawFilesInjest();
 
-	// Updated function signature to match the implementation
-	void processChunk(const std::string&, size_t, size_t, int);
-	void loadFile(const std::string&);
+  // Updated function signature to match the implementation
+  void processChunk(const std::string&, size_t, size_t, int);
+  void loadFile(const std::string&);
 
-	// This should match the way you're going to use the wrapper
-	void processChunkWrapper(const std::string&, size_t, size_t, int);
-	void SetNumbersThreads(int);
+  // This should match the way you're going to use the wrapper
+  void processChunkWrapper(const std::string&, size_t, size_t, int);
+  void SetNumbersThreads(int);
 
   VoterInfoRaw getVoters(int);
   int getTotalVoters();
 
 private:
-	int numThreads;
-	std::chrono::milliseconds duration;
-		
+  int numThreads;
+  std::chrono::milliseconds duration;
+    
   std::vector<VoterInfoRaw> voters;
   std::string ToUpperAccents(const std::string&);
   std::string ConvertLatin1ToUTF8(const std::string&);
@@ -54,7 +54,8 @@ private:
   std::condition_variable cv;
   bool allChunksProcessed = false;
   void parseLineToVoterInfo(const std::string&);
-  	
+  void PrintLineAsHex(const std::string&);
+    
 };
 
 #endif // RAWFILESINJEST_H

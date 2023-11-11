@@ -55,13 +55,13 @@ const unsigned int DBFIELDID_DSTRCTEMPO   = 17;
 
 class DataCollector {
 public:
-	DataCollector(DatabaseConnector& conn) : dbConnection(conn) {};
-	// DataCollector() = default;
+  DataCollector(DatabaseConnector& conn) : dbConnection(conn) {};
+  // DataCollector() = default;
   void collectData();
-	void PrintVoterTable(const VoterMap&);
-	void executeQuery(const std::string&);
-	int returnNumberOfEntries(void);
-	int returnQueryTimes(void);
+  void PrintVoterTable(const VoterMap&);
+  void executeQuery(const std::string&);
+  int returnNumberOfEntries(void);
+  int returnQueryTimes(void);
 
   // These are the simple loads
   bool LoadFirstName(VoterMap&); // Fixed
@@ -105,10 +105,9 @@ public:
   bool SaveDataBase(DataAddressMap&);
   
   // To Print the data
-	void DataCollector::PrintTable(const VoterMap&);
-	void DataCollector::PrintTable(VoterComplementInfoMap&);
-	void DataCollector::PrintTable(DataMailingAddressMap&);
-
+  void PrintTable(const VoterMap&);
+  void PrintTable(VoterComplementInfoMap&);
+  void PrintTable(DataMailingAddressMap&);
 
   // These are to read the data of the simple loads.
   int ReturnIndex(const std::string&);
@@ -129,20 +128,20 @@ public:
   Status stringToStatus(const std::string&);
   RegSource stringToRegSource(const std::string&);
   bool stringToBool(const std::string&);
-  	
+    
   uint32_t simpleHash(const std::string&);
-  	
+    
   int countFoundinDB (void);
-	int countNotFoundinDB (void);
+  int countNotFoundinDB (void);
       
 private:
-	DatabaseConnector& dbConnection;
-	sql::Connection* con;
-	std::chrono::milliseconds duration;
+  DatabaseConnector& dbConnection;
+  sql::Connection* con;
+  std::chrono::milliseconds duration;
 
   int dbFieldType = -1;
   std::vector<std::string> FieldToAddToDB;
- 	std::map<std::string, int> dataMap;
+  std::map<std::string, int> dataMap;
   int lastDBidFound = -1;
   int StateID = 1;
   int CountFoundinDB = 0;
@@ -161,8 +160,8 @@ private:
   std::string intToMySQLDate(int);
   int mysqlDateToInt(const std::string&);
 
-  void executeSimpleQuery(const std::string&, int);                       // Fixed  	
-  	
+  void executeSimpleQuery(const std::string&, int);                       // Fixed    
+    
   void executeSimpleSave(int);
   std::string returnInsertString(int);
    
@@ -178,10 +177,11 @@ private:
     
     
   int LoadStateAbbrev(const std::string&);
-	inline uint32_t leftRotate(uint32_t, uint32_t);
- 	std::string uintToString(uint32_t);
- 	
- 	void exitIfSequenceFound(const std::string&, const std::string);
+  inline uint32_t leftRotate(uint32_t, uint32_t);
+  std::string uintToString(uint32_t);
+  
+  void exitIfSequenceFound(const std::string&, const std::string);
+  void PrintLineAsHex(const std::string&);
 
 };
 
