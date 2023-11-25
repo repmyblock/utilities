@@ -23,23 +23,34 @@
 
 class RawFilesInjest {
 public:
-  RawFilesInjest();
+  RawFilesInjest(const std::string&, const std::string&);
   ~RawFilesInjest();
 
   // Updated function signature to match the implementation
   void processChunk(const std::string&, size_t, size_t, int);
-  void loadFile(const std::string&);
+  void loadFile(void);
 
   // This should match the way you're going to use the wrapper
   void processChunkWrapper(const std::string&, size_t, size_t, int);
   void SetNumbersThreads(int);
 
   VoterInfoRaw getVoters(int);
-  int getTotalVoters();
+  int getTotalVoters(void);
+  std::string printFilename(void);
+  
+  void MN_RawFilesInjest(void);
+  void NV_RawFilesInjest(void);
+  void NY_RawFilesInjest(void);
+  void OH_RawFilesInjest(void);
+  void WA_RawFilesInjest(void);
 
 private:
   int numThreads;
   std::chrono::milliseconds duration;
+    
+  std::string StateNameAbbrev;
+  std::string TableDate;
+  std::string FileName;
     
   std::vector<VoterInfoRaw> voters;
   std::string ToUpperAccents(const std::string&);
@@ -52,8 +63,18 @@ private:
   std::queue<std::string> lineQueue;
   std::mutex fileMutex;
   std::condition_variable cv;
+    
   bool allChunksProcessed = false;
+  
+  void RunStateFileNameLoader(void);
+  
   void parseLineToVoterInfo(const std::string&);
+  
+  void MN_parseLineToVoterInfo(const std::string&);
+  void NV_parseLineToVoterInfo(const std::string&);
+  void NY_parseLineToVoterInfo(const std::string&);
+  void OH_parseLineToVoterInfo(const std::string&);
+  void WA_parseLineToVoterInfo(const std::string&);
   void PrintLineAsHex(const std::string&);
     
 };

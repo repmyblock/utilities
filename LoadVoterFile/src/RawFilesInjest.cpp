@@ -19,8 +19,12 @@ std::mutex fileMutex;
 std::condition_variable cv;
 bool allChunksProcessed = false;
   
-RawFilesInjest::RawFilesInjest() {    
+RawFilesInjest::RawFilesInjest(const std::string& IncomingState, const std::string& IncomingTableDate) {    
   numThreads = 1;
+  StateNameAbbrev = IncomingState;
+  TableDate = IncomingTableDate;
+
+  std::cout << "Opening the RawFilesInjest with for the State of " << StateNameAbbrev << " in TableDate: " << TableDate << std::endl;   
 }
 
 RawFilesInjest::~RawFilesInjest() {
@@ -28,7 +32,11 @@ RawFilesInjest::~RawFilesInjest() {
 }
 
 void RawFilesInjest::SetNumbersThreads(int coresNumbers) {
-  numThreads = coresNumbers;
+  numThreads = coresNumbers * 2;
+}
+
+std::string RawFilesInjest::printFilename(void) {
+  return FileName;
 }
 
 void RawFilesInjest::processChunk(const std::string& filename, size_t start, size_t end, int threadID) {
@@ -61,10 +69,14 @@ void RawFilesInjest::processChunkWrapper(const std::string& filename, size_t sta
   processChunk(filename, start, end, threadID);
 }
 
-void RawFilesInjest::loadFile(const std::string& filename) {
-  std::ifstream file(filename);
+
+void RawFilesInjest::loadFile() {
+    
+  RunStateFileNameLoader();
+  
+  std::ifstream file(FileName);
   if (!file) {
-    std::cerr << "Error opening file: " << filename << std::endl;
+    std::cerr << "Error opening file: " << FileName << std::endl;
     exit(1);
   }
 
@@ -79,7 +91,7 @@ void RawFilesInjest::loadFile(const std::string& filename) {
 
   for (int i = 0; i < numThreads; ++i) {
     size_t end = (i == numThreads - 1) ? fileSize : start + chunkSize;
-    threads.emplace_back(&RawFilesInjest::processChunkWrapper, this, filename, start, end, i);
+    threads.emplace_back(&RawFilesInjest::processChunkWrapper, this, FileName, start, end, i);
     start = end;
   }
 
@@ -209,92 +221,28 @@ std::string RawFilesInjest::ToUpperAccents(const std::string& input) {
   return result;
 }
 
-///// These are the parse 
-
-void RawFilesInjest::parseLineToVoterInfo(const std::string& line) {
+void RawFilesInjest::RunStateFileNameLoader(void) {
   
-  auto parseCSVLine = [](const std::string& line) -> std::vector<std::string> {
-    std::vector<std::string> fields;
-    std::string field;
-    bool inQuotes = false;
-    
-    auto trim = [](const std::string& str) -> std::string {
-      auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
-      auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
-      return (start < end) ? std::string(start, end) : std::string();
-    };
-
-    for (char c : line) {
-      if (c == '"') {
-        inQuotes = !inQuotes;
-      } else if (c == ',' && !inQuotes) {
-        fields.push_back(trim(field));
-        field.clear();
-      } else {
-        field += toupper(c);
-      }
-    }
-
-    fields.push_back(trim(field)); // Add the last field
-    return fields;
-  };
-    
-  VoterInfoRaw voter;
-  std::vector<std::string> fields = parseCSVLine(ToUpperAccents(ConvertLatin1ToUTF8(line)));
-
-  if (fields.size() >= 47) { // Adjust the size according to your data
-    voter.lastName                      = fields[0];
-    voter.firstName                     = fields[1];
-    voter.middleName                    = fields[2];
-    voter.nameSuffix                    = fields[3];
-    voter.residentialAddressNumber      = fields[4];
-    voter.residentialHalfCode           = fields[5];
-    voter.residentialPredirection       = fields[6];
-    voter.residentialStreetName         = fields[7];
-    voter.residentialPostdirection      = fields[8];
-    voter.residentialAptNumber          = fields[9];
-    voter.residentialApartment          = fields[10];
-    voter.residentialNonStandartAddress = fields[11];
-    voter.residentialCity               = fields[12];
-    voter.residentialZip5               = fields[13];
-    voter.residentialZip4               = fields[14];
-    voter.mailingAddress1               = fields[15];
-    voter.mailingAddress2               = fields[16];
-    voter.mailingAddress3               = fields[17];
-    voter.mailingAddress4               = fields[18];
-    voter.dateOfBirth                   = fields[19];
-    voter.gender                        = fields[20];
-    voter.enrollment                    = fields[21];
-    voter.otherParty                    = fields[22];
-    voter.countyCode                    = fields[23];
-    voter.electionDistrict              = fields[24];
-    voter.legislativeDistrict           = fields[25];
-    voter.townCity                      = fields[26];
-    voter.ward                          = fields[27];
-    voter.congressionalDistrict         = fields[28];
-    voter.senateDistrict                = fields[29];
-    voter.assemblyDistrict              = fields[30];
-    voter.lastVotedDate                 = fields[31];
-    voter.prevYearVoted                 = fields[32];
-    voter.prevCounty                    = fields[33];
-    voter.prevAddress                   = fields[34];
-    voter.prevName                      = fields[35];
-    voter.countyVrNumber                = fields[36];
-    voter.registrationDate              = fields[37];
-    voter.vrSource                      = fields[38];
-    voter.idRequired                    = fields[39];
-    voter.idMet                         = fields[40];
-    voter.status                        = fields[41];
-    voter.reasonCode                    = fields[42];
-    voter.inactivityDate                = fields[43];
-    voter.purgeDate                     = fields[44];
-    voter.sboeId                        = fields[45];
-    voter.voterHistory                  = fields[46];
-    voters.push_back(voter);
-
-  } else {    
-    std::cout << "Error with the numbers of fields at line " <<  std::endl;
+  if ( StateNameAbbrev == "OH") { OH_RawFilesInjest(); } 
+  else if ( StateNameAbbrev == "MN") { MN_RawFilesInjest(); }
+  else if ( StateNameAbbrev == "NV") { NV_RawFilesInjest(); } 
+  else if ( StateNameAbbrev == "NY") { NY_RawFilesInjest(); }
+  else if ( StateNameAbbrev == "WA") { WA_RawFilesInjest(); } 
+  else {
+    std::cout << HI_RED << "Quitting as we don't have a parser for the state of " << NC << HI_YELLOW << StateNameAbbrev << NC << std::endl;
     exit(1);
   }
 }
- 
+
+void RawFilesInjest::parseLineToVoterInfo(const std::string& line) {
+  if ( StateNameAbbrev == "OH") { OH_parseLineToVoterInfo(line); } 
+  else if ( StateNameAbbrev == "MN") { MN_parseLineToVoterInfo(line); }
+  else if ( StateNameAbbrev == "NV") { NV_parseLineToVoterInfo(line); } 
+  else if ( StateNameAbbrev == "NY") { NY_parseLineToVoterInfo(line); }
+  else if ( StateNameAbbrev == "WA") { WA_parseLineToVoterInfo(line); } 
+  else {
+    std::cout << HI_RED << "Quitting as we don't have a parser for the state of " << NC << HI_YELLOW << StateNameAbbrev << NC << std::endl;
+    exit(1);
+  }
+}
+

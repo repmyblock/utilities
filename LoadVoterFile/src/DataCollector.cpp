@@ -17,7 +17,7 @@
 #include <cstdint>
 
 #define COUNTER         100000
-#define SQLBATCH        20000
+#define SQLBATCH        50000
 
 #define SQL_QUERY_START   sql::ResultSet* res = dbConnection.executeQuery(sql);  
 #define SQL_QUERY_END     dbConnection.deleteResource(res);
@@ -125,7 +125,6 @@ void DataCollector::PrintLineAsHex(const std::string& line) {
   // Print the stringstream's content
   std::cout << hexStream.str() << std::endl;
 }
-
 
 /*
 To Save Space and remove the redundant but the incoming variable's name MUST be sql.
@@ -280,7 +279,6 @@ void DataCollector::executeSimpleQuery(const std::string& sql, int DBCount) {
     Voters_RecLastSeen date
 */
 
-
 bool DataCollector::LoadData(VoterMap& Map) {
   executeLoadDataQuery("SELECT * FROM Voters WHERE DataState_ID = \"" + std::to_string(StateID) + "\"", Map);
   return true;
@@ -403,7 +401,6 @@ bool DataCollector::SaveDataBase(VoterMap& Map) {
   return true;
 }
 
-
 void DataCollector::PrintTable(const VoterMap& Map) {
   int Counter = 0;
   for(auto it = Map.begin(); it != Map.end(); ++it) {
@@ -430,7 +427,6 @@ void DataCollector::PrintTable(const VoterMap& Map) {
   }
 }
 
-
 /**************************
  *** VOTERINDEXES TABLE ***
  **************************
@@ -444,7 +440,6 @@ void DataCollector::PrintTable(const VoterMap& Map) {
     DataState_ID int UN 
     VotersIndexes_UniqStateVoterID char(20)
 */
-
 
 void DataCollector::executeLoadDataQuery(const std::string& sql, VoterIdxMap& Map) {
   CLOCK_START
@@ -679,7 +674,6 @@ void DataCollector::PrintTable(VoterComplementInfoMap& Map) {
   }
 }
 
-
 /**************************
  *** DATADISTRICT TABLE ***
  **************************
@@ -693,7 +687,6 @@ void DataCollector::PrintTable(VoterComplementInfoMap& Map) {
     DataDistrict_Ward char(3) 
     DataDistrict_Congress tinyint UN
 */
-
 
 bool DataCollector::LoadData(DataDistrictMap& Map) {
   CHECK_FIELD
@@ -828,8 +821,7 @@ bool DataCollector::SaveDataBase(DataDistrictTemporalMap& Map) {
       int dataHouseId;
       int dataDistrictId;
   */
-  
-  
+
   try { 
     for(auto it = Map.begin(); it != Map.end(); ++it) {
       const DataDistrictTemporal& dataDistrictTemporal = it->first;
@@ -912,7 +904,6 @@ void DataCollector::executeLoadDataQuery(const std::string& sql, DataDistrictTem
     DataStreetNonStdFormat_ID int UN 
     DataHouse_BIN int UN
 */
-
 
 void DataCollector::executeLoadDataQuery(const std::string& sql, DataHouseMap& Map) {
   CLOCK_START
@@ -1009,7 +1000,6 @@ bool DataCollector::SaveDataBase(DataHouseMap& Map) {
   
   return true;
 }
-
 
 /*************************
  *** DATAADDRESS TABLE ***
@@ -1114,7 +1104,7 @@ bool DataCollector::SaveDataBase(DataAddressMap& Map) {
         currentBatchCount = 0;
         SaveLast = false;
       }
-    } 
+    }
   
     if( SaveLast == true && currentBatchCount > 0) {        
       sql = query + sql;
@@ -1275,7 +1265,6 @@ void DataCollector::PrintTable(DataMailingAddressMap& Map) {
   DataFirstName_Text varchar(256) 
   DataFirstName_Compress varchar(256)
 */
-
 
 bool DataCollector::LoadFirstName(VoterMap& voterMap) {
   CHECK_FIELD
@@ -1637,7 +1626,6 @@ std::string DataCollector::nameCase(const std::string& input) {
   }
  
   return result;
-
 }
 
 std::string DataCollector::RemoveAllSpacesString(const std::string& name) {
@@ -1672,7 +1660,9 @@ std::string DataCollector::genderToString(Gender gender) {
     case Gender::Female: return "Female";
     case Gender::Other: return "Other";
     case Gender::Undetermined: return "Undetermined";
-    case Gender::Unspecified: return "Unspecified";
+    case Gender::Unspecified: return "Undetermined";
+    case Gender::Undisclosed: return "Undisclosed";
+    case Gender::Intersex: return "Intersex";
     default: return NILSTRG;
   }
 }
@@ -1687,8 +1677,11 @@ Gender DataCollector::stringToGender(const std::string& str) {
   if (str == "U") return Gender::Undisclosed;
   if (str == "X") return Gender::Undisclosed;
   if (str == "I") return Gender::Intersex;
+  if (str == "INTERSEX") return Gender::Intersex;
   if (str == "UNDERTERMINED") return Gender::Undetermined;
+  if (str == "UNDISCLOSED") return Gender::Undisclosed;
   if (str == "UNSPECIFIED") return Gender::Unspecified;
+  if (str.length() == 0) return Gender::Unspecified;
 
   std::cout << HI_RED << "String to Gender coulnd't be changed: " << str << NC << std::endl;
   exit(1);

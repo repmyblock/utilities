@@ -19,7 +19,7 @@ const std::string  DB_HOST = "192.168.199.18";
 const unsigned int DB_PORT = 3306;
 const std::string  DB_USER = "usracct";
 const std::string  DB_PASS = "usracct";
-const std::string  DB_NAME = "RepMyBlockTwo";
+const std::string  DB_NAME = "RepMyBlock";
   
 class DatabaseConnector {
   public:
@@ -35,6 +35,9 @@ class DatabaseConnector {
   private:
     sql::Connection* con;
     sql::mysql::MySQL_Driver* driver;
+    sql::Connection *ConnectToDB(void);
+    void DisconectFromDB(void);
+      
 };
 
 #endif //DATABASECONNECTOR_H

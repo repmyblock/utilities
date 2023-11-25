@@ -4,24 +4,35 @@
 #include <cppconn/prepared_statement.h>
 
 DatabaseConnector::DatabaseConnector() : con(nullptr) { 
- try {
-  sql::mysql::MySQL_Driver* driver;
-  driver = sql::mysql::get_mysql_driver_instance();
-  con = driver->connect(DB_HOST + ":" + std::to_string(DB_PORT), DB_USER, DB_PASS);
-  con->setSchema(DB_NAME);
-  con->setClientOption("characterSetResults", "utf8mb4");
-  
-  std::unique_ptr<sql::PreparedStatement> pstmt;
-  pstmt.reset(con->prepareStatement("SET NAMES utf8mb4"));
-  pstmt->execute();
-  
+  ConnectToDB();
+}
+
+sql::Connection *DatabaseConnector::ConnectToDB(void) { 
+  try {
+    sql::mysql::MySQL_Driver* driver;
+    driver = sql::mysql::get_mysql_driver_instance();
+    con = driver->connect(DB_HOST + ":" + std::to_string(DB_PORT), DB_USER, DB_PASS);
+    con->setSchema(DB_NAME);
+    con->setClientOption("characterSetResults", "utf8mb4");
+
+    std::unique_ptr<sql::PreparedStatement> pstmt;
+    pstmt.reset(con->prepareStatement("SET NAMES utf8mb4"));
+    pstmt->execute();
+
   } catch (sql::SQLException &e) {
     std::cerr << std::endl << HI_RED << "DatabaseConnector::connect Error: Could not connect to database." << std::endl << e.what() << NC << std::endl;
     exit(1);
   }
+  
+  return con;
 }
+
   
 DatabaseConnector::~DatabaseConnector() {
+ // DisconectFromDB();
+}
+
+void DatabaseConnector::DisconectFromDB(void) {
   if(con != nullptr) {
     delete con;
   }
@@ -32,16 +43,20 @@ sql::Connection* DatabaseConnector::getConnection() {
 }
 
 sql::ResultSet* DatabaseConnector::executeQuery(const std::string& sql) {
+  ConnectToDB();
   sql::Statement* stmt = con->createStatement(); 
   sql::ResultSet* res = stmt->executeQuery(sql);
   delete stmt;
+  DisconectFromDB();
   return res;
 }
 
 void DatabaseConnector::executeInsert(const std::string& sql) {
+  ConnectToDB();
   sql::Statement* stmt = con->createStatement(); 
   stmt->executeUpdate(sql);
   delete stmt;
+  DisconectFromDB();
 }
 
 void DatabaseConnector::deleteResource(sql::ResultSet* res) {
@@ -65,3 +80,4 @@ std::string DatabaseConnector::CustomEscapeString(const std::string& input) {
   }
   return escapedString;
 }
+
