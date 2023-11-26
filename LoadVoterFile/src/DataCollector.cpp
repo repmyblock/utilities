@@ -17,7 +17,7 @@
 #include <cstdint>
 
 #define COUNTER         100000
-#define SQLBATCH        50000
+#define SQLBATCH        500000
 
 #define SQL_QUERY_START   sql::ResultSet* res = dbConnection.executeQuery(sql);  
 #define SQL_QUERY_END     dbConnection.deleteResource(res);
@@ -40,9 +40,23 @@
 #define SQL_INT_OR_NIL(str) (res->isNull(str)? NIL : res->getInt(str))
 #define SQL_UPPERSTR_OR_NIL(str) (res->isNull(str)) ? NILSTRG : ToUpperAccents(res->getString(str))
 
-void DataCollector::collectData() {
-    std::cout << "Collecting data..." << std::endl;     
+
+DataCollector::DataCollector(DatabaseConnector& conn) : dbConnection(conn) {
+  MysqlDateFile = intToMySQLDate(std::stoi(dbConnection.ReturnMysqlFileDate()));  
+  
+  if (MysqlDateFile.empty()) {
+    std::cout << HI_RED << "We are missing the MysqlDate - Exiting" << NC << std::endl;
+    exit(1);
+  }
+};
+  
+/*
+DataCollector::DataCollector() : con(nullptr) {
+//  
+  
+    exit(1);
 }
+*/
 
 int DataCollector::returnNumberOfEntries(void) {
     return dataMap.size();
@@ -51,17 +65,6 @@ int DataCollector::returnNumberOfEntries(void) {
 int DataCollector::returnQueryTimes(void) {
   return duration.count();
 }
-
-/*
-DataCollector::DataCollector(const std::string StateAbbrev) : con(nullptr) {
-  if (connect()) { 
-    StateID = LoadStateAbbrev(StateAbbrev);
-  } else {
-    std::cerr << "Failed to connect to the database." << std::endl;
-    exit(1);
-  }
-}
-*/
 
 int DataCollector::CheckIndex(const std::string& query) {
   if (query.length() < 1) return NIL;
@@ -320,6 +323,9 @@ bool DataCollector::SaveDataBase(VoterMap& Map) {
   const std::string query = "INSERT INTO Voters VALUES ";
   std::string sql;
   int batchSize = SQLBATCH;
+  
+  batchSize = 10; /// TEMPORARY
+  
   int currentBatchCount = 0;
   int prev_size = 0;
   bool SaveLast = false;
@@ -362,7 +368,7 @@ bool DataCollector::SaveDataBase(VoterMap& Map) {
           tmpsql += (voter.datePurged > 0) ? ("\"" + std::to_string(voter.datePurged) + "\",") : "null,";   
           tmpsql += (voter.countyVoterNumber.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(ToUpperAccents(voter.countyVoterNumber)) + "\",") : "null,";    
           tmpsql += (voter.rmbActive > 0) ? ("\"" + std::to_string(voter.rmbActive) + "\",") : "null,";   
-          tmpsql += "NOW(), NOW()";
+          tmpsql += "\"" + MysqlDateFile + "\",\"" + MysqlDateFile + "\"";
                   
           sql += ReturnDBInjest("(" + tmpsql + ")", currentBatchCount);
           ++currentBatchCount;
@@ -690,8 +696,8 @@ void DataCollector::PrintTable(VoterComplementInfoMap& Map) {
 
 bool DataCollector::LoadData(DataDistrictMap& Map) {
   CHECK_FIELD
-  executeLoadDataQuery("SELECT DataDistrict_ID, DataDistrict.DataCounty_ID, DataDistrict_Electoral, DataDistrict_StateAssembly, "  
-                        "DataDistrict_StateSenate, DataDistrict_Legislative, DataDistrict_Ward, DataDistrict_Congress " 
+  executeLoadDataQuery("SELECT DataDistrict_ID, DataDistrict.DataDistrictTown_ID, DataDistrict.DataCounty_ID, DataDistrict_Electoral, "
+                        "DataDistrict_StateAssembly, DataDistrict_StateSenate, DataDistrict_Legislative, DataDistrict_Ward, DataDistrict_Congress " 
                         "FROM RepMyBlockTwo.DataDistrict LEFT JOIN DataCounty ON "  
                         "(DataDistrict.DataCounty_ID = DataCounty.DataCounty_ID) " 
                         "WHERE DataState_ID = \"" + std::to_string(StateID) + "\"", Map);
@@ -712,9 +718,9 @@ void DataCollector::executeLoadDataQuery(const std::string& sql, DataDistrictMap
       }
 
       Map[DataDistrict(
-        SQL_INT_OR_NIL("DataCounty_ID"),  SQL_INT_OR_NIL("DataDistrict_Electoral"), SQL_INT_OR_NIL("DataDistrict_StateAssembly"),
-        SQL_INT_OR_NIL("DataDistrict_StateSenate"), SQL_INT_OR_NIL("DataDistrict_Legislative"), SQL_UPPERSTR_OR_NIL("DataDistrict_Ward"),
-        SQL_INT_OR_NIL("DataDistrict_Congress")
+        SQL_INT_OR_NIL("DataCounty_ID"), SQL_INT_OR_NIL("DataDistrictTown_ID"), SQL_INT_OR_NIL("DataDistrict_Electoral"), 
+        SQL_INT_OR_NIL("DataDistrict_StateAssembly"), SQL_INT_OR_NIL("DataDistrict_StateSenate"), SQL_INT_OR_NIL("DataDistrict_Legislative"), 
+        SQL_UPPERSTR_OR_NIL("DataDistrict_Ward"), SQL_INT_OR_NIL("DataDistrict_Congress")
       )] = index;
     
       if ( index > SimpleLastDbID[DBFIELDID_DISTRICT]) { SimpleLastDbID[DBFIELDID_DISTRICT] = index; }
@@ -740,12 +746,13 @@ bool DataCollector::SaveDataBase(DataDistrictMap& Map) {
           
       const DataDistrict& dataDistrict = it->first;
       if (Map[dataDistrict] == 0) {
-        if (dataDistrict.dataCountyId > 0 || dataDistrict.dataElectoral > 0 || dataDistrict.dataStateAssembly > 0 || dataDistrict.dataStateSenate > 0 || 
-            dataDistrict.dataLegislative > 0 || dataDistrict.dataWard.length() > 0 || dataDistrict.DataCongress > 0) {
+        if (dataDistrict.dataCountyId > 0 || dataDistrict.dataDistrictTownId > 0 || dataDistrict.dataElectoral > 0 || dataDistrict.dataStateAssembly > 0 || 
+            dataDistrict.dataStateSenate > 0 || dataDistrict.dataLegislative > 0 || dataDistrict.dataWard.length() > 0 || dataDistrict.DataCongress > 0) {
 
           // (`DataLastName_ID`, `DataFirstName_ID`, `DataMiddleName_ID`, `VotersIndexes_DOB`, `DataState_ID`, `VotersIndexes_UniqStateVoterID`)            
           std::string tmpsql = "null,";         
           tmpsql += (dataDistrict.dataCountyId > 0) ? ("\"" + std::to_string(dataDistrict.dataCountyId) + "\",") : "null,";     
+          tmpsql += (dataDistrict.dataDistrictTownId > 0) ? ("\"" + std::to_string(dataDistrict.dataDistrictTownId) + "\",") : "null,";
           tmpsql += (dataDistrict.dataElectoral > 0) ? ("\"" + std::to_string(dataDistrict.dataElectoral) + "\",") : "null,";     
           tmpsql += (dataDistrict.dataStateAssembly > 0) ? ("\"" + std::to_string(dataDistrict.dataStateAssembly) + "\",") : "null,";     
           tmpsql += (dataDistrict.dataStateSenate > 0) ? ("\"" + std::to_string(dataDistrict.dataStateSenate) + "\",") : "null,";     
@@ -786,7 +793,7 @@ bool DataCollector::SaveDataBase(DataDistrictMap& Map) {
     sql += " WHERE DataDistrict_ID >= " + std::to_string(SimpleLastDbID[DBFIELDID_DISTRICT]);   
   }
   executeLoadDataQuery(sql, Map);
-  Map[DataDistrict(NIL,NIL,NIL,NIL,NIL,NILSTRG,NIL)] = -2;
+  Map[DataDistrict(NIL,NIL,NIL,NIL,NIL,NIL,NILSTRG,NIL)] = -2;
   return true;
 }
 
@@ -831,16 +838,10 @@ bool DataCollector::SaveDataBase(DataDistrictTemporalMap& Map) {
     
       if (Map[dataDistrictTemporal] == 0 ) {
         // (`DataDistrictCycle_ID`, `DataHouse_ID`, `DataDistrict_ID`) 
-                  
-        // if (dataDistrictTemporal.dataHouseId > 0) {
-        //    Suffix =  "\"" + dataDistrictTemporal.dataHouseId + "\"";
-        // } else {
-        //    Suffix = "null";          
-        // }
-        
+                         
         sql += ReturnDBInjest("(null, \"" + std::to_string(dataDistrictTemporal.dataDistrictCycleId) + "\",\"" + 
-                              std::to_string(dataDistrictTemporal.dataDistrictCycleId) + "\",\"" + 
-                              std::to_string(dataDistrictTemporal.dataDistrictCycleId) + 
+                              std::to_string(dataDistrictTemporal.dataHouseId) + "\",\"" + 
+                              std::to_string(dataDistrictTemporal.dataDistrictId) + 
                               + "\")", currentBatchCount);
         ++currentBatchCount;
         SaveLast = true;
@@ -920,7 +921,7 @@ void DataCollector::executeLoadDataQuery(const std::string& sql, DataHouseMap& M
 
       Map[DataHouse(
         SQL_INT_OR_NIL("DataAddress_ID"), SQL_UPPERSTR_OR_NIL("DataHouse_Type"), SQL_UPPERSTR_OR_NIL("DataHouse_Apt"),
-        SQL_INT_OR_NIL("DataDistrictTown_ID"), SQL_INT_OR_NIL("DataStreetNonStdFormat_ID"), SQL_INT_OR_NIL("DataHouse_BIN")
+        SQL_INT_OR_NIL("DataStreetNonStdFormat_ID"), SQL_INT_OR_NIL("DataHouse_BIN")
       )] = index;
     
       if ( index > SimpleLastDbID[DBFIELDID_HOUSE]) { SimpleLastDbID[DBFIELDID_HOUSE] = index; }
@@ -951,14 +952,13 @@ bool DataCollector::SaveDataBase(DataHouseMap& Map) {
     const DataHouse& dataHouse = it->first;
     
       if (Map[dataHouse] == 0) {
-        if (dataHouse.dataAddressId > 0 || dataHouse.dataHouse_Type.length() > 0 || dataHouse.dataHouse_Apt.length() > 0 || 
-            dataHouse.dataDistrictTownId > 0 || dataHouse.dataStreetNonStdFormatId > 0) {      
+        if (dataHouse.dataAddressId > 0 || dataHouse.dataHouse_Type.length() > 0 || 
+            dataHouse.dataHouse_Apt.length() > 0 || dataHouse.dataStreetNonStdFormatId > 0) {      
 
           std::string tmpsql = "null,";
           tmpsql += (dataHouse.dataAddressId > 0) ? ("\"" + std::to_string(dataHouse.dataAddressId) + "\",") : "null,";     
           tmpsql += (dataHouse.dataHouse_Type.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(ToUpperAccents(dataHouse.dataHouse_Type)) + "\",") : "null,";      
           tmpsql += (dataHouse.dataHouse_Apt.length() > 0) ? ("\"" + dbConnection.CustomEscapeString(ToUpperAccents(dataHouse.dataHouse_Apt)) + "\",") : "null,";      
-          tmpsql += (dataHouse.dataDistrictTownId > 0) ? ("\"" + std::to_string(dataHouse.dataDistrictTownId) + "\",") : "null,";        
           tmpsql += (dataHouse.dataStreetNonStdFormatId > 0) ? ("\"" + std::to_string(dataHouse.dataStreetNonStdFormatId) + "\",") : "null,";     
           tmpsql += "null";
                      
@@ -996,7 +996,7 @@ bool DataCollector::SaveDataBase(DataHouseMap& Map) {
   }
  
   executeLoadDataQuery(sql, Map); 
-  Map[DataHouse(NIL,NILSTRG,NILSTRG,NIL,NIL,NIL)] = -2;
+  Map[DataHouse(NIL,NILSTRG,NILSTRG,NIL,NIL)] = -2;
   
   return true;
 }
@@ -1628,6 +1628,13 @@ std::string DataCollector::nameCase(const std::string& input) {
   return result;
 }
 
+std::string DataCollector::toLowerCase(const std::string& str) {
+    std::string lowerStr = str;
+    std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+    return lowerStr;
+}
+
 std::string DataCollector::RemoveAllSpacesString(const std::string& name) {
   std::string cleanedName;
   std::copy_if(name.begin(), name.end(), std::back_inserter(cleanedName), [](unsigned char c) {
@@ -1668,7 +1675,6 @@ std::string DataCollector::genderToString(Gender gender) {
 }
 
 Gender DataCollector::stringToGender(const std::string& str) {
-  
   if (str == "MALE") return Gender::Male;
   if (str == "M") return Gender::Male;
   if (str == "FEMALE") return Gender::Female;
@@ -1678,7 +1684,7 @@ Gender DataCollector::stringToGender(const std::string& str) {
   if (str == "X") return Gender::Undisclosed;
   if (str == "I") return Gender::Intersex;
   if (str == "INTERSEX") return Gender::Intersex;
-  if (str == "UNDERTERMINED") return Gender::Undetermined;
+  if (str == "UNDETERMINED") return Gender::Undetermined;
   if (str == "UNDISCLOSED") return Gender::Undisclosed;
   if (str == "UNSPECIFIED") return Gender::Unspecified;
   if (str.length() == 0) return Gender::Unspecified;
@@ -1750,28 +1756,31 @@ std::string DataCollector::statusToString(Status status) {
   }
 }
 
-Status DataCollector::stringToStatus(const std::string& str) {
-  if (str == "Active") return Status::Active;
-  if (str == "A") return Status::Active;
-  if (str == "ActiveMilitary") return Status::ActiveMilitary;
-  if (str == "ActiveSpecialFederal") return Status::ActiveSpecialFederal;
-  if (str == "ActiveSpecialPresidential") return Status::ActiveSpecialPresidential;
-  if (str == "ActiveUOCAVA") return Status::ActiveUOCAVA;
-  if (str == "Inactive") return Status::Inactive;
-  if (str == "Purged") return Status::Purged;
-  if (str == "Prereg17YearOlds") return Status::Prereg17YearOlds;
-  if (str == "Confirmation") return Status::Confirmation;
-  if (str == "Unspecified") return Status::Unspecified;
+Status DataCollector::stringToStatus(const std::string& regstr) {
+  
+  std::string str = toLowerCase(regstr);
     
-  if (str == "AM") return Status::ActiveMilitary;
-  if (str == "AF") return Status::ActiveSpecialFederal;
-  if (str == "AP") return Status::ActiveSpecialPresidential;
-  if (str == "AU") return Status::ActiveUOCAVA;
-  if (str == "I") return Status::Inactive;
-  if (str == "P") return Status::Purged;
+  if (str == "active") return Status::Active;
+  if (str == "a") return Status::Active;
+  if (str == "activemilitary") return Status::ActiveMilitary;
+  if (str == "activespecialfederal") return Status::ActiveSpecialFederal;
+  if (str == "activespecialpresidential") return Status::ActiveSpecialPresidential;
+  if (str == "activeuocava") return Status::ActiveUOCAVA;
+  if (str == "inactive") return Status::Inactive;
+  if (str == "purged") return Status::Purged;
+  if (str == "prereg17yearolds") return Status::Prereg17YearOlds;
+  if (str == "confirmation") return Status::Confirmation;
+  if (str == "unspecified") return Status::Unspecified;
+    
+  if (str == "am") return Status::ActiveMilitary;
+  if (str == "af") return Status::ActiveSpecialFederal;
+  if (str == "ap") return Status::ActiveSpecialPresidential;
+  if (str == "au") return Status::ActiveUOCAVA;
+  if (str == "i") return Status::Inactive;
+  if (str == "p") return Status::Purged;
   if (str == "17") return Status::Prereg17YearOlds;
-  if (str == "Confirmation") return Status::Confirmation;
-  if (str == "Unspecified") return Status::Unspecified;
+  if (str == "confirmation") return Status::Confirmation;
+  if (str == "unspecified") return Status::Unspecified;
   
   std::cout << HI_RED << "String to Status coulnd't be returned: " << str << NC << std::endl;
   exit(1);
@@ -1816,7 +1825,6 @@ inline uint32_t DataCollector::leftRotate(uint32_t x, uint32_t n) {
 }
 
 // MD5 main function
-
 uint32_t DataCollector::simpleHash(const std::string& inputin) {
 
   std::string input = RemoveAllSpacesString(inputin);

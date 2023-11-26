@@ -21,6 +21,8 @@
 #include <mutex>
 #include <condition_variable> // Include for std::condition_variable
 
+#define PRINTBLOCK 2500000
+
 class RawFilesInjest {
 public:
   RawFilesInjest(const std::string&, const std::string&);
@@ -50,6 +52,7 @@ private:
     
   std::string StateNameAbbrev;
   std::string TableDate;
+  int TableDateNumber;
   std::string FileName;
     
   std::vector<VoterInfoRaw> voters;
@@ -68,14 +71,17 @@ private:
   
   void RunStateFileNameLoader(void);
   
-  void parseLineToVoterInfo(const std::string&);
+  void parseLineToVoterInfo(std::queue<std::string>&);
   
-  void MN_parseLineToVoterInfo(const std::string&);
-  void NV_parseLineToVoterInfo(const std::string&);
-  void NY_parseLineToVoterInfo(const std::string&);
-  void OH_parseLineToVoterInfo(const std::string&);
-  void WA_parseLineToVoterInfo(const std::string&);
+  void MN_parseLineToVoterInfo(std::queue<std::string>& queue);
+  void NV_parseLineToVoterInfo(std::queue<std::string>& queue);
+  void NY_parseLineToVoterInfo(std::queue<std::string>& queue);
+  void OH_parseLineToVoterInfo(std::queue<std::string>& queue);
+  void WA_parseLineToVoterInfo(std::queue<std::string>& queue);
   void PrintLineAsHex(const std::string&);
+    
+  std::vector<std::string> parseCSVLine(const std::string&);
+  std::string trim(const std::string&);
     
 };
 

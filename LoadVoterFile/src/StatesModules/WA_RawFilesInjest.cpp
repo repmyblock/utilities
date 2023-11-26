@@ -7,7 +7,7 @@ void RawFilesInjest::WA_RawFilesInjest(void) {
   FileName = "/home/usracct/VoterFiles/" + StateNameAbbrev + "/" + TableDate + "/SWVF_" + TableDate + ".txt";  
 }
 
-void RawFilesInjest::WA_parseLineToVoterInfo(const std::string& line) {
+void RawFilesInjest::WA_parseLineToVoterInfo(std::queue<std::string>& queue) {
   std::cout << "I need to write the parser";
   std::cout << std::endl;
   exit(1);

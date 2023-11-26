@@ -55,7 +55,10 @@ const unsigned int DBFIELDID_DSTRCTEMPO   = 17;
 
 class DataCollector {
 public:
-  DataCollector(DatabaseConnector& conn) : dbConnection(conn) {};
+  
+  // DataCollector(const std::string&);
+//  DataCollector(DatabaseConnector& conn) : dbConnection(conn) {};
+  DataCollector(DatabaseConnector& conn);
   // DataCollector() = default;
   void collectData();
   void PrintVoterTable(const VoterMap&);
@@ -144,6 +147,7 @@ private:
   std::map<std::string, int> dataMap;
   int lastDBidFound = -1;
   int StateID = 1;
+  std::string MysqlDateFile;
   int CountFoundinDB = 0;
   int CountNotFoundinDB = 0;
   
@@ -155,7 +159,8 @@ private:
   std::string ToUpperAccents(const std::string&);
   std::string ToLowerAccents(const std::string&);
   std::string ReturnDBInjest(const std::string&, int);
-
+  std::string toLowerCase(const std::string&); 
+  
   std::string nameCase(const std::string&);
   std::string intToMySQLDate(int);
   int mysqlDateToInt(const std::string&);

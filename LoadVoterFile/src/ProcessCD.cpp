@@ -19,13 +19,13 @@ std::string PrintCurrentTime() {
 
 int main(int argc, char* argv[]) {
   std::locale loc("en_US.UTF-8");
-
+  
   // Check for two arguments: state abbreviation and table date
   if (argc != 3) {
       std::cerr << "Usage: " << argv[0] << " <state abbreviation> <tabledate>";
       exit(1);
   }
-
+  
   // Assign the state abbreviation and table date from command line arguments
   std::string StateNameAbbrev = argv[1];
   std::string tabledate = argv[2];
@@ -37,19 +37,19 @@ int main(int argc, char* argv[]) {
     exit(1);
   } 
     
-  std::cout << "DEBUG: accessfile() called by process " << getpid() << " (parent: " << getppid() << ")" << std::endl;
-  std::cout << "Number of CPU cores: " << numCores << std::endl;
-  std::cout << "clear; pidstat -r 1 -p " << getpid() << std::endl;
+  std::cout << PrintCurrentTime() << "DEBUG: accessfile() called by process " << getpid() << " (parent: " << getppid() << ")" << std::endl;
+  std::cout << PrintCurrentTime() << "Number of CPU cores: " << numCores << std::endl;
+  std::cout << PrintCurrentTime() <<  "clear; pidstat -r 1 -p " << getpid() << std::endl;
   
-
+  DatabaseConnector dbConnector(tabledate);
   std::cout.imbue(loc); 
-     
+  
   RawFilesInjest injest(StateNameAbbrev, tabledate);
-  std::cout << PrintCurrentTime() << "Working on " << injest.printFilename() << std::endl;
   
   injest.SetNumbersThreads(numCores);
   injest.loadFile();
   
+  std::cout << PrintCurrentTime() << "Worked on " << injest.printFilename() << std::endl;
   std::cout << PrintCurrentTime() << "Finish the ingest of the file" << std::endl;
   std::cout << PrintCurrentTime() << "Injested TotalVoters:\t" << HI_YELLOW << injest.getTotalVoters() << NC << std::endl;
 
@@ -57,8 +57,6 @@ int main(int argc, char* argv[]) {
     std::cout << PrintCurrentTime() << HI_RED << "We did not find any new entry to add" << NC << std::endl;
     exit(1);
   }
-  
-  DatabaseConnector dbConnector; 
   
   DataCollector 
     CollectFirstName(dbConnector), CollectLastName(dbConnector), CollectMiddleName(dbConnector),
@@ -70,50 +68,18 @@ int main(int argc, char* argv[]) {
     FirstNames, LastNames, MiddleNames, StateName, StateAbbrev,
     StreetName, DistrictTown, City, NonStdFormat, County;
 
-  std::cout << PrintCurrentTime() << "Loading the databases from the Database" << NC << std::endl;
-  // auto VoterGroup1 = std::async(std::launch::async, [&]() {
-    std::cout << PrintCurrentTime() << "Loading Thread 1 with FirstName, City, and County" << NC << std::endl;
-    std::cout << PrintCurrentTime() << "Loading Thread 1 with FirstName" << NC << std::endl;
-    CollectFirstName.LoadFirstName(FirstNames); 
-    std::cout << PrintCurrentTime() << "Loading Thread 1 with City" << NC << std::endl;
-    CollectCity.LoadCity(City);   
-    std::cout << PrintCurrentTime() << "Loading Thread 1 with County" << NC << std::endl;
-    CollectCounty.LoadCounty(County);  
-    std::cout << PrintCurrentTime() << "End Thread 1" << NC << std::endl;
-  // });
-  // VoterGroup1.get();
-  
-  // auto VoterGroup2 = std::async(std::launch::async, [&]() {
-    std::cout << PrintCurrentTime() << "Loading Thread 2 with Middle Names, street names, and State" << NC << std::endl;
-    std::cout << PrintCurrentTime() << "Loading Thread 2 with MiddleNames" << NC << std::endl;
-    CollectMiddleName.LoadMiddleName(MiddleNames);
-    std::cout << PrintCurrentTime() << "Loading Thread 2 with StreetName" << NC << std::endl;
-    CollectStreetName.LoadStreetName(StreetName); 
-    std::cout << PrintCurrentTime() << "Loading Thread 2 with StateName" << NC << std::endl;
-    CollectStateName.LoadStateName(StateName); 
-    std::cout << PrintCurrentTime() << "End Thread 2" << NC << std::endl;
-  // });
-  // VoterGroup2.get();
-  
-  // auto VoterGroup3 = std::async(std::launch::async, [&]() {
-    std::cout << PrintCurrentTime() << "Loading Thread 3 with Last Names, State Abbrevv" << NC << std::endl;
-    std::cout << PrintCurrentTime() << "Loading Thread 3 with Last Names" << NC << std::endl;
-    CollectLastName.LoadLastName(LastNames);
-    std::cout << PrintCurrentTime() << "Loading Thread 3 with State Abbrev" << NC << std::endl;
-    CollectStateAbbrev.LoadStateAbbrev(StateAbbrev);    
-    std::cout << PrintCurrentTime() << "End Thread 3" << NC << std::endl;
-  // });
-  // VoterGroup3.get();
-  
-  // auto VoterGroup4 = std::async(std::launch::async, [&]() {
-    std::cout << PrintCurrentTime() << "Loading Thread 4 with Town, NonStdFormat" << NC << std::endl;
-    std::cout << PrintCurrentTime() << "Loading Thread 3 with Town" << NC << std::endl;
-    CollectDistrictTown.LoadDistrictTown(DistrictTown); 
-    std::cout << PrintCurrentTime() << "Loading Thread 3 with Non Standart" << NC << std::endl;
-    CollectNonStdFormat.LoadNonStdFormat(NonStdFormat);
-    std::cout << PrintCurrentTime() << "End Thread 4" << NC << std::endl;
-  // });
-  // VoterGroup4.get();
+  std::cout << PrintCurrentTime() << "Loading the simple table from the Database" << NC << std::endl;
+    
+  CollectFirstName.LoadFirstName(FirstNames); 
+  CollectCity.LoadCity(City);   
+  CollectCounty.LoadCounty(County);  
+  CollectMiddleName.LoadMiddleName(MiddleNames);
+  CollectStreetName.LoadStreetName(StreetName); 
+  CollectStateName.LoadStateName(StateName); 
+  CollectLastName.LoadLastName(LastNames);
+  CollectStateAbbrev.LoadStateAbbrev(StateAbbrev);    
+  CollectDistrictTown.LoadDistrictTown(DistrictTown); 
+  CollectNonStdFormat.LoadNonStdFormat(NonStdFormat);
     
   std::cout << PrintCurrentTime() << "Numbers of First Names in Database:\t" << HI_YELLOW << CollectFirstName.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectFirstName.returnQueryTimes() << NC << " milliseconds" << std::endl;
   std::cout << PrintCurrentTime() << "Numbers of Last Names in Database:\t" << HI_YELLOW << CollectLastName.returnNumberOfEntries() << NC << "\t- " << HI_PINK << CollectLastName.returnQueryTimes() << NC << " milliseconds" << std::endl;
@@ -128,55 +94,28 @@ int main(int argc, char* argv[]) {
 
   // Before we do anything, let's check that each single one has an id, if not, we need to save them
   
-  VoterInfoRaw VotersFilesGroup1, VotersFilesGroup2, VotersFilesGroup3, VotersFilesGroup4;
+  VoterInfoRaw VotersFilesGroup;
   std::cout << PrintCurrentTime() << "Entering the CheckIndexes TotalVoters:\t" << HI_YELLOW << injest.getTotalVoters() << NC << std::endl;
   
-  // auto VoterGroup5 = std::async(std::launch::async, [&]() {
-    for (int i = 0; i < injest.getTotalVoters() ; i++) {
-      VotersFilesGroup1 = injest.getVoters(i);
-      CollectFirstName.CheckIndex(VotersFilesGroup1.firstName); 
-      CollectCity.CheckIndex(VotersFilesGroup1.residentialCity);            
-    }
-  // });
+  for (int i = 0; i < injest.getTotalVoters() ; i++) {
+      VotersFilesGroup = injest.getVoters(i);
+      CollectFirstName.CheckIndex(VotersFilesGroup.firstName); 
+      CollectCity.CheckIndex(VotersFilesGroup.residentialCity);            
+      CollectMiddleName.CheckIndex(VotersFilesGroup.middleName);   
+      CollectStreetName.CheckIndex(VotersFilesGroup.residentialStreetName);
+      CollectLastName.CheckIndex(VotersFilesGroup.lastName);     
+      CollectDistrictTown.CheckIndex(VotersFilesGroup.townCity);
+      CollectNonStdFormat.CheckIndex(VotersFilesGroup.residentialNonStandartAddress);  
+      CollectStateAbbrev.CheckIndex(StateNameAbbrev);     
+  }
   
   CollectFirstName.TriggerSaveFirstNameDB();
   CollectCity.TriggerSaveCityDB();
-  // VoterGroup5.get();
-  
-  // auto VoterGroup6 = std::async(std::launch::async, [&]() {
-    for (int i = 0; i < injest.getTotalVoters() ; i++) {
-      VotersFilesGroup2 = injest.getVoters(i);
-      CollectMiddleName.CheckIndex(VotersFilesGroup2.middleName);   
-      CollectStreetName.CheckIndex(VotersFilesGroup2.residentialStreetName);
-  }
-  // });
-
   CollectMiddleName.TriggerSaveMiddleNameDB();
   CollectStreetName.TriggerSaveStreetNameDB();
-  // VoterGroup6.get();
-
-  // auto VoterGroup7 = std::async(std::launch::async, [&]() {
-    for (int i = 0; i < injest.getTotalVoters() ; i++) {
-      VotersFilesGroup3 = injest.getVoters(i);
-      CollectLastName.CheckIndex(VotersFilesGroup3.lastName);     
-      CollectStateAbbrev.CheckIndex(StateNameAbbrev);     
-    }
-  // });
-
   CollectLastName.TriggerSaveLastNameDB();
-  // VoterGroup7.get();
-  
-  // auto VoterGroup8 = std::async(std::launch::async, [&]() {
-    for (int i = 0; i < injest.getTotalVoters() ; i++) {
-      VotersFilesGroup4 = injest.getVoters(i);
-      CollectDistrictTown.CheckIndex(VotersFilesGroup4.townCity);
-      CollectNonStdFormat.CheckIndex(VotersFilesGroup4.residentialNonStandartAddress);
-    }
-  // });
-  
   CollectDistrictTown.TriggerSaveDistrictTownDB();
   CollectNonStdFormat.TriggerSaveNonStdFormatDB();  
-  // VoterGroup8.get();
   
   std::cout << PrintCurrentTime() << "Loaded " << NC << HI_YELLOW << injest.getTotalVoters() << NC << " raws voters" << std::endl; 
   std::cout << PrintCurrentTime() << HI_GREEN << "After triggers " << NC<< std::endl;
@@ -203,33 +142,20 @@ int main(int argc, char* argv[]) {
   DataCollector           CollectDataMailingAddress(dbConnector);   
   CollectDataMailingAddress.LoadData(dataMailingAddressMap);
   
-  std::cout << PrintCurrentTime() << HI_WHITE << "Done loading " << NC << HI_PINK << "DataMailingAddress" << NC << HI_WHITE << " database table " << NC << HI_YELLOW << dataMailingAddressMap.size() << NC << " rows" << std::endl;
-
-  // Save Table DataAddress 
-  // auto FutureMailingAddress = std::async(std::launch::async, [&]() { 
-  // Save Table DataMailingAddress 
- 
   std::cout << PrintCurrentTime() << HI_WHITE << "Start work on " << NC << HI_PINK << "DataMailingAddress" << NC << HI_WHITE << " database table" << NC << std::endl;
+
   for (int i = 0; i < injest.getTotalVoters() ; i++) {
     VoterInfoRaw VotersFileFut = injest.getVoters(i);
     
     if (CollectDataMailingAddress.simpleHash(VotersFileFut.mailingAddress1) !=  3974729684 ) {
       
-      if ( dataMailingAddressMap[
-        DataMailingAddress (
-          CollectDataMailingAddress.simpleHash(VotersFileFut.mailingAddress1),
-          VotersFileFut.mailingAddress1, VotersFileFut.mailingAddress2, 
-          VotersFileFut.mailingAddress3, VotersFileFut.mailingAddress4
-        )] < 1) {
+      DataMailingAddress MyLocal(
+        CollectDataMailingAddress.simpleHash(VotersFileFut.mailingAddress1),
+        VotersFileFut.mailingAddress1, VotersFileFut.mailingAddress2, 
+        VotersFileFut.mailingAddress3, VotersFileFut.mailingAddress4
+      );
       
-        dataMailingAddressMap[
-          DataMailingAddress (
-            CollectDataMailingAddress.simpleHash(VotersFileFut.mailingAddress1),
-            VotersFileFut.mailingAddress1, VotersFileFut.mailingAddress2, 
-            VotersFileFut.mailingAddress3, VotersFileFut.mailingAddress4
-          ) 
-        ];
-      }
+      if ( dataMailingAddressMap[MyLocal] < 1) { dataMailingAddressMap[MyLocal]; }
     }
       
     if ( i % 500000 == 0 ) {
@@ -259,24 +185,16 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < injest.getTotalVoters() ; i++) {
     VoterInfoRaw VotersFileFut = injest.getVoters(i);
     
-    if ( dataAddressMap[
-        DataAddress(
-          VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
-          CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
-          CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
-          CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
-          VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
-        )] < 1) { 
-      dataAddressMap[
-        DataAddress(
-          VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
-          CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
-          CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
-          CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
-          VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
-        )
-      ];
-    } 
+    DataAddress MyLocalVarAddress(
+      VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
+      CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
+      CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
+      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
+      VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
+    );
+    
+    if ( dataAddressMap[MyLocalVarAddress] < 1) { dataAddressMap[MyLocalVarAddress]; } 
+      
     if ( i % 500000 == 0 ) {
       std::cout << PrintCurrentTime() << "\t\tDataAddress processed: " << i << std::endl;
     }
@@ -300,39 +218,20 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < injest.getTotalVoters() ; i++) {
     VoterInfoRaw VotersFileFut = injest.getVoters(i);
     
-    if (dataHouseMap[
-        DataHouse(
-          dataAddressMap[
-            DataAddress(
-              VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
-              CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
-              CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
-              CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
-              VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
-            )
-          ], 
-          VotersFileFut.residentialAptNumber, VotersFileFut.residentialApartment,
-          CollectDistrictTown.CheckIndex(VotersFileFut.townCity), 
-          CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
-        )
-      ] < 1) { 
-        dataHouseMap[
-          DataHouse(
-            dataAddressMap[
-              DataAddress(
-                VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
-                CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
-                CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
-                CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
-                VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
-              )
-            ], 
-            VotersFileFut.residentialAptNumber, VotersFileFut.residentialApartment,
-            CollectDistrictTown.CheckIndex(VotersFileFut.townCity), 
-            CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
-          )
-        ];
-    }
+    DataAddress MyLocalVarAddress(
+      VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
+      CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
+      CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
+      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
+      VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
+    );
+    
+    DataHouse MyLocalVarHouse(
+      dataAddressMap[MyLocalVarAddress], VotersFileFut.residentialAptType, VotersFileFut.residentialApartment,
+      CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
+    );
+    
+    if (dataHouseMap[MyLocalVarHouse] < 1) { dataHouseMap[MyLocalVarHouse]; }
     
     if ( i % 500000 == 0 ) {
       std::cout << PrintCurrentTime() << "\t\tDataHouse processed: " << i << std::endl;
@@ -357,23 +256,15 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < injest.getTotalVoters() ; i++) {
     VoterInfoRaw VotersFileFut = injest.getVoters(i);
     
-    if (dataDistrictMap[
-        DataDistrict(
-          CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))), 
-          TO_INT_OR_NIL(VotersFileFut.electionDistrict), TO_INT_OR_NIL(VotersFileFut.assemblyDistrict),
-          TO_INT_OR_NIL(VotersFileFut.senateDistrict), TO_INT_OR_NIL(VotersFileFut.legislativeDistrict),
-          VotersFileFut.ward, TO_INT_OR_NIL(VotersFileFut.congressionalDistrict)
-        )] < 1 ) {
+    DataDistrict MyLocalVar(
+      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))), 
+      CollectDistrictTown.CheckIndex(VotersFileFut.townCity),
+      TO_INT_OR_NIL(VotersFileFut.electionDistrict), TO_INT_OR_NIL(VotersFileFut.assemblyDistrict),
+      TO_INT_OR_NIL(VotersFileFut.senateDistrict), TO_INT_OR_NIL(VotersFileFut.legislativeDistrict),
+      VotersFileFut.ward, TO_INT_OR_NIL(VotersFileFut.congressionalDistrict)
+    );
     
-      dataDistrictMap[
-        DataDistrict(
-          CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))), 
-          TO_INT_OR_NIL(VotersFileFut.electionDistrict), TO_INT_OR_NIL(VotersFileFut.assemblyDistrict),
-          TO_INT_OR_NIL(VotersFileFut.senateDistrict), TO_INT_OR_NIL(VotersFileFut.legislativeDistrict),
-          VotersFileFut.ward, TO_INT_OR_NIL(VotersFileFut.congressionalDistrict)
-        )
-      ];
-    }
+    if (dataDistrictMap[MyLocalVar] < 1) { dataDistrictMap[MyLocalVar]; }
     
     if ( i % 500000 == 0 ) {
       std::cout << PrintCurrentTime() << "\t\tDataDistrict processed: " << i << std::endl;
@@ -398,22 +289,13 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < injest.getTotalVoters() ; i++) {
     VoterInfoRaw VotersFileFut = injest.getVoters(i);
     
-    if (voterIdxMap[
-        VoterIdx (
-          CollectLastName.ReturnIndex(VotersFileFut.lastName), CollectFirstName.ReturnIndex(VotersFileFut.firstName),
-          CollectMiddleName.ReturnIndex(VotersFileFut.middleName), TO_STR_OR_NIL(VotersFileFut.nameSuffix),
-          TO_INT_OR_NIL(VotersFileFut.dateOfBirth), VotersFileFut.sboeId
-        )] < 1) {
-    
-      voterIdxMap[
-        VoterIdx (
-          CollectLastName.ReturnIndex(VotersFileFut.lastName), CollectFirstName.ReturnIndex(VotersFileFut.firstName),
-          CollectMiddleName.ReturnIndex(VotersFileFut.middleName), TO_STR_OR_NIL(VotersFileFut.nameSuffix),
-          TO_INT_OR_NIL(VotersFileFut.dateOfBirth), VotersFileFut.sboeId
-        )
-      ];
-    }
-    
+    VoterIdx MyLocalVar(
+      CollectLastName.ReturnIndex(VotersFileFut.lastName), CollectFirstName.ReturnIndex(VotersFileFut.firstName),
+      CollectMiddleName.ReturnIndex(VotersFileFut.middleName), TO_STR_OR_NIL(VotersFileFut.nameSuffix),
+      TO_INT_OR_NIL(VotersFileFut.dateOfBirth), VotersFileFut.sboeId );
+   
+    if (voterIdxMap[MyLocalVar] < 1) { voterIdxMap[MyLocalVar]; } 
+      
     if ( i % 500000 == 0 ) {
       std::cout << PrintCurrentTime() << "\t\tVoter Indexes processed: " << i << std::endl;
     }
@@ -433,8 +315,6 @@ int main(int argc, char* argv[]) {
  ******************************************************************************
  ******************************************************************************/
 
-
-
 /******************************************************************
  * Voters Maps                                                    *
  ******************************************************************/
@@ -446,97 +326,47 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < injest.getTotalVoters() ; i++) {
     VoterInfoRaw VotersFileFut = injest.getVoters(i);
     
-    if (voterMap[
-        Voter(
-          voterIdxMap[
-            VoterIdx (
-              CollectLastName.ReturnIndex(VotersFileFut.lastName), CollectFirstName.ReturnIndex(VotersFileFut.firstName),
-              CollectMiddleName.ReturnIndex(VotersFileFut.middleName), TO_STR_OR_NIL(VotersFileFut.nameSuffix),
-              TO_INT_OR_NIL(VotersFileFut.dateOfBirth), VotersFileFut.sboeId
-            )
-          ],
-          dataHouseMap[
-            DataHouse(
-              dataAddressMap[
-                DataAddress(
-                  VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
-                  CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
-                  CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
-                  CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
-                  VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
-                )
-              ], 
-              VotersFileFut.residentialAptNumber, VotersFileFut.residentialApartment,
-              CollectDistrictTown.CheckIndex(VotersFileFut.townCity), 
-              CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
-            ) 
-          ],
-          CollectVoter.stringToGender(VotersFileFut.gender),
-          VotersFileFut.sboeId,
-          VotersFileFut.enrollment,
-          CollectVoter.stringToReasonCode(VotersFileFut.reasonCode),    // ReasonCode::Felon,
-          CollectVoter.stringToStatus(VotersFileFut.status),            // Status::ActiveMilitary,
-          dataMailingAddressMap[
-            DataMailingAddress (
-             CollectVoter.simpleHash(VotersFileFut.mailingAddress1), VotersFileFut.mailingAddress1,VotersFileFut.mailingAddress2,VotersFileFut.mailingAddress3,VotersFileFut.mailingAddress4
-            )
-          ],
-          CollectVoter.stringToBool(VotersFileFut.idRequired),
-          CollectVoter.stringToBool(VotersFileFut.idMet),
-          TO_INT_OR_NIL(VotersFileFut.registrationDate),
-          CollectVoter.stringToRegSource(VotersFileFut.vrSource),       // RegSource::Agency,
-          TO_INT_OR_NIL(VotersFileFut.inactivityDate),
-          TO_INT_OR_NIL(VotersFileFut.purgeDate),     
-          VotersFileFut.countyVrNumber,
-          true
-        )] < 1) {  
-        
-          voterMap[
-            Voter(
-              voterIdxMap[
-                VoterIdx (
-                  CollectLastName.ReturnIndex(VotersFileFut.lastName), CollectFirstName.ReturnIndex(VotersFileFut.firstName),
-                  CollectMiddleName.ReturnIndex(VotersFileFut.middleName), TO_STR_OR_NIL(VotersFileFut.nameSuffix),
-                  TO_INT_OR_NIL(VotersFileFut.dateOfBirth), VotersFileFut.sboeId
-                )
-              ],
-              dataHouseMap[
-                DataHouse(
-                  dataAddressMap[
-                    DataAddress(
-                      VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
-                      CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
-                      CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
-                      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
-                      VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
-                    )
-                  ], 
-                  VotersFileFut.residentialAptNumber, VotersFileFut.residentialApartment,
-                  CollectDistrictTown.CheckIndex(VotersFileFut.townCity), 
-                  CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
-                ) 
-              ],
-              CollectVoter.stringToGender(VotersFileFut.gender),
-              VotersFileFut.sboeId,
-              VotersFileFut.enrollment,
-              CollectVoter.stringToReasonCode(VotersFileFut.reasonCode),    // ReasonCode::Felon,
-              CollectVoter.stringToStatus(VotersFileFut.status),            // Status::ActiveMilitary,
-              dataMailingAddressMap[
-                DataMailingAddress (
-                 CollectVoter.simpleHash(VotersFileFut.mailingAddress1), VotersFileFut.mailingAddress1,VotersFileFut.mailingAddress2,VotersFileFut.mailingAddress3,VotersFileFut.mailingAddress4
-                )
-              ],
-              CollectVoter.stringToBool(VotersFileFut.idRequired),
-              CollectVoter.stringToBool(VotersFileFut.idMet),
-              TO_INT_OR_NIL(VotersFileFut.registrationDate),
-              CollectVoter.stringToRegSource(VotersFileFut.vrSource),       // RegSource::Agency,
-              TO_INT_OR_NIL(VotersFileFut.inactivityDate),
-              TO_INT_OR_NIL(VotersFileFut.purgeDate),     
-              VotersFileFut.countyVrNumber,
-              true
-            )
-          ];
-    }
+    VoterIdx MyLocalIdx (
+      CollectLastName.ReturnIndex(VotersFileFut.lastName), CollectFirstName.ReturnIndex(VotersFileFut.firstName),
+      CollectMiddleName.ReturnIndex(VotersFileFut.middleName), TO_STR_OR_NIL(VotersFileFut.nameSuffix),
+      TO_INT_OR_NIL(VotersFileFut.dateOfBirth), VotersFileFut.sboeId
+    );
+    
+    DataAddress MyLocalAddress (
+      VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
+      CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
+      CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
+      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
+      VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
+    );
+    
+    DataHouse MyLocalDataHouse (
+      dataAddressMap[MyLocalAddress], VotersFileFut.residentialAptType, VotersFileFut.residentialApartment,
+      CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
+    );
+    
+    DataMailingAddress MyLocalDataMailing (
+      CollectVoter.simpleHash(VotersFileFut.mailingAddress1), VotersFileFut.mailingAddress1,VotersFileFut.mailingAddress2,
+      VotersFileFut.mailingAddress3,VotersFileFut.mailingAddress4
+    );
+  
+    Voter MyLocalVoter(voterIdxMap[MyLocalIdx], dataHouseMap[MyLocalDataHouse],
+      CollectVoter.stringToGender(VotersFileFut.gender),
+      VotersFileFut.sboeId, VotersFileFut.enrollment,
+      CollectVoter.stringToReasonCode(VotersFileFut.reasonCode),    // ReasonCode::Felon,
+      CollectVoter.stringToStatus(VotersFileFut.status),            // Status::ActiveMilitary,
+      dataMailingAddressMap[MyLocalDataMailing],
+      CollectVoter.stringToBool(VotersFileFut.idRequired),
+      CollectVoter.stringToBool(VotersFileFut.idMet),
+      TO_INT_OR_NIL(VotersFileFut.registrationDate),
+      CollectVoter.stringToRegSource(VotersFileFut.vrSource),       // RegSource::Agency,
+      TO_INT_OR_NIL(VotersFileFut.inactivityDate),
+      TO_INT_OR_NIL(VotersFileFut.purgeDate),     
+      VotersFileFut.countyVrNumber,
+      true
+    );
+    
+    if (voterMap[MyLocalVoter] < 1) {  voterMap[MyLocalVoter]; }
     
     if ( i % 500000 == 0 ) {
       std::cout << PrintCurrentTime() << "\t\tVoter processed: " << i << std::endl;
@@ -549,13 +379,6 @@ int main(int argc, char* argv[]) {
   std::cout << PrintCurrentTime() << HI_WHITE << "\tDone saving " << NC << HI_YELLOW << voterMap.size() << NC << HI_WHITE << " entries in voter"<< NC << std::endl;
   if (voterIdxMap.size() - MapSize == 0) { std::cout << PrintCurrentTime() << HI_RED << "\tWe have a problem in voter" << NC << std::endl;  } 
   std::cout << std::endl;
-
-/******************************************************************
- * Data District Temporal Map                                     *
- ******************************************************************/
-  DataDistrictTemporalMap dataDistrictTemporalMap;
-  DataCollector           CollectDistrictTemporalMap(dbConnector);    
-  // CollectVoter.LoadData(dataDistrictTemporalMap);
   
 /******************************************************************
  * Voter Complement Info Map                                      *
@@ -567,118 +390,58 @@ int main(int argc, char* argv[]) {
   std::cout << PrintCurrentTime() << HI_WHITE << "Start work on " << NC << HI_PINK << "VotersComplementInfo" << NC << HI_WHITE << " database table" << NC << std::endl;
   for (int i = 0; i < injest.getTotalVoters() ; i++) {
     VoterInfoRaw VotersFileFut = injest.getVoters(i);
-              
-    if (voterComplementInfoMap[
-        VoterComplementInfo(  
-          voterMap[
-            Voter(
-              voterIdxMap[
-                VoterIdx (
-                  CollectLastName.ReturnIndex(VotersFileFut.lastName), CollectFirstName.ReturnIndex(VotersFileFut.firstName),
-                  CollectMiddleName.ReturnIndex(VotersFileFut.middleName), TO_STR_OR_NIL(VotersFileFut.nameSuffix),
-                  TO_INT_OR_NIL(VotersFileFut.dateOfBirth), VotersFileFut.sboeId
-                )
-              ],
-              dataHouseMap[
-                DataHouse(
-                  dataAddressMap[
-                    DataAddress(
-                      VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
-                      CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
-                      CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
-                      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
-                      VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
-                    )
-                  ], 
-                  VotersFileFut.residentialAptNumber, VotersFileFut.residentialApartment,
-                  CollectDistrictTown.CheckIndex(VotersFileFut.townCity), 
-                  CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
-                )
-              ],
-              CollectVoter.stringToGender(VotersFileFut.gender),
-              VotersFileFut.sboeId,
-              VotersFileFut.enrollment,
-              CollectVoter.stringToReasonCode(VotersFileFut.reasonCode),  // ReasonCode::Felon,
-              CollectVoter.stringToStatus(VotersFileFut.status),      // Status::ActiveMilitary,
-              dataMailingAddressMap[
-                DataMailingAddress (
-                  CollectVoter.simpleHash(VotersFileFut.mailingAddress1), VotersFileFut.mailingAddress1,VotersFileFut.mailingAddress2,VotersFileFut.mailingAddress3,VotersFileFut.mailingAddress4
-                )
-              ],
-              CollectVoter.stringToBool(VotersFileFut.idRequired),
-              CollectVoter.stringToBool(VotersFileFut.idMet),
-              TO_INT_OR_NIL(VotersFileFut.registrationDate),
-              CollectVoter.stringToRegSource(VotersFileFut.vrSource),   // RegSource::Agency,
-              TO_INT_OR_NIL(VotersFileFut.inactivityDate),
-              TO_INT_OR_NIL(VotersFileFut.purgeDate),     
-              VotersFileFut.countyVrNumber,
-              true
-            )
-          ],                                                // Voter  ID
-          TO_STR_OR_NIL(VotersFileFut.prevName),              // std::string VCIPrevName; 
-          TO_STR_OR_NIL(VotersFileFut.prevAddress),           // std::string VCIPrevAddress;  
-          TO_INT_OR_NIL(VotersFileFut.prevCounty),            // int VCIdataCountyId;
-          TO_INT_OR_NIL(VotersFileFut.prevYearVoted),         // int VCILastYearVote;
-          TO_INT_OR_NIL(VotersFileFut.lastVotedDate),         // int VCILastDateVote;
-          TO_STR_OR_NIL(VotersFileFut.otherParty)             // std::string VCIOtherParty;
-        )] < 1 ) {
-           
-      voterComplementInfoMap[
-        VoterComplementInfo(  
-          voterMap[
-            Voter(
-              voterIdxMap[
-                VoterIdx (
-                  CollectLastName.ReturnIndex(VotersFileFut.lastName), CollectFirstName.ReturnIndex(VotersFileFut.firstName),
-                  CollectMiddleName.ReturnIndex(VotersFileFut.middleName), TO_STR_OR_NIL(VotersFileFut.nameSuffix),
-                  TO_INT_OR_NIL(VotersFileFut.dateOfBirth), VotersFileFut.sboeId
-                )
-              ],
-              dataHouseMap[
-                DataHouse(
-                  dataAddressMap[
-                    DataAddress(
-                      VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
-                      CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
-                      CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
-                      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
-                      VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
-                    )
-                  ], 
-                  VotersFileFut.residentialAptNumber, VotersFileFut.residentialApartment,
-                  CollectDistrictTown.CheckIndex(VotersFileFut.townCity), 
-                  CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
-                )
-              ],
-              CollectVoter.stringToGender(VotersFileFut.gender),
-              VotersFileFut.sboeId,
-              VotersFileFut.enrollment,
-              CollectVoter.stringToReasonCode(VotersFileFut.reasonCode),  // ReasonCode::Felon,
-              CollectVoter.stringToStatus(VotersFileFut.status),      // Status::ActiveMilitary,
-              dataMailingAddressMap[
-                DataMailingAddress (
-                  CollectVoter.simpleHash(VotersFileFut.mailingAddress1), VotersFileFut.mailingAddress1,VotersFileFut.mailingAddress2,VotersFileFut.mailingAddress3,VotersFileFut.mailingAddress4
-                )
-              ],
-              CollectVoter.stringToBool(VotersFileFut.idRequired),
-              CollectVoter.stringToBool(VotersFileFut.idMet),
-              TO_INT_OR_NIL(VotersFileFut.registrationDate),
-              CollectVoter.stringToRegSource(VotersFileFut.vrSource),   // RegSource::Agency,
-              TO_INT_OR_NIL(VotersFileFut.inactivityDate),
-              TO_INT_OR_NIL(VotersFileFut.purgeDate),     
-              VotersFileFut.countyVrNumber,
-              true
-            )
-          ],                                                // Voter  ID
-          TO_STR_OR_NIL(VotersFileFut.prevName),              // std::string VCIPrevName; 
-          TO_STR_OR_NIL(VotersFileFut.prevAddress),           // std::string VCIPrevAddress;  
-          TO_INT_OR_NIL(VotersFileFut.prevCounty),            // int VCIdataCountyId;
-          TO_INT_OR_NIL(VotersFileFut.prevYearVoted),         // int VCILastYearVote;
-          TO_INT_OR_NIL(VotersFileFut.lastVotedDate),         // int VCILastDateVote;
-          TO_STR_OR_NIL(VotersFileFut.otherParty)             // std::string VCIOtherParty;
-        )
-      ];
-    }
+    
+    VoterIdx MyLocalIdx (
+      CollectLastName.ReturnIndex(VotersFileFut.lastName), CollectFirstName.ReturnIndex(VotersFileFut.firstName),
+      CollectMiddleName.ReturnIndex(VotersFileFut.middleName), TO_STR_OR_NIL(VotersFileFut.nameSuffix),
+      TO_INT_OR_NIL(VotersFileFut.dateOfBirth), VotersFileFut.sboeId
+    );
+    
+    DataAddress MyLocalAddress (
+      VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
+      CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
+      CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
+      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
+      VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
+    );
+    
+    DataHouse MyLocalDataHouse (
+      dataAddressMap[MyLocalAddress], VotersFileFut.residentialAptType, VotersFileFut.residentialApartment,
+      CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
+    );
+    
+    DataMailingAddress MyLocalDataMailing (
+      CollectVoter.simpleHash(VotersFileFut.mailingAddress1), VotersFileFut.mailingAddress1,VotersFileFut.mailingAddress2,
+      VotersFileFut.mailingAddress3,VotersFileFut.mailingAddress4
+    );
+  
+    Voter MyLocalVoter(voterIdxMap[MyLocalIdx], dataHouseMap[MyLocalDataHouse],
+      CollectVoter.stringToGender(VotersFileFut.gender),
+      VotersFileFut.sboeId, VotersFileFut.enrollment,
+      CollectVoter.stringToReasonCode(VotersFileFut.reasonCode),    // ReasonCode::Felon,
+      CollectVoter.stringToStatus(VotersFileFut.status),            // Status::ActiveMilitary,
+      dataMailingAddressMap[MyLocalDataMailing],
+      CollectVoter.stringToBool(VotersFileFut.idRequired),
+      CollectVoter.stringToBool(VotersFileFut.idMet),
+      TO_INT_OR_NIL(VotersFileFut.registrationDate),
+      CollectVoter.stringToRegSource(VotersFileFut.vrSource),       // RegSource::Agency,
+      TO_INT_OR_NIL(VotersFileFut.inactivityDate),
+      TO_INT_OR_NIL(VotersFileFut.purgeDate),     
+      VotersFileFut.countyVrNumber,
+      true
+    );
+    
+    VoterComplementInfo MyLocalCompInfo (  
+      voterMap[MyLocalVoter],                             // Voter  ID
+      TO_STR_OR_NIL(VotersFileFut.prevName),              // std::string VCIPrevName; 
+      TO_STR_OR_NIL(VotersFileFut.prevAddress),           // std::string VCIPrevAddress;  
+      TO_INT_OR_NIL(VotersFileFut.prevCounty),            // int VCIdataCountyId;
+      TO_INT_OR_NIL(VotersFileFut.prevYearVoted),         // int VCILastYearVote;
+      TO_INT_OR_NIL(VotersFileFut.lastVotedDate),         // int VCILastDateVote;
+      TO_STR_OR_NIL(VotersFileFut.otherParty)             // std::string VCIOtherParty;
+    );
+    
+    if (voterComplementInfoMap[MyLocalCompInfo] < 1) { voterComplementInfoMap[MyLocalCompInfo]; }
     
     if ( i % 500000 == 0 ) {
       std::cout << PrintCurrentTime() << "\t\tVoter Complement processed: " << i << std::endl;
@@ -686,13 +449,71 @@ int main(int argc, char* argv[]) {
     
   }
   
-  
   MapSize = voterComplementInfoMap.size();
   std::cout << PrintCurrentTime() << HI_WHITE << "\tStarting saving " << NC << HI_YELLOW << MapSize << NC << HI_WHITE << " entries in VotersComplementInfo" << NC << std::endl;
   CollectVoter.SaveDataBase(voterComplementInfoMap);
   std::cout << PrintCurrentTime() << HI_WHITE << "\tDone saving " << NC << HI_YELLOW << voterComplementInfoMap.size() << NC << HI_WHITE << " entries in VotersComplementInfo"<< NC << std::endl;
   // if (voterComplementInfoMap.size() - MapSize > 1) { std::cout << PrintCurrentTime() << HI_RED << "\tWe have a problem in VotersComplementInfo" << NC << std::endl; exit(1); } 
   std::cout << std::endl;
+    
+/**********************************************************************************************
+ * This is where I only run tought the limited set of variable, no need to run the whole set. *
+ **********************************************************************************************/
+ 
+  /******************************************************************
+  * Data District Temporal Map                                     *
+  ******************************************************************/
+  DataDistrictTemporalMap dataDistrictTemporalMap;
+  DataCollector           CollectDistrictTemporalMap(dbConnector);    
+  CollectVoter.LoadData(dataDistrictTemporalMap);
+  
+  std::cout << PrintCurrentTime() << HI_WHITE << "Start work on " << NC << HI_PINK << "DataDistrictTemporalMap" << NC << HI_WHITE << " database table" << NC << std::endl;
+
+  // Here I just need to grab the DatahouseList from the Database.
+  
+  for (int i = 0; i < injest.getTotalVoters() ; i++) {
+    VoterInfoRaw VotersFileFut = injest.getVoters(i);
+    
+    DataAddress MyLocalAddress (
+      VotersFileFut.residentialAddressNumber, VotersFileFut.residentialHalfCode, VotersFileFut.residentialPredirection,
+      CollectStreetName.ReturnIndex(VotersFileFut.residentialStreetName), VotersFileFut.residentialPostdirection, 
+      CollectCity.ReturnIndex(VotersFileFut.residentialCity), 
+      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))),
+      VotersFileFut.residentialZip5, VotersFileFut.residentialZip4, NIL, NIL
+    );
+    
+    DataHouse MyLocalDataHouse (
+      dataAddressMap[MyLocalAddress], VotersFileFut.residentialAptType, VotersFileFut.residentialApartment,
+      CollectNonStdFormat.CheckIndex(VotersFileFut.residentialNonStandartAddress), NIL
+    );
+  
+    DataDistrict MyLocalVarDistrict(
+      CollectCounty.ReturnIndex(std::to_string(TO_INT_OR_NIL(VotersFileFut.countyCode))), 
+      CollectDistrictTown.CheckIndex(VotersFileFut.townCity),
+      TO_INT_OR_NIL(VotersFileFut.electionDistrict), TO_INT_OR_NIL(VotersFileFut.assemblyDistrict),
+      TO_INT_OR_NIL(VotersFileFut.senateDistrict), TO_INT_OR_NIL(VotersFileFut.legislativeDistrict),
+      VotersFileFut.ward, TO_INT_OR_NIL(VotersFileFut.congressionalDistrict)
+    );
+    
+    DataDistrictTemporal MyLocalVarCycle (
+      1, dataDistrictMap[MyLocalVarDistrict], dataHouseMap[MyLocalDataHouse]
+    );
+    
+    if ( dataDistrictTemporalMap[MyLocalVarCycle] < 1) { dataDistrictTemporalMap[MyLocalVarCycle]; }
+    
+    if ( i % 500000 == 0 ) {
+      std::cout << PrintCurrentTime() << "\t\tVoter District Temporal processed: " << i << std::endl;
+    }
+    
+  }
+
+  MapSize = dataDistrictTemporalMap.size();
+  std::cout << PrintCurrentTime() << HI_WHITE << "\tStarting saving " << NC << HI_YELLOW << MapSize << NC << HI_WHITE << " entries in dataDistrictTemporalMap" << NC << std::endl;
+  CollectVoter.SaveDataBase(dataDistrictTemporalMap);
+  std::cout << PrintCurrentTime() << HI_WHITE << "\tDone saving " << NC << HI_YELLOW << dataDistrictTemporalMap.size() << NC << HI_WHITE << " entries in dataDistrictTemporalMap"<< NC << std::endl;
+  // if (voterComplementInfoMap.size() - MapSize > 1) { std::cout << PrintCurrentTime() << HI_RED << "\tWe have a problem in VotersComplementInfo" << NC << std::endl; exit(1); } 
+  std::cout << std::endl;
+
 
   std::cout << PrintCurrentTime() << HI_WHITE << "Data collection and ingestion completed." << NC << std::endl;
   return 0;

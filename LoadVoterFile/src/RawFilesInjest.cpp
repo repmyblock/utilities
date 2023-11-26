@@ -23,7 +23,7 @@ RawFilesInjest::RawFilesInjest(const std::string& IncomingState, const std::stri
   numThreads = 1;
   StateNameAbbrev = IncomingState;
   TableDate = IncomingTableDate;
-
+  TableDateNumber = std::stoi(TableDate);
   std::cout << "Opening the RawFilesInjest with for the State of " << StateNameAbbrev << " in TableDate: " << TableDate << std::endl;   
 }
 
@@ -108,28 +108,31 @@ void RawFilesInjest::loadFile() {
   while (true) {
     std::unique_lock<std::mutex> lock(fileMutex);
     cv.wait(lock, [this] { return !lineQueue.empty() || allChunksProcessed; }); // 'this' captures all member variables
-
-    while (!lineQueue.empty()) {
-      std::string line = lineQueue.front();
-      parseLineToVoterInfo(line);
-      lineQueue.pop();
+    
+    std::cout << "Size of lineQueue: " << lineQueue.size() << std::endl;
+    while (! lineQueue.empty()) {
+      std::cout << "Starting the queue Inside the lineQueue -> Size of lineQueue: " << lineQueue.size() << std::endl;
+      parseLineToVoterInfo(lineQueue);
+      std::cout << "Finishing the queue Inside the lineQueue -> Size of lineQueue: " << lineQueue.size() << std::endl;
     }
     lock.unlock(); // Unlock once after finishing the inner loop
-    
+   
     if (lineQueue.empty() && allChunksProcessed) {
+      std::queue<std::string>().swap(lineQueue); // Free memory used by lineQueue
       break; // All lines have been processed
     }
   }
-  
+ 
 }
 
 VoterInfoRaw RawFilesInjest::getVoters(int counter) {
-  if ( counter > voters.size() - 1 ) return voters[(voters.size()-1)];  
+  int VoterSize = voters.size();
+  if (counter > VoterSize) return voters[VoterSize];  
   return voters[counter];
 }
 
 int RawFilesInjest::getTotalVoters() {
-  return voters.size() - 1;
+  return voters.size();
 }
 
 std::string RawFilesInjest::ConvertLatin1ToUTF8(const std::string& latin1String) {
@@ -222,7 +225,6 @@ std::string RawFilesInjest::ToUpperAccents(const std::string& input) {
 }
 
 void RawFilesInjest::RunStateFileNameLoader(void) {
-  
   if ( StateNameAbbrev == "OH") { OH_RawFilesInjest(); } 
   else if ( StateNameAbbrev == "MN") { MN_RawFilesInjest(); }
   else if ( StateNameAbbrev == "NV") { NV_RawFilesInjest(); } 
@@ -234,15 +236,41 @@ void RawFilesInjest::RunStateFileNameLoader(void) {
   }
 }
 
-void RawFilesInjest::parseLineToVoterInfo(const std::string& line) {
-  if ( StateNameAbbrev == "OH") { OH_parseLineToVoterInfo(line); } 
-  else if ( StateNameAbbrev == "MN") { MN_parseLineToVoterInfo(line); }
-  else if ( StateNameAbbrev == "NV") { NV_parseLineToVoterInfo(line); } 
-  else if ( StateNameAbbrev == "NY") { NY_parseLineToVoterInfo(line); }
-  else if ( StateNameAbbrev == "WA") { WA_parseLineToVoterInfo(line); } 
+void RawFilesInjest::parseLineToVoterInfo(std::queue<std::string>& queue) {
+  if ( StateNameAbbrev == "OH") { OH_parseLineToVoterInfo(queue); } 
+  else if ( StateNameAbbrev == "MN") { MN_parseLineToVoterInfo(queue); }
+  else if ( StateNameAbbrev == "NV") { NV_parseLineToVoterInfo(queue); } 
+  else if ( StateNameAbbrev == "NY") { NY_parseLineToVoterInfo(queue); }
+  else if ( StateNameAbbrev == "WA") { WA_parseLineToVoterInfo(queue); } 
   else {
     std::cout << HI_RED << "Quitting as we don't have a parser for the state of " << NC << HI_YELLOW << StateNameAbbrev << NC << std::endl;
     exit(1);
   }
 }
 
+ 
+std::vector<std::string> RawFilesInjest::parseCSVLine(const std::string& line) {
+  std::vector<std::string> fields;
+  std::string field;
+  bool inQuotes = false;
+
+  for (char c : line) {
+    if (c == '"') {
+      inQuotes = !inQuotes;
+    } else if (c == ',' && !inQuotes) {
+      fields.push_back(trim(field));
+      field.clear();
+    } else {
+      field += toupper(c);
+    }
+  }
+
+  fields.push_back(trim(field)); // Add the last field
+  return fields;
+}
+
+std::string RawFilesInjest::trim(const std::string& str) {
+  auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
+  auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
+  return (start < end) ? std::string(start, end) : std::string();
+}

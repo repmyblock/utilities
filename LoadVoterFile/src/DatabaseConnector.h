@@ -14,16 +14,9 @@
 #include <cppconn/exception.h>
 #include <chrono>
 
-// Database connection constants
-const std::string  DB_HOST = "192.168.199.18";
-const unsigned int DB_PORT = 3306;
-const std::string  DB_USER = "usracct";
-const std::string  DB_PASS = "usracct";
-const std::string  DB_NAME = "RepMyBlock";
-  
 class DatabaseConnector {
   public:
-    DatabaseConnector();
+    DatabaseConnector(const std::string&);
     ~DatabaseConnector();
     // bool connect();
     sql::Connection* getConnection(void);
@@ -31,13 +24,16 @@ class DatabaseConnector {
     sql::ResultSet* executeQuery(const std::string&);
     void executeInsert(const std::string&);
     void deleteResource(sql::ResultSet*);
+    std::string ReturnMysqlFileDate(void);
       
   private:
     sql::Connection* con;
     sql::mysql::MySQL_Driver* driver;
     sql::Connection *ConnectToDB(void);
     void DisconectFromDB(void);
-      
+    std::map<std::string, std::string>loadDbConfig(void);   
+    std::string trim(const std::string&);
+    std::string TableDate;
 };
 
 #endif //DATABASECONNECTOR_H

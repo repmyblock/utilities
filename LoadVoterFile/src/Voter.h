@@ -131,6 +131,7 @@ struct DataMailingAddress {
 
 struct DataDistrict {
   int dataCountyId;
+  int dataDistrictTownId;
   int dataElectoral;
   int dataStateAssembly;
   int dataStateSenate;
@@ -138,7 +139,7 @@ struct DataDistrict {
   std::string dataWard;
   int DataCongress;
     
-  DataDistrict(int dataCountyId, int dataElectoral, int dataStateAssembly, int dataStateSenate, int dataLegislative,
+  DataDistrict(int dataCountyId, int dataDistrictTownId, int dataElectoral, int dataStateAssembly, int dataStateSenate, int dataLegislative,
     const std::string& dataWard, int DataCongress);
       
   bool operator==(const DataDistrict& other) const;
@@ -157,12 +158,11 @@ struct DataHouse {
   int dataAddressId;
   std::string dataHouse_Type;
   std::string dataHouse_Apt;
-  int dataDistrictTownId;
   int dataStreetNonStdFormatId;
   int dataHouseBIN;
     
   DataHouse(int dataAddressId, const std::string& dataHouse_Type, const std::string& dataHouse_Apt, 
-            int dataDistrictTownId, int dataStreetNonStdFormatId, int dataHouseBIN);
+            int dataStreetNonStdFormatId, int dataHouseBIN);
             
   bool operator==(const DataHouse& other) const;
 };
@@ -201,7 +201,7 @@ struct VoterInfoRaw {
   std::string residentialPostdirection;         //  RPOSTDIRECTION <- Out of order
   std::string residentialCity;                  //  RCITY
   std::string residentialNonStandartAddress;    //  RADDRNONSTD
-  std::string residentialAptNumber;             //  RAPARTMENTTYPE
+  std::string residentialAptType;               //  RAPARTMENTTYPE
   std::string residentialZip5;                  //  RZIP5
   std::string residentialZip4;                  //  RZIP4
   std::string mailingAddress1;                  //  MAILADD1

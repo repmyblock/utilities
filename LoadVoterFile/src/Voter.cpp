@@ -70,18 +70,18 @@ bool DataMailingAddress::operator==(const DataMailingAddress& other) const {
 }
 
 // Do Data District
-DataDistrict::DataDistrict(int dataCountyId, int dataElectoral, int dataStateAssembly, int dataStateSenate, int dataLegislative,
-                            const std::string& dataWard, int DataCongress)
-    : dataCountyId(dataCountyId), dataElectoral(dataElectoral), dataStateAssembly(dataStateAssembly), 
+DataDistrict::DataDistrict(int dataCountyId, int dataDistrictTownId, int dataElectoral, int dataStateAssembly, int dataStateSenate, 
+                            int dataLegislative, const std::string& dataWard, int DataCongress)
+    : dataCountyId(dataCountyId), dataDistrictTownId(dataDistrictTownId), dataElectoral(dataElectoral), dataStateAssembly(dataStateAssembly), 
       dataStateSenate(dataStateSenate),  dataLegislative(dataLegislative), dataWard(dataWard), DataCongress(DataCongress) {}
 
 bool DataDistrict::operator==(const DataDistrict& other) const {
-    return dataCountyId == other.dataCountyId && dataElectoral == other.dataElectoral && dataStateAssembly == other.dataStateAssembly &&
-           dataStateSenate == other.dataStateSenate && dataLegislative == other.dataLegislative && dataWard == other.dataWard &&
-           DataCongress == other.DataCongress;
+    return dataCountyId == other.dataCountyId &&  dataDistrictTownId == other.dataDistrictTownId && dataElectoral == other.dataElectoral && 
+            dataStateAssembly == other.dataStateAssembly && dataStateSenate == other.dataStateSenate && dataLegislative == other.dataLegislative && 
+            dataWard == other.dataWard && DataCongress == other.DataCongress;
 }
 
-// Do Data District Temportal
+// Do Data District Temporal
 DataDistrictTemporal::DataDistrictTemporal(int dataDistrictCycleId, int dataHouseId, int dataDistrictId)
     : dataDistrictCycleId(dataDistrictCycleId), dataHouseId(dataHouseId), dataDistrictId(dataDistrictId) {}
 
@@ -91,17 +91,14 @@ bool DataDistrictTemporal::operator==(const DataDistrictTemporal& other) const {
 
 // Do Data House
 DataHouse::DataHouse(int dataAddressId, const std::string& dataHouse_Type, const std::string& dataHouse_Apt, 
-              int dataDistrictTownId, int dataStreetNonStdFormatId, int dataHouseBIN)
-    : dataAddressId(dataAddressId), dataHouse_Type(dataHouse_Type), dataHouse_Apt(dataHouse_Apt), dataDistrictTownId(dataDistrictTownId),
+              int dataStreetNonStdFormatId, int dataHouseBIN)
+    : dataAddressId(dataAddressId), dataHouse_Type(dataHouse_Type), dataHouse_Apt(dataHouse_Apt),
       dataStreetNonStdFormatId(dataStreetNonStdFormatId), dataHouseBIN(dataHouseBIN) {}
 
 bool DataHouse::operator==(const DataHouse& other) const {
     return dataAddressId == other.dataAddressId && dataHouse_Type == other.dataHouse_Type && dataHouse_Apt == other.dataHouse_Apt &&
-           dataDistrictTownId == other.dataDistrictTownId && dataStreetNonStdFormatId == other.dataStreetNonStdFormatId && 
-           dataHouseBIN == other.dataHouseBIN ;
+           dataStreetNonStdFormatId == other.dataStreetNonStdFormatId && dataHouseBIN == other.dataHouseBIN ;
 }
-
-
 
 namespace std {
     size_t hash<Voter>::operator()(const Voter& voter) const { return hash<int>()(voter.votersIndexesId); }
