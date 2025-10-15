@@ -34,9 +34,10 @@
 #include <optional>
 
 #define NIL     -2
-#define NILSTRG ""
-
 #define TO_INT_OR_NIL(str) ((str).empty() ? NIL : std::stoi(str))
+#define TO_INT_OR_ZERO(str) ((str).empty() || (str) == "0" ? NIL : std::stoi(str))
+	
+#define NILSTRG ""
 #define TO_STR_OR_NIL(str) ((str).empty() ? NILSTRG : str)
 
 // Used to represent NULL or unspecified reason code

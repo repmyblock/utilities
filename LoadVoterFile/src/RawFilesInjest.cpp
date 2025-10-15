@@ -23,7 +23,7 @@ RawFilesInjest::RawFilesInjest(const std::string& IncomingState, const std::stri
   numThreads = 1;
   StateNameAbbrev = IncomingState;
   TableDate = IncomingTableDate;
-  TableDateNumber = std::stoi(TableDate);
+	TableDateNumber = std::stoi(TableDate);
   std::cout << "Opening the RawFilesInjest with for the State of " << StateNameAbbrev << " in TableDate: " << TableDate << std::endl;   
 }
 
@@ -33,6 +33,12 @@ RawFilesInjest::~RawFilesInjest() {
 
 void RawFilesInjest::SetNumbersThreads(int coresNumbers) {
   numThreads = coresNumbers * 2;
+}
+
+void RawFilesInjest::SetParseProcess(bool processflag, std::vector<std::string>& vectorline) {
+	donotparse = ! processflag;
+	std::cout << "Process Flag: " << donotparse << std::endl;
+	sortedVectorLine = vectorline;
 }
 
 std::string RawFilesInjest::printFilename(void) {
@@ -109,16 +115,23 @@ void RawFilesInjest::loadFile() {
     std::unique_lock<std::mutex> lock(fileMutex);
     cv.wait(lock, [this] { return !lineQueue.empty() || allChunksProcessed; }); // 'this' captures all member variables
     
-    std::cout << "Size of lineQueue: " << lineQueue.size() << std::endl;
+		std::cout << "Size of lineQueue: " << lineQueue.size() << std::endl;
     while (! lineQueue.empty()) {
-      std::cout << "Starting the queue Inside the lineQueue -> Size of lineQueue: " << lineQueue.size() << std::endl;
-      parseLineToVoterInfo(lineQueue);
+    	std::cout << "Starting the queue Inside the lineQueue -> Size of lineQueue: " << lineQueue.size() << std::endl;
+    	if (donotparse == false) {
+    		
+	      parseLineToVoterInfo(lineQueue);
+	      
+	    } else {
+	    	// This is for the CompareCD function.
+	    	parseLineToList(lineQueue);
+	    }
       std::cout << "Finishing the queue Inside the lineQueue -> Size of lineQueue: " << lineQueue.size() << std::endl;
     }
     lock.unlock(); // Unlock once after finishing the inner loop
    
     if (lineQueue.empty() && allChunksProcessed) {
-      std::queue<std::string>().swap(lineQueue); // Free memory used by lineQueue
+	    std::queue<std::string>().swap(lineQueue); // Free memory used by lineQueue
       break; // All lines have been processed
     }
   }
@@ -126,7 +139,7 @@ void RawFilesInjest::loadFile() {
 }
 
 VoterInfoRaw RawFilesInjest::getVoters(int counter) {
-  int VoterSize = voters.size();
+	int VoterSize = voters.size();
   if (counter > VoterSize) return voters[VoterSize];  
   return voters[counter];
 }
@@ -250,27 +263,69 @@ void RawFilesInjest::parseLineToVoterInfo(std::queue<std::string>& queue) {
 
  
 std::vector<std::string> RawFilesInjest::parseCSVLine(const std::string& line) {
-  std::vector<std::string> fields;
-  std::string field;
-  bool inQuotes = false;
+	std::vector<std::string> fields;
+	std::string field;
+	bool inQuotes = false;
 
-  for (char c : line) {
-    if (c == '"') {
-      inQuotes = !inQuotes;
-    } else if (c == ',' && !inQuotes) {
-      fields.push_back(trim(field));
-      field.clear();
-    } else {
-      field += toupper(c);
-    }
-  }
+	for (char c : line) {
+	  if (c == '"') {
+	  	inQuotes = !inQuotes;
+	  } else if (c == ',' && !inQuotes) {
+	    fields.push_back(trim(field));
+	    field.clear();
+	  } else {
+	    field += toupper(c);
+	  }
+	}
 
-  fields.push_back(trim(field)); // Add the last field
-  return fields;
+	fields.push_back(trim(field)); // Add the last field
+	return fields;
 }
 
 std::string RawFilesInjest::trim(const std::string& str) {
   auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
   auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
   return (start < end) ? std::string(start, end) : std::string();
+}
+
+std::string RawFilesInjest::PrintCurrentTime(void) {
+    std::time_t currentTime = std::time(nullptr);
+    std::ostringstream oss;
+    oss << std::put_time(std::localtime(&currentTime), "%H:%M:%S") << "\t"; 
+    return oss.str();
+}
+
+void RawFilesInjest::PrintDebug_ForDataDistrict(int counter) {
+	std::cout << PrintCurrentTime() <<	"Counter: " << counter << std::endl;	
+	std::cout << PrintCurrentTime() <<	"  Debug DataDistrict - dataCountyID: " << voters[counter].countyCode << std::endl;
+	std::cout << PrintCurrentTime() <<	"  Debug DataDistrict - dataDistrictTownId: " << voters[counter].townCity << std::endl;
+	std::cout << PrintCurrentTime() <<	"  Debug DataDistrict - dataElectoral: " << voters[counter].electionDistrict << std::endl;
+	std::cout << PrintCurrentTime() <<	"  Debug DataDistrict - dataStateAssembly: " << voters[counter].assemblyDistrict<< std::endl;
+	std::cout << PrintCurrentTime() <<	"  Debug DataDistrict - dataStateSenate: " << voters[counter].senateDistrict << std::endl;
+	std::cout << PrintCurrentTime() <<	"  Debug DataDistrict - dataLegislative: " << voters[counter].legislativeDistrict << std::endl;
+	std::cout << PrintCurrentTime() <<	"  Debug DataDistrict - dataWard: " << voters[counter].ward << std::endl;
+	std::cout << PrintCurrentTime() <<	"  Debug DataDistrict - DataCongress: " << voters[counter].congressionalDistrict << std::endl;
+}
+
+void RawFilesInjest::parseLineToList(std::queue<std::string>& queue) {
+	int counter = 0;
+	
+	if (queue.size() < 1) return;
+	std::cout << "At start of the Size of the Queue " << HI_YELLOW << queue.size() << NC << std::endl;
+	  
+	 while (! queue.empty()) {
+		std::string line = queue.front();		
+		// std::cout << "Line: " << line << std::endl;					
+		sortedVectorLine.push_back(line);
+	
+  	if ( ++counter % PRINTBLOCK == 0 ) {
+  		std::cout << "\tProceed reading " << HI_PINK << counter << NC;
+  		std::cout << "\tSize of the Queue " << HI_YELLOW << queue.size() << NC << std::endl;
+  	}
+  	
+  	queue.pop();
+  }
+  
+  std::sort(sortedVectorLine.begin(), sortedVectorLine.end());
+	std::cout << "\tSize of the Queue " << HI_YELLOW << queue.size() << NC << std::endl;
 }

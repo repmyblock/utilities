@@ -45,15 +45,23 @@ public:
   void NY_RawFilesInjest(void);
   void OH_RawFilesInjest(void);
   void WA_RawFilesInjest(void);
-
+  
+  void PrintDebug_ForDataDistrict(int);
+ 	void SetParseProcess(bool, std::vector<std::string>&);
+ 		
+ 	void SetDiffMode(bool mode) { diffMode = mode; }
+  bool IsDiffMode() const { return diffMode; }
+	
 private:
   int numThreads;
   std::chrono::milliseconds duration;
+  bool diffMode = false;  
     
   std::string StateNameAbbrev;
   std::string TableDate;
   int TableDateNumber;
   std::string FileName;
+  	
     
   std::vector<VoterInfoRaw> voters;
   std::string ToUpperAccents(const std::string&);
@@ -61,6 +69,8 @@ private:
   std::mutex outputMutex;
 
   std::vector<std::vector<std::string>> threadData;
+ 	std::vector<std::string> sortedVectorLine;
+ 		
   void countLinesInThread(const std::string&, int, int);
   
   std::queue<std::string> lineQueue;
@@ -68,21 +78,25 @@ private:
   std::condition_variable cv;
     
   bool allChunksProcessed = false;
+  bool donotparse = false;
   
   void RunStateFileNameLoader(void);
   
   void parseLineToVoterInfo(std::queue<std::string>&);
-  
-  void MN_parseLineToVoterInfo(std::queue<std::string>& queue);
-  void NV_parseLineToVoterInfo(std::queue<std::string>& queue);
-  void NY_parseLineToVoterInfo(std::queue<std::string>& queue);
-  void OH_parseLineToVoterInfo(std::queue<std::string>& queue);
-  void WA_parseLineToVoterInfo(std::queue<std::string>& queue);
+  	
+  void MN_parseLineToVoterInfo(std::queue<std::string>&);
+  void NV_parseLineToVoterInfo(std::queue<std::string>&);
+  void NY_parseLineToVoterInfo(std::queue<std::string>&);
+  void OH_parseLineToVoterInfo(std::queue<std::string>&);
+  void WA_parseLineToVoterInfo(std::queue<std::string>&);
+  void parseLineToList(std::queue<std::string>&);
+
   void PrintLineAsHex(const std::string&);
-    
-  std::vector<std::string> parseCSVLine(const std::string&);
-  std::string trim(const std::string&);
-    
+
+  	
+ 	std::vector<std::string> parseCSVLine(const std::string&);
+	std::string trim(const std::string&);
+	std::string PrintCurrentTime(void);
 };
 
 #endif // RAWFILESINJEST_H

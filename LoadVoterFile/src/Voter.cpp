@@ -71,14 +71,14 @@ bool DataMailingAddress::operator==(const DataMailingAddress& other) const {
 
 // Do Data District
 DataDistrict::DataDistrict(int dataCountyId, int dataDistrictTownId, int dataElectoral, int dataStateAssembly, int dataStateSenate, 
-                            int dataLegislative, const std::string& dataWard, int DataCongress)
+														int dataLegislative, const std::string& dataWard, int DataCongress)
     : dataCountyId(dataCountyId), dataDistrictTownId(dataDistrictTownId), dataElectoral(dataElectoral), dataStateAssembly(dataStateAssembly), 
       dataStateSenate(dataStateSenate),  dataLegislative(dataLegislative), dataWard(dataWard), DataCongress(DataCongress) {}
 
 bool DataDistrict::operator==(const DataDistrict& other) const {
     return dataCountyId == other.dataCountyId &&  dataDistrictTownId == other.dataDistrictTownId && dataElectoral == other.dataElectoral && 
-            dataStateAssembly == other.dataStateAssembly && dataStateSenate == other.dataStateSenate && dataLegislative == other.dataLegislative && 
-            dataWard == other.dataWard && DataCongress == other.DataCongress;
+    				dataStateAssembly == other.dataStateAssembly && dataStateSenate == other.dataStateSenate && dataLegislative == other.dataLegislative && 
+    				dataWard == other.dataWard && DataCongress == other.DataCongress;
 }
 
 // Do Data District Temporal

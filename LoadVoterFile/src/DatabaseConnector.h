@@ -18,7 +18,6 @@ class DatabaseConnector {
   public:
     DatabaseConnector(const std::string&);
     ~DatabaseConnector();
-    // bool connect();
     sql::Connection* getConnection(void);
     std::string CustomEscapeString(const std::string&);
     sql::ResultSet* executeQuery(const std::string&);
@@ -29,11 +28,11 @@ class DatabaseConnector {
   private:
     sql::Connection* con;
     sql::mysql::MySQL_Driver* driver;
-    sql::Connection *ConnectToDB(void);
-    void DisconectFromDB(void);
+    bool ConnectToDB(void);
+    void DisconnectFromDB(void);
     std::map<std::string, std::string>loadDbConfig(void);   
-    std::string trim(const std::string&);
-    std::string TableDate;
+   	std::string trim(const std::string&);
+   	std::string TableDate;
 };
 
 #endif //DATABASECONNECTOR_H

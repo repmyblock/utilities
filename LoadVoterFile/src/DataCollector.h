@@ -25,7 +25,8 @@
 #define DBFIELD_DISTRICT      "DataDistrict"
 #define DBFIELD_DSTRCTEMPO    "DataDistrictTemporal"
   
-#define TOTALDBFIELDS 17
+#define TOTALDBFIELDS 18
+
 const std::string FieldNames[] = { 
     DBFIELD_STATENAME, DBFIELD_STATEABBREV, DBFIELD_STREET, DBFIELD_MIDDLENAME, 
     DBFIELD_LASTNAME, DBFIELD_FIRSTNAME, DBFIELD_DISTRICTTOWN, DBFIELD_CITY, 
@@ -55,10 +56,11 @@ const unsigned int DBFIELDID_DSTRCTEMPO   = 17;
 
 class DataCollector {
 public:
-  
-  // DataCollector(const std::string&);
+	
+	// DataCollector(const std::string&);
 //  DataCollector(DatabaseConnector& conn) : dbConnection(conn) {};
-  DataCollector(DatabaseConnector& conn);
+	DataCollector(DatabaseConnector& conn);
+	~DataCollector();
   // DataCollector() = default;
   void collectData();
   void PrintVoterTable(const VoterMap&);
@@ -111,14 +113,19 @@ public:
   void PrintTable(const VoterMap&);
   void PrintTable(VoterComplementInfoMap&);
   void PrintTable(DataMailingAddressMap&);
+  
+  void PrintDebugData(DataDistrictMap&);
 
   // These are to read the data of the simple loads.
   int ReturnIndex(const std::string&);
   int CheckIndex(const std::string&);
   std::string ListFieldNotFound(void);
-  int PrintLatestID(int);
+  int PrintLatestID(void);
   int ReturnStateID(void);
-  
+  void UpdateLastSeen(int*);
+  std::string returnActiveFileDate(void);
+ 	int returnActiveCycleID(void);
+  	  
   // Return codes
   std::string genderToString(Gender);
   std::string reasonCodeToString(ReasonCode);
@@ -148,10 +155,13 @@ private:
   int lastDBidFound = -1;
   int StateID = 1;
   std::string MysqlDateFile;
+  int DateFile = 0;
+  int DateCycleID = 0;
   int CountFoundinDB = 0;
   int CountNotFoundinDB = 0;
   
-  int SimpleLastDbID[TOTALDBFIELDS];
+  int SimpleLastDbID = 0;
+  std::unordered_map<int, int> LastSeenMap;
   
   std::string RemoveAllSpacesString(const std::string&);
   std::string CustomEscapeString(const std::string&);
@@ -159,8 +169,8 @@ private:
   std::string ToUpperAccents(const std::string&);
   std::string ToLowerAccents(const std::string&);
   std::string ReturnDBInjest(const std::string&, int);
-  std::string toLowerCase(const std::string&); 
-  
+	std::string toLowerCase(const std::string&); 
+	
   std::string nameCase(const std::string&);
   std::string intToMySQLDate(int);
   int mysqlDateToInt(const std::string&);
@@ -180,14 +190,16 @@ private:
   void executeLoadDataQuery(const std::string&, DataHouseMap&);
   void executeLoadDataQuery(const std::string&, DataAddressMap&);
     
-    
+
+  void UpdateDatabaseForLastSeen(void);
+  	
   int LoadStateAbbrev(const std::string&);
   inline uint32_t leftRotate(uint32_t, uint32_t);
   std::string uintToString(uint32_t);
   
   void exitIfSequenceFound(const std::string&, const std::string);
   void PrintLineAsHex(const std::string&);
-
+	std::string PrintCurrentTime(void);
 };
 
 #endif //DATACOLLECTOR_H
