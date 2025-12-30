@@ -3,180 +3,209 @@ package RepMyBlock::Candidate;
 use strict;
 use warnings;
 use DBI;
+use Exporter 'import';
 
-use Exporter 'import';     # 🔥 THIS IS THE MISSING LINE
 our @EXPORT_OK = qw(add_candidate);
 
-# ============================================================
-# add_candidate
-# ------------------------------------------------------------
-# Inserts or links:
-# - CandidateProfile
-# - CandidateElection
-# - Candidate
-# - ElectResultCandidate
-#
-# Returns: Candidate_ID
-# ============================================================
 sub add_candidate {
     my (%args) = @_;
 
-    my $dbh                  = $args{dbh}                  or die "dbh required";
-    my $api_name             = $args{api_name}             or die "api_name required";
-    my $FirstName            = $args{first_name}            or die "first_name required";
-    my $LastName             = $args{last_name}             or die "last_name required";
-    my $party                = $args{party}                 or die "party required";
-    my $state                = $args{state}                 or die "state required";
-    my $district             = $args{district}              or die "district required";
-    my $district_text        = $args{district_text}         or die "district_text required";
-    my $district_explain     = $args{district_explain}      or die "district_explain required";
-    my $Election_ID          = $args{elections_id}          or die "elections_id required";
-    my $ElectionsPositionID  = $args{elections_position_id} or die "elections_position_id required";
-    my $DBTable              = $args{dbtable}               or die "dbtable required";
-		my $regid                = $args{regid}               	or die "regid required";
+    my $dbh = $args{dbh} or die "dbh required";
 
-    my ($sth, $CandidateProfile_ID, $CandidateElection_ID, $Candidate_ID);
+    # Required args
+    for my $k (qw(
+        api_name first_name last_name party state
+        district district_text district_explain
+        elections_id elections_position_id
+        dbtable regid
+    )) {
+        die "$k required" unless defined $args{$k};
+    }
 
-    # --------------------------------------------------------
-    # CandidateProfile
-    # --------------------------------------------------------
-    # Checking that the Candidate is not in the Candidate Table.
-       
-    $sth = $dbh->prepare("SELECT Candidate_ID FROM Candidate WHERE Candidate_PetitionNameset = ?");
-    $sth->execute($api_name);
+    my ($sth, $Candidate_ID, $CandidateProfile_ID, $CandidateElection_ID);
+
+    # =====================================================
+    # 1️⃣ FIND EXISTING CANDIDATE
+    # =====================================================
+    $sth = $dbh->prepare(
+        "SELECT Candidate_ID FROM Candidate WHERE Candidate_PetitionNameset = ?"
+    );
+    $sth->execute($args{api_name});
     ($Candidate_ID) = $sth->fetchrow_array;
-		
-		if ( $Candidate_ID ) { 
-			$sth = $dbh->prepare ("SELECT CandidateProfile_ID FROM RepMyBlock.PublicProfile WHERE Candidate_ID = ?");
-    	$sth->execute($Candidate_ID);
-    	($CandidateProfile_ID) = $sth->fetchrow_array;
 
-			if ( $CandidateProfile_ID ) {
-				print "Candidate_ID: $Candidate_ID - CandidateProfileID: $CandidateProfile_ID\n";
-				return $CandidateProfile_ID;		
-	
-			} else {
-				print "Candidate_ID: $Candidate_ID - ";
-				print "Need to add into CandidateProfile_ID\n";
-				
-				$sth = $dbh->prepare("INSERT INTO CandidateProfile SET CandidateProfile_PicVerif = 'no', " . 
-															"CandidateProfile_PDFVerif = 'no', CandidateProfile_FirstName = ?, " . 
-															"CandidateProfile_LastName = ?, CandidateProfile_Alias = ?, " . 
-															"CandidateRegAuthority_ID = ?, CandidateProfile_RegID = ?, " .
-															"CandidateProfile_PublishProfile = 'yes', CandidateProfile_Complain = 'no', " . 
-															"CandidateProfile_LastModified = NOW()");
-				$sth->execute($FirstName, $LastName, $api_name, '1', $regid);
-				$CandidateElection_ID = $dbh->{mysql_insertid};
-				
-				$sth = $dbh->prepare("SELECT PublicProfile_ID FROM PublicProfile WHERE CandidateProfile_ID = ? AND Candidate_ID = ?");
-				$sth->execute($CandidateElection_ID, $Candidate_ID);
-				my ($PublicProfile_ID) = $sth->fetchrow_array;
-				
-			
-				
-				if ( ! $PublicProfile_ID ) { 
-					print "INSERTING Public Profile\n";
-					$sth = $dbh->prepare("INSERT PublicProfile SET CandidateProfile_ID = ?, Candidate_ID = ?, " . 
-																"PublicProfile_PublishProfile = 'yes', CandidateProfile_LastModified = NOW()");
-					$sth->execute($CandidateElection_ID, $Candidate_ID);
-				} else {
-					print "Public Profile: ID " . $PublicProfile_ID . "\n";
-					$sth = $dbh->prepare("UPDATE PublicProfile SET CandidateProfile_ID = ?, Candidate_ID = ?, " . 
-																"PublicProfile_PublishProfile = 'yes', CandidateProfile_LastModified = NOW() " . 
-																"WHERE PublicProfile_ID = ?");
-					$sth->execute($CandidateElection_ID, $Candidate_ID, $PublicProfile_ID);											
-				}
-				
-			
-			}
-		} else {
-			
-				
-			# If it doesn't exist, see if you can copy it.
-			
-			print "Need to find in the Candidate\n";		
-				
-			$sth = $dbh->prepare("SELECT * FROM RepMyBlock.CandidateElection WHERE " . 
-														"CandidateElection_DBTable = ? AND CandidateElection_DBTableValue = ? " .
-														" AND ElectionsPosition_ID = ? ORDER BY Elections_ID DESC");
-														
-			print "SELECT * FROM RepMyBlock.CandidateElection WHERE " . 
-														"CandidateElection_DBTable = '" . $district_text . 
-														"' AND CandidateElection_DBTableValue = " . $district .
-														" AND ElectionsPosition_ID = " . $ElectionsPositionID . " ORDER BY Elections_ID ASC\n";
-														
-			$sth->execute($district_text, $district, $ElectionsPositionID);
-			my %ElectionDates;
-			#$ElectionDates = $sth->fetchrow_hashref;
-  	  my $ElectionDates = $sth->fetchrow_hashref;
-			
-			print "ElectionID : $Election_ID = " . $ElectionDates->{"Elections_ID"} . "\n";
-			
-			
-			if ( $ElectionDates->{"Elections_ID"} ne $Election_ID) {
-				$sth = $dbh->prepare("INSERT INTO CandidateElection SET Elections_ID = ?, ElectionsPosition_ID = ?, " . 
-															"CandidateElection_PositionType = ?, CandidateElection_Text = ?, " . 
-															"CandidateElection_PetitionText = ?, CandidateElection_Number = ?, " . 
-															"CandidateElection_Display = ?, CandidateElection_DBTable = ?, " . 
-															"CandidateElection_DBTableValue = ?");
-				$sth->execute($Election_ID, $ElectionDates->{"ElectionsPosition_ID"}, $ElectionDates->{"CandidateElection_PositionType"}, 
-											$ElectionDates->{"CandidateElection_Text"}, $ElectionDates->{"CandidateElection_PetitionText"}, 
-											$ElectionDates->{"CandidateElection_Number"}, $ElectionDates->{"CandidateElection_Display"}, 
-											$ElectionDates->{"CandidateElection_DBTable"}, $ElectionDates->{"CandidateElection_DBTableValue"});
-											
-				$CandidateElection_ID = $dbh->{mysql_insertid};
-			} else {
-				$CandidateElection_ID = $ElectionDates->{"CandidateElection_ID"};
-			}				
-			
-		
-			
-		}
-		
-		print "Adding the candidate.\n";
-							
-		$sth = $dbh->prepare ("INSERT INTO Candidate SET Candidate_Party = ?, Candidate_DispName = ?, " .
-																	"Candidate_PetitionNameset = ?, CandidateElection_DBTable = ?, " .
-																	"CandidateElection_DBTableValue = ?, CandidateElection_ID = ?, " .
-																	"Candidate_Status = 'pending'");
-		$sth->execute($party, $FirstName . " " . $LastName, $api_name, $district_text, $district, $CandidateElection_ID);
-		$Candidate_ID = $dbh->{mysql_insertid};
-		
-		
-		
-		
-		print "Adding the candidateprofile\n";
-		$sth = $dbh->prepare("INSERT INTO CandidateProfile SET CandidateProfile_PicVerif = 'no', " . 
-															"CandidateProfile_PDFVerif = 'no', CandidateProfile_FirstName = ?, " . 
-															"CandidateProfile_LastName = ?, CandidateProfile_Alias = ?, " . 
-															"CandidateRegAuthority_ID = ?, CandidateProfile_RegID = ?, " .
-															"CandidateProfile_PublishProfile = 'yes', CandidateProfile_Complain = 'no', " . 
-															"CandidateProfile_LastModified = NOW()");
-		$sth->execute($FirstName, $LastName, $api_name, '1', $regid);
-		$CandidateElection_ID = $dbh->{mysql_insertid};
-		
-		$sth = $dbh->prepare("SELECT PublicProfile_ID FROM PublicProfile WHERE CandidateProfile_ID = ? AND Candidate_ID = ?");
-		$sth->execute($CandidateElection_ID, $Candidate_ID);
-		my ($PublicProfile_ID) = $sth->fetchrow_array;
-		
-		
-		
-		if ( ! $PublicProfile_ID ) { 
-			print "INSERTING Public Profile\n";
-			$sth = $dbh->prepare("INSERT PublicProfile SET CandidateProfile_ID = ?, Candidate_ID = ?, " . 
-														"PublicProfile_PublishProfile = 'yes', CandidateProfile_LastModified = NOW()");
-			$sth->execute($CandidateElection_ID, $Candidate_ID);
-		} else {
-			print "Public Profile: ID " . $PublicProfile_ID . "\n";
-			$sth = $dbh->prepare("UPDATE PublicProfile SET CandidateProfile_ID = ?, Candidate_ID = ?, " . 
-														"PublicProfile_PublishProfile = 'yes', CandidateProfile_LastModified = NOW() " . 
-														"WHERE PublicProfile_ID = ?");
-			$sth->execute($CandidateElection_ID, $Candidate_ID, $PublicProfile_ID);											
-		}
-		
+    # =====================================================
+    # EXISTING CANDIDATE
+    # =====================================================
+    if ($Candidate_ID) {
 
+        # ---- CandidateProfile
+        $sth = $dbh->prepare(
+            "SELECT CandidateProfile_ID FROM PublicProfile WHERE Candidate_ID = ?"
+        );
+        $sth->execute($Candidate_ID);
+        ($CandidateProfile_ID) = $sth->fetchrow_array;
+
+        if (!$CandidateProfile_ID) {
+            $CandidateProfile_ID = _insert_candidate_profile($dbh, \%args);
+            _upsert_public_profile($dbh, $CandidateProfile_ID, $Candidate_ID);
+        }
+
+        return $CandidateProfile_ID;
+    }
+
+    # =====================================================
+    # 2️⃣ RESOLVE / CREATE CandidateElection
+    # =====================================================
+    $sth = $dbh->prepare(
+        "SELECT * FROM CandidateElection
+         WHERE CandidateElection_DBTable = ?
+           AND CandidateElection_DBTableValue = ?
+           AND ElectionsPosition_ID = ?
+         ORDER BY Elections_ID DESC"
+    );
+    $sth->execute(
+        $args{district_text},
+        $args{district},
+        $args{elections_position_id}
+    );
+
+   my $ElectionRow = $sth->fetchrow_hashref;
+
+		unless ($ElectionRow) {
+    warn sprintf(
+        "⚠️  Skipping candidate — no CandidateElection template found: DBTable=%s PositionID=%s\n",
+        $args{district_text},
+        $args{elections_position_id},
+    	);
+    	return;   # ⬅ jump back to caller, next record continues
+		}		
 		
-		
+    if ($ElectionRow->{Elections_ID} != $args{elections_id}) {
+
+        $sth = $dbh->prepare(
+            "INSERT INTO CandidateElection SET
+                Elections_ID                    = ?,
+                ElectionsPosition_ID            = ?,
+                CandidateElection_PositionType  = ?,
+                CandidateElection_Text          = ?,
+                CandidateElection_PetitionText  = ?,
+                CandidateElection_Number        = ?,
+                CandidateElection_Display       = ?,
+                CandidateElection_DBTable       = ?,
+                CandidateElection_DBTableValue  = ?"
+        );
+
+        $sth->execute(
+            $args{elections_id},
+            $ElectionRow->{ElectionsPosition_ID},
+            $ElectionRow->{CandidateElection_PositionType},
+            $ElectionRow->{CandidateElection_Text},
+            $ElectionRow->{CandidateElection_PetitionText},
+            $ElectionRow->{CandidateElection_Number},
+            $ElectionRow->{CandidateElection_Display},
+            $ElectionRow->{CandidateElection_DBTable},
+            $ElectionRow->{CandidateElection_DBTableValue}
+        );
+
+        $CandidateElection_ID = $dbh->{mysql_insertid};
+    }
+    else {
+        $CandidateElection_ID = $ElectionRow->{CandidateElection_ID};
+    }
+
+    # =====================================================
+    # 3️⃣ INSERT Candidate
+    # =====================================================
+    $sth = $dbh->prepare(
+        "INSERT INTO Candidate SET
+            Candidate_Party                 = ?,
+            Candidate_DispName              = ?,
+            Candidate_PetitionNameset       = ?,
+            CandidateElection_DBTable       = ?,
+            CandidateElection_DBTableValue  = ?,
+            CandidateElection_ID            = ?,
+            Candidate_Status                = 'pending'"
+    );
+
+    $sth->execute(
+        $args{party},
+        "$args{first_name} $args{last_name}",
+        $args{api_name},
+        $args{district_text},
+        $args{district},
+        $CandidateElection_ID
+    );
+
+    $Candidate_ID = $dbh->{mysql_insertid};
+
+    # =====================================================
+    # 4️⃣ CandidateProfile + PublicProfile
+    # =====================================================
+    $CandidateProfile_ID = _insert_candidate_profile($dbh, \%args);
+    _upsert_public_profile($dbh, $CandidateProfile_ID, $Candidate_ID);
+
+    return $CandidateProfile_ID;
 }
 
+# =====================================================
+# HELPERS
+# =====================================================
+sub _insert_candidate_profile {
+    my ($dbh, $args) = @_;
+
+    my $sth = $dbh->prepare(
+        "INSERT INTO CandidateProfile SET
+            CandidateProfile_PicVerif        = 'no',
+            CandidateProfile_PDFVerif        = 'no',
+            CandidateProfile_FirstName       = ?,
+            CandidateProfile_LastName        = ?,
+            CandidateProfile_Alias           = ?,
+            CandidateRegAuthority_ID         = ?,
+            CandidateProfile_RegID           = ?,
+            CandidateProfile_PublishProfile  = 'yes',
+            CandidateProfile_Complain        = 'no',
+            CandidateProfile_LastModified    = NOW()"
+    );
+
+    $sth->execute(
+        $args->{first_name},
+        $args->{last_name},
+        $args->{api_name},
+        1,
+        $args->{regid}
+    );
+
+    return $dbh->{mysql_insertid};
+}
+
+sub _upsert_public_profile {
+    my ($dbh, $CandidateProfile_ID, $Candidate_ID) = @_;
+
+    my $sth = $dbh->prepare(
+        "SELECT PublicProfile_ID FROM PublicProfile
+         WHERE CandidateProfile_ID = ? AND Candidate_ID = ?"
+    );
+    $sth->execute($CandidateProfile_ID, $Candidate_ID);
+    my ($PublicProfile_ID) = $sth->fetchrow_array;
+
+    if ($PublicProfile_ID) {
+        $sth = $dbh->prepare(
+            "UPDATE PublicProfile SET
+                PublicProfile_PublishProfile = 'yes',
+                CandidateProfile_LastModified = NOW()
+             WHERE PublicProfile_ID = ?"
+        );
+        $sth->execute($PublicProfile_ID);
+    }
+    else {
+        $sth = $dbh->prepare(
+            "INSERT INTO PublicProfile SET
+                CandidateProfile_ID           = ?,
+                Candidate_ID                  = ?,
+                PublicProfile_PublishProfile  = 'yes',
+                CandidateProfile_LastModified = NOW()"
+        );
+        $sth->execute($CandidateProfile_ID, $Candidate_ID);
+    }
+}
 1;
