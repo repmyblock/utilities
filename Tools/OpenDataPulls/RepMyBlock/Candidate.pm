@@ -124,7 +124,8 @@ sub add_candidate {
             CandidateElection_DBTable       = ?,
             CandidateElection_DBTableValue  = ?,
             CandidateElection_ID            = ?,
-            Candidate_Status                = 'pending'"
+            Candidate_Status                = 'pending',
+            Candidate_LastModified          = NOW()"
     );
 
     $sth->execute(
