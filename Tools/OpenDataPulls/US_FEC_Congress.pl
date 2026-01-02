@@ -33,7 +33,7 @@ make_path($WORKDIR);
 # DB CONNECTION
 # ============================================================
 my $dbh = DBI->connect(
-    "DBI:mysql:database=RepMyBlock;mysql_read_default_group=RepMyBlockDev",
+    "DBI:mysql:database=RepMyBlock;mysql_read_default_group=RepMyBlockProd;mysql_ssl=1",
     undef, undef,
     { RaiseError => 1, PrintError => 0, AutoCommit => 1 }
 ) or die "❌ DB connection failed";
