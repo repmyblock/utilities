@@ -23,7 +23,7 @@ my $YY       = substr($YEAR, 2, 2);
 my $BASE_URL = "https://www.fec.gov/files/bulk-downloads";
 my $ZIP_URL  = "$BASE_URL/$YEAR/cn$YY.zip";
 
-my $WORKDIR  = "fec_webwall/$YEAR";
+my $WORKDIR  = $ENV{HOME} . "/RepMyBlockData/US/$YEAR";
 my $ZIP_FILE = "$WORKDIR/cn$YY.zip";
 my $TXT_FILE = "$WORKDIR/cn.txt";
 
