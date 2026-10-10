@@ -17,50 +17,68 @@ typedef struct {
   size_t *buckets;
   size_t *next;
   size_t bucketCount;
-  const Person *people;
+  size_t collisions;
+  const Person *Data;
 } NameHashTable;
 
 /* Function declarations */
 MYSQL *DealDB(void);
-int LoadDBintoMEM(MYSQL *db, Person **people, size_t *count);
-int FindNameInDB(MYSQL *db, const char *name);
-int FindNameInMEM(const Person *people, size_t count, const char *searchName);
+int LoadDBintoMEM(MYSQL *, Person **, size_t *, char *);
+int FindNameInDB(MYSQL *, const char *);
+int FindNameInMEM(const Person *, size_t, const char *);
 static double NowMilliseconds(void);
-int ComparePeopleByName(const void *a, const void *b);
-static uint64_t HashName(const char *name);
-int BuildNameHashTable(NameHashTable *table, const Person *people, size_t count);
-size_t FindNameInHASH(const NameHashTable *table, const char *name);
-void PrintHashMatches(const NameHashTable *table, size_t first, const char *name);
-void FreeNameHashTable(NameHashTable *table);
+int CompareNameByName(const void *, const void *);
+static uint64_t HashName(const char *);
+int BuildNameHashTable(NameHashTable *, const Person *, size_t);
+size_t FindNameInHASH(const NameHashTable *, const char *);
+void PrintHashMatches(const NameHashTable *, size_t, const char *);
+void FreeNameHashTable(NameHashTable *);
 
-
+/* 
+	DataCity
+	DataMailingAddress
+	DataMiddleName
+	DataStreet
+	DataStreetNonStdFormat
+	
+	DataAddress: Data Address
+	Voters: Voters_ID, VotersIndexes_ID, DataHouse_ID, Voters_Gender, Voters_UniqStateVoterID, DataState_ID, Voters_RegParty, Voters_ReasonCode, Voters_Status, VotersMailingAddress_ID, Voters_IDRequired, Voters_IDMet, Voters_ApplyDate, Voters_RegSource, Voters_DateInactive, Voters_DatePurged, Voters_CountyVoterNumber, Voters_RMBActive, Voters_RecFirstSeen, Voters_RecLastSeen
+	VotersIndexes: VotersIndexes_ID, DataLastName_ID, DataFirstName_ID, DataMiddleName_ID, VotersIndexes_Suffix, VotersIndexes_DOB, DataState_ID, VotersIndexes_UniqStateVoterID
+*/
 
 int main(void) {
   MYSQL *db = DealDB();
   if (db == NULL) { return EXIT_FAILURE; }
 
-  Person *people = NULL;
-  size_t count = 0;
+  Person *FirstName = NULL;
 
-  int status = LoadDBintoMEM(db, &people, &count);
+  size_t countFirstName = 0;
+
+  int status = LoadDBintoMEM(db, &FirstName, &countFirstName, "DataFirstName");
   if (status != EXIT_SUCCESS) {
     mysql_close(db);
     return status;
   }
 
-  printf("Loaded %zu names into memory.\n", count);
+  printf("Loaded %zu names into memory.\n", countFirstName);
   
-  if (count > 1) {
-   	qsort(people, count, sizeof(*people), ComparePeopleByName);
+  if (countFirstName > 1) {
+   	qsort(FirstName, countFirstName, sizeof(*FirstName), CompareNameByName);
 	}
-  NameHashTable hashTable = {0};
 
-	if (BuildNameHashTable(&hashTable, people, count) != EXIT_SUCCESS) {
-    free(people);
-    mysql_close(db);
-    return EXIT_FAILURE;
-	}
+  NameHashTable FirstNamehashTable = {0};
+
+	if (BuildNameHashTable(&FirstNamehashTable, FirstName, countFirstName) != EXIT_SUCCESS) { free(FirstName); mysql_close(db); return EXIT_FAILURE; }
   
+  printf("\n--- Hash table statistics ---\n");
+	printf("Firstname Rows:             %zu\n", countFirstName);
+	printf("Buckets:          %zu\n", FirstNamehashTable.bucketCount);
+	printf("Occupied buckets: %zu\n", countFirstName - FirstNamehashTable.collisions);
+	printf("Collisions:       %zu\n", FirstNamehashTable.collisions);
+
+	printf("Collision rate:   %.2f%%\n", countFirstName > 0 ? 
+							100.0 * (double)FirstNamehashTable.collisions / (double)countFirstName : 0.0);
+								
   printf("Press Ctrl+D on an empty line to quit.\n");
 
 	char searchName[255];
@@ -101,7 +119,7 @@ int main(void) {
 		printf("\n--- Memory search ---\n");
 
 		start = NowMilliseconds();
-		FindNameInMEM(people, count, searchName);
+		FindNameInMEM(FirstName, countFirstName, searchName);
 		memoryMs = NowMilliseconds() - start;
 
 		printf("\n--- Database search ---\n");
@@ -113,11 +131,11 @@ int main(void) {
 		printf("\n--- Hash table search ---\n");
 
 		double hashStart = NowMilliseconds();
-		size_t firstMatch = FindNameInHASH(&hashTable, searchName);
+		size_t firstMatch = FindNameInHASH(&FirstNamehashTable, searchName);
 		double hashMs = NowMilliseconds() - hashStart;
 
 		/* Printing happens outside the timed lookup. */
-		PrintHashMatches(&hashTable, firstMatch, searchName);
+		PrintHashMatches(&FirstNamehashTable, firstMatch, searchName);
 		
 		printf("\n");
 		printf("Database search:   %.6f ms\n", databaseMs);
@@ -132,8 +150,8 @@ int main(void) {
 
   }
 
-	FreeNameHashTable(&hashTable);
-	free(people);
+	FreeNameHashTable(&FirstNamehashTable);
+	free(FirstName);
 	mysql_close(db);
 
   printf("\nGoodbye!\n");
@@ -165,16 +183,19 @@ MYSQL *DealDB(void) {
   return db;
 }
 
-int LoadDBintoMEM(MYSQL *db, Person **people, size_t *count)
+int LoadDBintoMEM(MYSQL *db, Person **FirstName, size_t *count, char *TableName)
 {
-  *people = NULL;
+  *FirstName = NULL;
   *count = 0;
+  char query[2048];
 
-  const char *query =
-      "SELECT DataFirstName_ID, DataFirstName_Text "
-      "FROM DataFirstName "
-      "WHERE DataFirstName_ID IS NOT NULL "
-      "AND DataFirstName_Text IS NOT NULL";
+	snprintf(query, sizeof(query),
+	    "SELECT `%s_ID`, `%s_Text` "
+	    "FROM `%s` "
+	    "WHERE `%s_ID` IS NOT NULL "
+	    "AND `%s_Text` IS NOT NULL",
+	    TableName, TableName, TableName, TableName, TableName
+	);
 
   if (mysql_query(db, query) != 0) {
     fprintf(stderr, "Query failed: %s\n", mysql_error(db));
@@ -225,7 +246,7 @@ int LoadDBintoMEM(MYSQL *db, Person **people, size_t *count)
   }
 
   mysql_free_result(result);
-  *people = array;
+  *FirstName = array;
   *count = i;
   return EXIT_SUCCESS;
 }
@@ -315,7 +336,7 @@ int FindNameInDB(MYSQL *db, const char *name) {
   return EXIT_SUCCESS;
 }
 
-int FindNameInMEM(const Person *people, size_t count, const char *searchName) {
+int FindNameInMEM(const Person *FirstName, size_t count, const char *searchName) {
   size_t left = 0;
   size_t right = count;
 
@@ -323,7 +344,7 @@ int FindNameInMEM(const Person *people, size_t count, const char *searchName) {
   while (left < right) {
     size_t middle = left + (right - left) / 2;
 
-    if (strcmp(people[middle].name, searchName) < 0) {
+    if (strcmp(FirstName[middle].name, searchName) < 0) {
       left = middle + 1;
     } else {
       right = middle;
@@ -334,11 +355,11 @@ int FindNameInMEM(const Person *people, size_t count, const char *searchName) {
 
   /* Print all matching names. */
   for (size_t i = left; i < count; i++) {
-    if (strcmp(people[i].name, searchName) != 0) {
+    if (strcmp(FirstName[i].name, searchName) != 0) {
       break;
     }
 
-    printf("ID: %d | Name: %s\n",  people[i].id, people[i].name);
+    printf("ID: %d | Name: %s\n",  FirstName[i].id, FirstName[i].name);
     found = 1;
   }
 
@@ -358,7 +379,7 @@ static double NowMilliseconds(void) {
   return (double)ts.tv_sec * 1000.0  + (double)ts.tv_nsec / 1000000.0;
 }
 
-int ComparePeopleByName(const void *a, const void *b) {
+int CompareNameByName(const void *a, const void *b) {
   const Person *personA = a;
   const Person *personB = b;
   return strcmp(personA->name, personB->name);
@@ -374,7 +395,7 @@ static uint64_t HashName(const char *name) {
   return hash;
 }
 
-int BuildNameHashTable(NameHashTable *table, const Person *people, size_t count) {
+int BuildNameHashTable(NameHashTable *table, const Person *data, size_t count) {
   *table = (NameHashTable){0};
 
   /* Use approximately two buckets per row. */
@@ -408,7 +429,7 @@ int BuildNameHashTable(NameHashTable *table, const Person *people, size_t count)
   }
 
   table->bucketCount = bucketCount;
-  table->people = people;
+  table->Data = data;
 
   /* SIZE_MAX means no entry. */
   for (size_t i = 0; i < bucketCount; i++) {
@@ -419,11 +440,15 @@ int BuildNameHashTable(NameHashTable *table, const Person *people, size_t count)
    * Each bucket holds a linked chain of array indices.
    * Different names can share a bucket.
    */
+   
   for (size_t i = 0; i < count; i++) {
-    size_t bucket = (size_t)(HashName(people[i].name) % bucketCount);
+    size_t bucket = (size_t)(HashName(data[i].name) % bucketCount);
+    /* Count insertion into an occupied bucket. */
+    if (table->buckets[bucket] != SIZE_MAX) { table->collisions++; }
     table->next[i] = table->buckets[bucket];
     table->buckets[bucket] = i;
-  }
+	}
+   
   return EXIT_SUCCESS;
 }
 
@@ -436,11 +461,10 @@ size_t FindNameInHASH(const NameHashTable *table, const char *name) {
   size_t bucket = (size_t)(HashName(name) % table->bucketCount);
 
   for (size_t i = table->buckets[bucket]; i != SIZE_MAX; i = table->next[i]) {
-    if (strcmp(table->people[i].name, name) == 0) {
+    if (strcmp(table->Data[i].name, name) == 0) {
 	    return i;
     }
   }
-
   return SIZE_MAX;
 }
 
@@ -452,8 +476,8 @@ void PrintHashMatches(const NameHashTable *table, size_t first, const char *name
   }
 
   for (size_t i = first; i != SIZE_MAX; i = table->next[i]) {
-    if (strcmp(table->people[i].name, name) == 0) {
-      printf("ID: %d | Name: %s\n", table->people[i].id, table->people[i].name);
+    if (strcmp(table->Data[i].name, name) == 0) {
+      printf("ID: %d | Name: %s\n", table->Data[i].id, table->Data[i].name);
     }
   }
 }
