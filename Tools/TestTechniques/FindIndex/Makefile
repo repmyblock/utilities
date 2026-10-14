@@ -2,7 +2,7 @@ CC = gcc
 
 CPPFLAGS += -Idatamodules $(shell mysql_config --cflags)
 CFLAGS = -O2 -std=c11 -Wall -Wextra -MMD -MP
-LDLIBS += $(shell mysql_config --libs)
+LDLIBS += $(shell mysql_config --libs) -licuuc -licudata
 
 TARGETS = FindMultiIndex FindIndexCode
 
@@ -32,7 +32,7 @@ $(GENERATED_HEADER): FORCE $(MODULE_HEADERS)
 	} > $@.tmp
 	@cmp -s $@.tmp $@ && rm -f $@.tmp || mv -f $@.tmp $@
 
-FindMultiIndex.o: $(GENERATED_HEADER)
+FindMultiIndex.o: FindMultiIndex.h $(GENERATED_HEADER)
 
 FindMultiIndex: $(MULTI_OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)

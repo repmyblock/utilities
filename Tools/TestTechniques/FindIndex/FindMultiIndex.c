@@ -1,11 +1,20 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "FindMultiIndex.h"
-#include "DataModules.h"
+#include "DataAddress.h"
+
+static double NowMilliseconds(void);
+static uint64_t HashName(const char *);
 
 int main(void) {
+
+	AddressHashTable *addressTable = NULL;
+
   MYSQL *db = DealDB();
   if (db == NULL) { return EXIT_FAILURE; }
+
+  DataAddress *addresses = NULL;
+  size_t countAddresses = 0;
 
   Person *FirstName = NULL;
   Person *LastName = NULL;
@@ -20,7 +29,36 @@ int main(void) {
   NameHashTable MiddleNamehashTable = {0};
 
   int exitStatus = EXIT_FAILURE;
+  
+  printf("Starting to load\n");
 
+  double addressStart = NowMilliseconds();
+  if (LoadAddressesIntoMemory(db, &addresses, &countAddresses) != EXIT_SUCCESS) goto cleanup;
+  	
+ 	addressTable = BuildAddressHashTable(addresses, countAddresses);
+
+	if (addressTable == NULL) {
+    fprintf(stderr, "Could not build address hash table.\n");
+    goto cleanup;
+	}
+        
+	double elapsedMs = NowMilliseconds() - addressStart;
+
+	/* Round to the nearest millisecond for the readable duration. */
+	uint64_t totalMs = (uint64_t)(elapsedMs + 0.5);
+  uint64_t hours        = totalMs / 3600000;
+	uint64_t minutes      = (totalMs / 60000) % 60;
+	uint64_t seconds      = (totalMs / 1000) % 60;
+	uint64_t milliseconds = totalMs % 1000;
+	
+	double memoryMiB = (double)countAddresses * sizeof(*addresses) / (1024.0 * 1024.0);
+
+	printf(
+			"Loaded %zu addresses into memory in %.3f ms (or %" PRIu64 " hours %" PRIu64 " minutes "
+	    "and %" PRIu64 " seconds and %" PRIu64 " ms) - %.2f MiB of records\n",
+	    countAddresses, elapsedMs, hours, minutes,seconds, milliseconds, memoryMiB
+	);
+	        
   /* Load the three name tables. */
   if (LoadDBintoMEM(db, &FirstName, &countFirstName, "DataFirstName") != EXIT_SUCCESS) { goto cleanup; }
   if (LoadDBintoMEM(db, &LastName, &countLastName, "DataLastName") != EXIT_SUCCESS) { goto cleanup; }
@@ -53,78 +91,16 @@ int main(void) {
   exitStatus = EXIT_SUCCESS;
 
   printf("\nPress Ctrl+D on an empty line to quit.\n");
-
-  char searchName[255];
-
-  while (1) {
-    printf("\nEnter a first name: ");
-    fflush(stdout);
-
-    if (fgets(searchName, sizeof(searchName), stdin) == NULL) {
-      if (ferror(stdin)) {
-        fprintf(stderr, "Error reading input.\n");
-        exitStatus = EXIT_FAILURE;
-      }
-      break;
-    }
-
-    /* Reject oversized input and discard its remainder. */
-    if (strchr(searchName, '\n') == NULL) {
-      int ch = getchar();
-
-      if (ch != '\n' && ch != EOF) {
-        while ((ch = getchar()) != '\n' && ch != EOF) {
-        	/* Discard remaining characters. */
-        }
-        fprintf(stderr, "Name too long. Maximum: %zu bytes.\n", sizeof(searchName) - 1);
-        if (ferror(stdin)) {
-          exitStatus = EXIT_FAILURE;
-          break;
-        }
-        continue;
-      }
-
-      if (ch == EOF && ferror(stdin)) {
-        fprintf(stderr, "Error reading input.\n");
-        exitStatus = EXIT_FAILURE;
-        break;
-      }
-    }
-
-    searchName[strcspn(searchName, "\r\n")] = '\0';
-
-    if (searchName[0] == '\0') { continue; }
-    printf("\n--- Memory search ---\n");
-    double start = NowMilliseconds();
-    FindNameInMEM(FirstName, countFirstName, searchName);
-    double memoryMs = NowMilliseconds() - start;
-
-    printf("\n--- Database search ---\n");
-    start = NowMilliseconds();
-    int dbStatus = FindNameInDB(db, searchName);
-    double databaseMs = NowMilliseconds() - start;
-
-    printf("\n--- Hash table search ---\n");
-    start = NowMilliseconds();
-    size_t firstMatch = FindNameInHASH(&FirstNamehashTable, searchName);
-    double hashMs = NowMilliseconds() - start;
-
-    PrintHashMatches(&FirstNamehashTable, firstMatch, searchName);
-    printf("\nDatabase search: %.6f ms\n", databaseMs);
-    printf("Memory search:   %.6f ms\n", memoryMs);
-    printf("Hash lookup:     %.6f ms\n", hashMs);
-
-    if (dbStatus != EXIT_SUCCESS) {
-      fprintf(stderr, "Database search failed.\n");
-      exitStatus = EXIT_FAILURE;
-      break;
-    }
-	}
+  exitStatus = RunQueryLoops(db, &FirstNamehashTable, &MiddleNamehashTable, &LastNamehashTable, addressTable);
+	
 cleanup:
+	
+	FreeAddressHashTable(addressTable);
+  free(addresses);
   FreeNameHashTable(&FirstNamehashTable);
   FreeNameHashTable(&LastNamehashTable);
   FreeNameHashTable(&MiddleNamehashTable);
-
+	
   free(FirstName);
   free(LastName);
   free(MiddleName);
@@ -133,7 +109,9 @@ cleanup:
   return exitStatus;
 }
 
-MYSQL *DealDB(void) {
+
+MYSQL *DealDB(void)
+{
   MYSQL *db = mysql_init(NULL);
 
   if (db == NULL) {
@@ -141,11 +119,20 @@ MYSQL *DealDB(void) {
     return NULL;
   }
 
-  if (mysql_real_connect(db, "192.168.199.18", "usracct", "usracct",
-                         "RepMyBlock", 3306, NULL, 0) == NULL) {
-		fprintf(stderr, "Connection failed: %s\n", mysql_error(db));
-		mysql_close(db);
-		return NULL;
+  if (mysql_options(db, MYSQL_READ_DEFAULT_GROUP, "RepMyBlockDev") != 0) {
+    fprintf(stderr, "Could not configure login group: %s\n", mysql_error(db));
+    mysql_close(db);
+    return NULL;
+  }
+
+  /*
+   * NULL credentials and port 0 allow the option-file
+   * settings to supply host, user, password, and port.
+   */
+  if (mysql_real_connect(db, NULL, NULL, NULL, "RepMyBlock", 0, NULL, 0) == NULL) {
+    fprintf(stderr, "Connection failed: %s\n", mysql_error(db));
+    mysql_close(db);
+    return NULL;
   }
 
   return db;
@@ -219,16 +206,38 @@ int LoadDBintoMEM(MYSQL *db, Person **FirstName, size_t *count, char *TableName)
   return EXIT_SUCCESS;
 }
 
-int FindNameInDB(MYSQL *db, const char *name) {
-  if (name == NULL) {
-	  return EXIT_FAILURE;
-  }
+int FindNameInDB(MYSQL *db, const char *name, const char *tableName)
+{
+    if (db == NULL || name == NULL || tableName == NULL) {
+        return EXIT_FAILURE;
+    }
 
-  const char *query =
-      "SELECT DataFirstName_ID, DataFirstName_Text "
-      "FROM DataFirstName "
-      "WHERE DataFirstName_Text = ? "
-      "AND DataFirstName_ID IS NOT NULL";
+    /* Only allow these three table names. */
+    if (strcmp(tableName, "DataFirstName") != 0 &&
+        strcmp(tableName, "DataMiddleName") != 0 &&
+        strcmp(tableName, "DataLastName") != 0) {
+        fprintf(stderr, "Invalid name table.\n");
+        return EXIT_FAILURE;
+    }
+
+    char query[512];
+
+    int length = snprintf(
+        query, sizeof(query),
+        "SELECT `%s_ID`, `%s_Text` "
+        "FROM `%s` "
+        "WHERE `%s_Text` = ? "
+        "AND `%s_ID` IS NOT NULL",
+        tableName, tableName, tableName, tableName, tableName
+    );
+
+    if (length < 0 || (size_t)length >= sizeof(query)) {
+        fprintf(stderr, "Name query is too long.\n");
+        return EXIT_FAILURE;
+    }
+
+    /* Keep the rest of your existing prepared-statement code here. */
+
 
   MYSQL_STMT *stmt = mysql_stmt_init(db);
   if (stmt == NULL) {
@@ -454,4 +463,343 @@ void FreeNameHashTable(NameHashTable *table) {
   free(table->buckets);
   free(table->next);
   *table = (NameHashTable){0};
+}
+
+
+/*
+ * Returns:
+ *   1: line read
+ *   0: end of input
+ *  -1: input too long
+ *  -2: input error
+ */
+static int ReadQueryLine(const char *prompt, char *buffer, size_t capacity) {
+  printf("%s", prompt);
+  fflush(stdout);
+
+  if (fgets(buffer, capacity, stdin) == NULL) {
+	  return ferror(stdin) ? -2 : 0;
+  }
+
+  if (strchr(buffer, '\n') == NULL) {
+    int ch = getchar();
+
+    if (ch != '\n' && ch != EOF) {
+      while ((ch = getchar()) != '\n' && ch != EOF) {
+        /* Discard remainder. */
+      }
+
+      if (ferror(stdin)) {
+    		return -2;
+      }
+
+      fprintf(stderr, "Input too long.\n");
+      return -1;
+  	}
+
+    if (ferror(stdin)) {
+        return -2;
+    }
+	}
+
+  buffer[strcspn(buffer, "\r\n")] = '\0';
+  return 1;
+}
+
+static int ParseAddressQuery(char *line, DataAddress *address)
+{
+    char *fields[11];
+    size_t fieldCount = 1;
+
+    fields[0] = line;
+
+    /*
+     * Unlike strtok(), this preserves empty fields between commas.
+     */
+    for (char *p = line; *p != '\0'; ++p) {
+        if (*p == ',') {
+            if (fieldCount == 11) {
+                fprintf(stderr, "Too many fields: expected 11.\n");
+                return EXIT_FAILURE;
+            }
+
+            *p = '\0';
+            fields[fieldCount++] = p + 1;
+        }
+    }
+
+    if (fieldCount != 11) {
+        fprintf(stderr, "Expected 11 fields; received %zu.\n",
+                fieldCount);
+        return EXIT_FAILURE;
+    }
+
+    *address = (DataAddress){0};
+
+    /* Field zero is database column one: HouseNumber. */
+    for (size_t i = 0; i < 11; ++i) {
+        if (fields[i][0] == '\0') {
+            address->nullFields |= (uint16_t)(1u << (i + 1));
+        }
+    }
+
+    const size_t textIndexes[] = {0, 1, 2, 4, 7, 8};
+
+    char *destinations[] = {
+        address->HouseNumber,
+        address->FracAddress,
+        address->PreStreet,
+        address->PostStreet,
+        address->zipcode,
+        address->zip4
+    };
+
+    const size_t capacities[] = {
+        sizeof(address->HouseNumber),
+        sizeof(address->FracAddress),
+        sizeof(address->PreStreet),
+        sizeof(address->PostStreet),
+        sizeof(address->zipcode),
+        sizeof(address->zip4)
+    };
+
+    for (size_t i = 0; i < 6; ++i) {
+        const char *value = fields[textIndexes[i]];
+        size_t length = strlen(value);
+
+        if (length >= capacities[i]) {
+            fprintf(stderr, "Address field %zu is too long.\n",
+                    textIndexes[i] + 1);
+            return EXIT_FAILURE;
+        }
+
+        memcpy(destinations[i], value, length + 1);
+    }
+
+    const size_t numericIndexes[] = {3, 5, 6, 9};
+
+    uint32_t *numericDestinations[] = {
+        &address->DataStreet_ID,
+        &address->DataCity_ID,
+        &address->DataCounty_ID,
+        &address->Cordinate_ID
+    };
+
+    for (size_t i = 0; i < 4; ++i) {
+        const char *value = fields[numericIndexes[i]];
+
+        if (*value == '\0') {
+            continue; /* SQL NULL */
+        }
+
+        if (strspn(value, "0123456789") != strlen(value)) {
+            fprintf(stderr, "Field %zu must be an unsigned integer.\n",
+                    numericIndexes[i] + 1);
+            return EXIT_FAILURE;
+        }
+
+        char *end;
+        errno = 0;
+        uintmax_t number = strtoumax(value, &end, 10);
+
+        if (errno != 0 || *end != '\0' || number > UINT32_MAX) {
+            fprintf(stderr, "Field %zu is outside the uint32_t range.\n",
+                    numericIndexes[i] + 1);
+            return EXIT_FAILURE;
+        }
+
+        *numericDestinations[i] = (uint32_t)number;
+    }
+
+    if (fields[10][0] != '\0') {
+        const char *value = fields[10];
+        const char *digits = (*value == '-') ? value + 1 : value;
+
+        if (*digits == '\0' ||
+            strspn(digits, "0123456789") != strlen(digits)) {
+            fprintf(stderr, "OSM ID must be a signed integer.\n");
+            return EXIT_FAILURE;
+        }
+
+        char *end;
+        errno = 0;
+        intmax_t number = strtoimax(value, &end, 10);
+
+        if (errno != 0 || *end != '\0' ||
+            number < INT64_MIN || number > INT64_MAX) {
+            fprintf(stderr, "OSM ID is outside the int64_t range.\n");
+            return EXIT_FAILURE;
+        }
+
+        address->PG_OSM_osmid = (int64_t)number;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+static int RunQueryLoops(MYSQL *db, const NameHashTable *firstNames, const NameHashTable *middleNames,
+											    const NameHashTable *lastNames, const AddressHashTable *addresses) {
+	char line[4096];
+	const NameHashTable *nameTable = NULL;
+	const char *prompt = NULL;
+	const char *tableName = NULL;
+
+
+	while (1) {
+	    int inputStatus = ReadQueryLine(
+	        "\nQuery type: (F)irst Name, (M)iddle Name, "
+	        "(L)ast Name, (A)ddress, (Q)uit: ",
+	        line, sizeof(line));
+
+	    if (inputStatus == 0) {
+	        return EXIT_SUCCESS;
+	    }
+	    if (inputStatus == -2) {
+	        return EXIT_FAILURE;
+	    }
+	    if (inputStatus == -1 || line[0] == '\0') {
+	        continue;
+	    }
+
+	    int choice = toupper((unsigned char)line[0]);
+
+	    if (line[1] != '\0' ||
+	        (choice != 'F' && choice != 'M' &&
+	         choice != 'L' && choice != 'A' && choice != 'Q')) {
+	        printf("Enter F, M, L, A, or Q.\n");
+	        continue;
+	    }
+
+	    if (choice == 'Q') {
+	        return EXIT_SUCCESS;
+	    }
+
+	 
+	
+        switch (choice) {
+          case 'F':
+				    nameTable = firstNames;
+				    tableName = "DataFirstName";
+				    prompt = "Enter the FIRST name: ";
+				    break;
+
+           case 'M':
+					    nameTable = middleNames;
+					    tableName = "DataMiddleName";
+					    prompt = "Enter the MIDDLE name: ";
+					    break;
+
+					case 'L':
+					    nameTable = lastNames;
+					    tableName = "DataLastName";
+					    prompt = "Enter the LAST name: ";
+    			break;
+
+            case 'A':
+                if (addresses == NULL) {
+                    printf("The address hash table is not available.\n");
+                    continue;
+                }
+
+                prompt = "Enter the address: ";
+                printf(
+                    "\nField order:\n"
+                    "HouseNumber,FracAddress,PreStreet,DataStreet_ID,"
+                    "PostStreet,DataCity_ID,DataCounty_ID,zipcode,zip4,"
+                    "Cordinate_ID,PG_OSM_osmid\n");
+                break;
+        }
+
+        printf("Empty line: return to menu. Ctrl+D: quit.\n");
+
+        while (1) {
+            inputStatus = ReadQueryLine(prompt, line, sizeof(line));
+
+            if (inputStatus == 0) {
+                return EXIT_SUCCESS;
+            }
+            if (inputStatus == -2) {
+                return EXIT_FAILURE;
+            }
+            if (inputStatus == -1) {
+                continue;
+            }
+            if (line[0] == '\0') {
+                break;
+            }
+
+            if (choice != 'A') {
+						    printf("\n--- Memory hash search ---\n");
+
+						    double start = NowMilliseconds();
+						    size_t match = FindNameInHASH(nameTable, line);
+						    double hashMs = NowMilliseconds() - start;
+
+						    PrintHashMatches(nameTable, match, line);
+
+						    printf("\n--- Database search ---\n");
+
+						    start = NowMilliseconds();
+						    int dbStatus = FindNameInDB(db, line, tableName);
+						    double databaseMs = NowMilliseconds() - start;
+
+						    printf("\nHash lookup:     %.6f ms\n", hashMs);
+						    printf("Database search: %.6f ms\n", databaseMs);
+
+						    if (dbStatus != EXIT_SUCCESS) {
+						        fprintf(stderr, "Database name search failed.\n");
+						    }
+
+						    continue;
+						}
+
+            DataAddress search;
+
+            if (ParseAddressQuery(line, &search) != EXIT_SUCCESS) {
+                continue;
+            }
+
+            double start = NowMilliseconds();
+            AddressMatch match = FindAddressID(addresses, &search);
+            double elapsed = NowMilliseconds() - start;
+
+            switch (match.status) {
+                case ADDRESS_FOUND:
+                case ADDRESS_DUPLICATE:
+                    if (match.status == ADDRESS_DUPLICATE) {
+                        printf("Duplicate address: %zu matches\n",
+                               match.count);
+                    }
+
+                    for (size_t i = 0; i < match.count; ++i) {
+                        printf("Address ID: %" PRIu32 "\n",
+                               match.IDs[i]);
+                    }
+                    break;
+
+                case ADDRESS_NOT_FOUND:
+                    printf("Address not found.\n");
+                    break;
+
+                case ADDRESS_ERROR:
+                default:
+                    fprintf(stderr, "Address lookup failed.\n");
+                    break;
+            }
+
+            FreeAddressMatch(&match);
+            printf("Address lookup: %.6f ms\n", elapsed);
+            printf("\n--- Database address search ---\n");
+
+						double databaseStart = NowMilliseconds();
+						int databaseStatus = FindAddressInDB(db, &search);
+						double databaseMs = NowMilliseconds() - databaseStart;
+
+						printf("Database address search: %.6f ms\n", databaseMs);
+
+						if (databaseStatus != EXIT_SUCCESS) {
+						    fprintf(stderr, "Database address search failed.\n");
+						}
+        }
+    }
 }
