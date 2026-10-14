@@ -44,7 +44,7 @@ FindIndexCode: $(INDEX_OBJECTS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGETS) $(OBJECTS) $(DEPS)
+	rm -f $(TARGETS) $(OBJECTS) $(DEPS) $(GENERATED_HEADER)
 
 rebuild:
 	$(MAKE) clean

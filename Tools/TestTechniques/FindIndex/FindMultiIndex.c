@@ -3,226 +3,149 @@
 #include "FindMultiIndex.h"
 #include "DataModules.h"
 
-int main(void)
-{
-    MYSQL *db = DealDB();
-    if (db == NULL) {
-        return EXIT_FAILURE;
+int main(void) {
+  MYSQL *db = DealDB();
+  if (db == NULL) { return EXIT_FAILURE; }
+
+  Person *FirstName = NULL;
+  Person *LastName = NULL;
+  Person *MiddleName = NULL;
+
+  size_t countFirstName = 0;
+  size_t countLastName = 0;
+  size_t countMiddleName = 0;
+
+  NameHashTable FirstNamehashTable = {0};
+  NameHashTable LastNamehashTable = {0};
+  NameHashTable MiddleNamehashTable = {0};
+
+  int exitStatus = EXIT_FAILURE;
+
+  /* Load the three name tables. */
+  if (LoadDBintoMEM(db, &FirstName, &countFirstName, "DataFirstName") != EXIT_SUCCESS) { goto cleanup; }
+  if (LoadDBintoMEM(db, &LastName, &countLastName, "DataLastName") != EXIT_SUCCESS) { goto cleanup; }
+  if (LoadDBintoMEM(db, &MiddleName, &countMiddleName, "DataMiddleName") != EXIT_SUCCESS) { goto cleanup; }
+
+  /* Sort before building indexes. Binary search requires this. */
+  if (countFirstName > 1) { qsort(FirstName, countFirstName, sizeof(*FirstName), CompareNameByName); }
+  if (countLastName > 1) { qsort(LastName, countLastName, sizeof(*LastName), CompareNameByName); }
+  if (countMiddleName > 1) { qsort(MiddleName, countMiddleName, sizeof(*MiddleName), CompareNameByName); }
+
+  /* Build hash tables after sorting. */
+  if (BuildNameHashTable(&FirstNamehashTable, FirstName, countFirstName) != EXIT_SUCCESS) { goto cleanup; }
+  if (BuildNameHashTable(&LastNamehashTable, LastName, countLastName) != EXIT_SUCCESS) { goto cleanup; }
+  if (BuildNameHashTable(&MiddleNamehashTable, MiddleName, countMiddleName) != EXIT_SUCCESS) { goto cleanup; }
+
+  /* Display statistics for each hash table. */
+  const char *labels[] = { "First names", "Last names", "Middle names" };
+  const NameHashTable *tables[] = { &FirstNamehashTable, &LastNamehashTable, &MiddleNamehashTable };
+  size_t counts[] = { countFirstName, countLastName, countMiddleName };
+
+  for (size_t i = 0; i < 3; i++) {
+    printf("\n--- %s ---\n", labels[i]);
+    printf("Rows:             %zu\n", counts[i]);
+    printf("Buckets:          %zu\n", tables[i]->bucketCount);
+    printf("Occupied buckets: %zu\n", counts[i] - tables[i]->collisions);
+    printf("Collisions:       %zu\n", tables[i]->collisions);
+    printf("Collision rate:   %.2f%%\n", counts[i] > 0 ? 
+    																100.0 * (double)tables[i]->collisions / (double)counts[i] : 0.0);
+	}	
+  exitStatus = EXIT_SUCCESS;
+
+  printf("\nPress Ctrl+D on an empty line to quit.\n");
+
+  char searchName[255];
+
+  while (1) {
+    printf("\nEnter a first name: ");
+    fflush(stdout);
+
+    if (fgets(searchName, sizeof(searchName), stdin) == NULL) {
+      if (ferror(stdin)) {
+        fprintf(stderr, "Error reading input.\n");
+        exitStatus = EXIT_FAILURE;
+      }
+      break;
     }
 
-    Person *FirstName = NULL;
-    Person *LastName = NULL;
-    Person *MiddleName = NULL;
+    /* Reject oversized input and discard its remainder. */
+    if (strchr(searchName, '\n') == NULL) {
+      int ch = getchar();
 
-    size_t countFirstName = 0;
-    size_t countLastName = 0;
-    size_t countMiddleName = 0;
-
-    NameHashTable FirstNamehashTable = {0};
-    NameHashTable LastNamehashTable = {0};
-    NameHashTable MiddleNamehashTable = {0};
-
-    int exitStatus = EXIT_FAILURE;
-
-    /* Load the three name tables. */
-    if (LoadDBintoMEM(db, &FirstName, &countFirstName,
-                      "DataFirstName") != EXIT_SUCCESS) {
-        goto cleanup;
-    }
-
-    if (LoadDBintoMEM(db, &LastName, &countLastName,
-                      "DataLastName") != EXIT_SUCCESS) {
-        goto cleanup;
-    }
-
-    if (LoadDBintoMEM(db, &MiddleName, &countMiddleName,
-                      "DataMiddleName") != EXIT_SUCCESS) {
-        goto cleanup;
-    }
-
-    /* Sort before building indexes. Binary search requires this. */
-    if (countFirstName > 1) {
-        qsort(FirstName, countFirstName,
-              sizeof(*FirstName), CompareNameByName);
-    }
-
-    if (countLastName > 1) {
-        qsort(LastName, countLastName,
-              sizeof(*LastName), CompareNameByName);
-    }
-
-    if (countMiddleName > 1) {
-        qsort(MiddleName, countMiddleName,
-              sizeof(*MiddleName), CompareNameByName);
-    }
-
-    /* Build hash tables after sorting. */
-    if (BuildNameHashTable(&FirstNamehashTable,
-                          FirstName,
-                          countFirstName) != EXIT_SUCCESS) {
-        goto cleanup;
-    }
-
-    if (BuildNameHashTable(&LastNamehashTable,
-                          LastName,
-                          countLastName) != EXIT_SUCCESS) {
-        goto cleanup;
-    }
-
-    if (BuildNameHashTable(&MiddleNamehashTable,
-                          MiddleName,
-                          countMiddleName) != EXIT_SUCCESS) {
-        goto cleanup;
-    }
-
-    /* Display statistics for each hash table. */
-    const char *labels[] = {
-        "First names", "Last names", "Middle names"
-    };
-
-    const NameHashTable *tables[] = {
-        &FirstNamehashTable,
-        &LastNamehashTable,
-        &MiddleNamehashTable
-    };
-
-    size_t counts[] = {
-        countFirstName, countLastName, countMiddleName
-    };
-
-    for (size_t i = 0; i < 3; i++) {
-        printf("\n--- %s ---\n", labels[i]);
-        printf("Rows:             %zu\n", counts[i]);
-        printf("Buckets:          %zu\n", tables[i]->bucketCount);
-        printf("Occupied buckets: %zu\n",
-               counts[i] - tables[i]->collisions);
-        printf("Collisions:       %zu\n", tables[i]->collisions);
-
-        printf("Collision rate:   %.2f%%\n",
-               counts[i] > 0
-                   ? 100.0 * (double)tables[i]->collisions
-                       / (double)counts[i]
-                   : 0.0);
-    }
-
-    exitStatus = EXIT_SUCCESS;
-
-    printf("\nPress Ctrl+D on an empty line to quit.\n");
-
-    char searchName[255];
-
-    while (1) {
-        printf("\nEnter a first name: ");
-        fflush(stdout);
-
-        if (fgets(searchName, sizeof(searchName), stdin) == NULL) {
-            if (ferror(stdin)) {
-                fprintf(stderr, "Error reading input.\n");
-                exitStatus = EXIT_FAILURE;
-            }
-            break;
+      if (ch != '\n' && ch != EOF) {
+        while ((ch = getchar()) != '\n' && ch != EOF) {
+        	/* Discard remaining characters. */
         }
-
-        /* Reject oversized input and discard its remainder. */
-        if (strchr(searchName, '\n') == NULL) {
-            int ch = getchar();
-
-            if (ch != '\n' && ch != EOF) {
-                while ((ch = getchar()) != '\n' && ch != EOF) {
-                    /* Discard remaining characters. */
-                }
-
-                fprintf(stderr,
-                        "Name too long. Maximum: %zu bytes.\n",
-                        sizeof(searchName) - 1);
-
-                if (ferror(stdin)) {
-                    exitStatus = EXIT_FAILURE;
-                    break;
-                }
-
-                continue;
-            }
-
-            if (ch == EOF && ferror(stdin)) {
-                fprintf(stderr, "Error reading input.\n");
-                exitStatus = EXIT_FAILURE;
-                break;
-            }
+        fprintf(stderr, "Name too long. Maximum: %zu bytes.\n", sizeof(searchName) - 1);
+        if (ferror(stdin)) {
+          exitStatus = EXIT_FAILURE;
+          break;
         }
+        continue;
+      }
 
-        searchName[strcspn(searchName, "\r\n")] = '\0';
-
-        if (searchName[0] == '\0') {
-            continue;
-        }
-
-        printf("\n--- Memory search ---\n");
-
-        double start = NowMilliseconds();
-        FindNameInMEM(FirstName, countFirstName, searchName);
-        double memoryMs = NowMilliseconds() - start;
-
-        printf("\n--- Database search ---\n");
-
-        start = NowMilliseconds();
-        int dbStatus = FindNameInDB(db, searchName);
-        double databaseMs = NowMilliseconds() - start;
-
-        printf("\n--- Hash table search ---\n");
-
-        start = NowMilliseconds();
-        size_t firstMatch =
-            FindNameInHASH(&FirstNamehashTable, searchName);
-        double hashMs = NowMilliseconds() - start;
-
-        PrintHashMatches(&FirstNamehashTable,
-                         firstMatch, searchName);
-
-        printf("\nDatabase search: %.6f ms\n", databaseMs);
-        printf("Memory search:   %.6f ms\n", memoryMs);
-        printf("Hash lookup:     %.6f ms\n", hashMs);
-
-        if (dbStatus != EXIT_SUCCESS) {
-            fprintf(stderr, "Database search failed.\n");
-            exitStatus = EXIT_FAILURE;
-            break;
-        }
+      if (ch == EOF && ferror(stdin)) {
+        fprintf(stderr, "Error reading input.\n");
+        exitStatus = EXIT_FAILURE;
+        break;
+      }
     }
 
+    searchName[strcspn(searchName, "\r\n")] = '\0';
+
+    if (searchName[0] == '\0') { continue; }
+    printf("\n--- Memory search ---\n");
+    double start = NowMilliseconds();
+    FindNameInMEM(FirstName, countFirstName, searchName);
+    double memoryMs = NowMilliseconds() - start;
+
+    printf("\n--- Database search ---\n");
+    start = NowMilliseconds();
+    int dbStatus = FindNameInDB(db, searchName);
+    double databaseMs = NowMilliseconds() - start;
+
+    printf("\n--- Hash table search ---\n");
+    start = NowMilliseconds();
+    size_t firstMatch = FindNameInHASH(&FirstNamehashTable, searchName);
+    double hashMs = NowMilliseconds() - start;
+
+    PrintHashMatches(&FirstNamehashTable, firstMatch, searchName);
+    printf("\nDatabase search: %.6f ms\n", databaseMs);
+    printf("Memory search:   %.6f ms\n", memoryMs);
+    printf("Hash lookup:     %.6f ms\n", hashMs);
+
+    if (dbStatus != EXIT_SUCCESS) {
+      fprintf(stderr, "Database search failed.\n");
+      exitStatus = EXIT_FAILURE;
+      break;
+    }
+	}
 cleanup:
-    FreeNameHashTable(&FirstNamehashTable);
-    FreeNameHashTable(&LastNamehashTable);
-    FreeNameHashTable(&MiddleNamehashTable);
+  FreeNameHashTable(&FirstNamehashTable);
+  FreeNameHashTable(&LastNamehashTable);
+  FreeNameHashTable(&MiddleNamehashTable);
 
-    free(FirstName);
-    free(LastName);
-    free(MiddleName);
+  free(FirstName);
+  free(LastName);
+  free(MiddleName);
 
-    mysql_close(db);
-    return exitStatus;
+  mysql_close(db);
+  return exitStatus;
 }
 
 MYSQL *DealDB(void) {
   MYSQL *db = mysql_init(NULL);
 
   if (db == NULL) {
-      fprintf(stderr, "MySQL initialization failed.\n");
-      return NULL;
+    fprintf(stderr, "MySQL initialization failed.\n");
+    return NULL;
   }
 
-  if (mysql_real_connect(db,
-                         "192.168.199.18",
-                         "usracct",
-                         "usracct",
-                         "RepMyBlock",
-                         3306,
-                         NULL,
-                         0) == NULL) {
-    fprintf(stderr, "Connection failed: %s\n",
-            mysql_error(db));
-    mysql_close(db);
-    return NULL;
+  if (mysql_real_connect(db, "192.168.199.18", "usracct", "usracct",
+                         "RepMyBlock", 3306, NULL, 0) == NULL) {
+		fprintf(stderr, "Connection failed: %s\n", mysql_error(db));
+		mysql_close(db);
+		return NULL;
   }
 
   return db;
