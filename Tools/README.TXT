@@ -1,6 +1,6 @@
 To use the modules, you need to have the username and password of the database in ~/.<filename> with the following entries.
 
-dbname_prod: NYSVoters              <- Database table space.
+dbname_prod: RepMyBlock             <- Database table space.
 dbhost: someproddb.repmyblock.org   <- Database hostname
 dbport: 3306                        <- Database port
 dbuser: usracct                     <- Database user
