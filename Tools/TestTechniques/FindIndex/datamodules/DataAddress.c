@@ -503,3 +503,30 @@ cleanup:
     mysql_stmt_close(stmt);
     return status;
 }
+
+int QueryAddressMemory(
+    const void *hashTable,
+    const void *record)
+{
+    AddressMatch match =
+        FindAddressID(hashTable, record);
+
+    if (match.status == ADDRESS_NOT_FOUND) {
+        printf("Address not found in memory.\n");
+    } else if (match.status == ADDRESS_ERROR) {
+        fprintf(stderr, "Address lookup failed.\n");
+    } else {
+        for (size_t i = 0; i < match.count; ++i) {
+            printf("Address ID: %" PRIu32 "\n",
+                   match.IDs[i]);
+        }
+    }
+
+    int result =
+        match.status == ADDRESS_ERROR
+            ? EXIT_FAILURE
+            : EXIT_SUCCESS;
+
+    FreeAddressMatch(&match);
+    return result;
+}

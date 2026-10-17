@@ -6,7 +6,10 @@ LDLIBS += $(shell mysql_config --libs) -licuuc -licudata
 
 TARGETS = FindMultiIndex FindIndexCode
 
-MULTI_OBJECTS = FindMultiIndex.o datamodules/DataAddress.o
+MODULE_SOURCES = $(wildcard datamodules/*.c)
+MODULE_OBJECTS = $(MODULE_SOURCES:.c=.o)
+
+MULTI_OBJECTS = FindMultiIndex.o $(MODULE_OBJECTS)
 INDEX_OBJECTS = FindIndexCode.o
 
 OBJECTS = $(MULTI_OBJECTS) $(INDEX_OBJECTS)

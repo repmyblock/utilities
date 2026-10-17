@@ -80,4 +80,13 @@ void FreeAddressMatch(AddressMatch *);
 void FreeAddressHashTable(AddressHashTable *);
 int FindAddressInDB(MYSQL *, const DataAddress *);
 
+
+int QueryAddressMemory(
+    const void *hashTable,
+    const void *record);
+
+int QueryAddressDatabase(
+    MYSQL *db,
+    const void *record);
+
 #endif
