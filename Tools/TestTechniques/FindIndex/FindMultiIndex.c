@@ -673,4 +673,3 @@ static int RunQueryLoops(MYSQL *db, const QueryDefinition *queries, size_t query
     }
 	}
 }
-

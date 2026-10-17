@@ -53,6 +53,6 @@ int LoadDistrictIntoMemory(MYSQL *, DataDistrict **, size_t *);
 
 int QueryDistrictMemory(const void *hashTable,const void *record);
 int QueryDistrictDatabase(MYSQL *db,const void *record);
-static int ParseDistrictQuery(char *line, void *record);
+int ParseDistrictQuery(char *line, void *record);
 
 #endif
