@@ -1,18 +1,7 @@
 #ifndef FIND_MULTIPLE_INDEX_H
 #define FIND_MULTIPLE_INDEX_H
 
-#include <ctype.h>
-#include <errno.h>
-#include <inttypes.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-
-#include <mysql/mysql.h>
-
+#include "datamodules/RecordLoader.h"
 #include "DataModules.h"
 
 typedef struct {
@@ -81,14 +70,10 @@ void PrintHashMatches(
 
 void FreeNameHashTable(NameHashTable *);
 
-int RunQueryLoops(
-    MYSQL *,
-    const QueryDefinition *,
-    size_t);
+static int ParseAddressRecord(char *line, void *record);
 
-int ReadQueryLine(
-    const char *,
-    char *,
-    size_t);
-
+/*
+	int RunQueryLoops(MYSQL *, const QueryDefinition *, size_t);
+	int ReadQueryLine(const char *, char *, size_t);
+*/
 #endif

@@ -1,7 +1,7 @@
 #ifndef DATA_COUNTY_H
 #define DATA_COUNTY_H
 #include "RecordHash.h"
-#include <mysql/mysql.h>
+
 typedef struct {
     uint32_t ID;
     /* Bit N: SQL NULL in field N below, counting ID as column zero. */
@@ -38,14 +38,7 @@ void FreeCountyHashTable(CountyHashTable *);
 int LoadCountyIntoMemory(MYSQL *, DataCounty **, size_t *);
 
 
-
-int QueryCountyMemory(
-    const void *hashTable,
-    const void *record);
-
-int QueryCountyDatabase(
-    MYSQL *db,
-    const void *record);
-    
+int QueryCountyMemory(const void *hashTable, const void *record);
+int QueryCountyDatabase(MYSQL *db, const void *record);
 
 #endif

@@ -1,10 +1,7 @@
 /* This is the DataAddress.c to deal with searching this structure */
 #ifndef DATA_ADDRESS_H
 #define DATA_ADDRESS_H
-
-#include <stdint.h>
-#include <stddef.h>
-#include <mysql/mysql.h>
+#include "RecordHash.h"
 
 typedef struct {
     uint32_t ID;
@@ -79,14 +76,12 @@ void FreeAddressMatch(AddressMatch *);
 /* Release the complete hash table. */
 void FreeAddressHashTable(AddressHashTable *);
 int FindAddressInDB(MYSQL *, const DataAddress *);
-
-
-int QueryAddressMemory(
-    const void *hashTable,
-    const void *record);
-
-int QueryAddressDatabase(
-    MYSQL *db,
-    const void *record);
+int QueryAddressMemory(const void *hashTable, const void *record);
+int QueryAddressDatabase(MYSQL *db,const void *record);
+static int ParseAddressQuery(char *,DataAddress *);
+static int ParseAddressRecord(char *,void *);
+int ParseAddressRecord(char *line, void *record);
 
 #endif
+
+

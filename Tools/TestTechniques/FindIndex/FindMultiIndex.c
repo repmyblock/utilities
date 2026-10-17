@@ -4,335 +4,213 @@
 #include "DataModules.h"
 
 static double NowMilliseconds(void);
-static uint64_t HashName(const char *);
+static int ReadQueryLine(const char *, char *, size_t);
+static int RunQueryLoops(MYSQL *, const QueryDefinition *, size_t);
 
-static void PrintModuleLoad(const char *label, size_t count, size_t recordSize, double elapsedMs)
-{
-    uint64_t totalMs=(uint64_t)(elapsedMs+0.5);
-    printf("Loaded and indexed %zu %s in %.3f ms (or %" PRIu64 " hours %" PRIu64
-           " minutes and %" PRIu64 " seconds and %" PRIu64
-           " ms) - %.2f MiB of source records (hash memory additional)\n",
-           count, label, elapsedMs, totalMs/3600000, (totalMs/60000)%60,
-           (totalMs/1000)%60, totalMs%1000,
-           (double)count*recordSize/(1024.0*1024.0));
+static int ParseAddressQuery(char *, DataAddress *);
+
+static int ParseCountyQuery(char *, void *);
+static int ParseAddressRecord(char *, void *);
+static int ParseDistrictQuery(char *, void *);
+static int ParseDistrictCycleQuery(char *, void *);
+static int ParseDistrictTemporalQuery(char *, void *);
+static int ParseHouseQuery(char *, void *);
+static int ParseVoterComplementInfoQuery(char *, void *);
+static int ParseVoterIndexQuery(char *, void *);
+static int ParseVoterQuery(char *, void *);
+
+static uint64_t HashName(const char *);
+static int IsValidISODate(const char *);
+
+static void PrintModuleLoad(const char *label, size_t count, size_t recordSize, double elapsedMs) {
+  uint64_t totalMs=(uint64_t)(elapsedMs+0.5);
+  printf("Loaded and indexed %zu %s in %.3f ms (or %" PRIu64 " hours %" PRIu64
+         " minutes and %" PRIu64 " seconds and %" PRIu64
+         " ms) - %.2f MiB of source records (hash memory additional)\n",
+         count, label, elapsedMs, totalMs/3600000, (totalMs/60000)%60,
+         (totalMs/1000)%60, totalMs%1000,
+         (double)count*recordSize/(1024.0*1024.0));
 }
 
 /* Include DataModules.h (or the eight module headers) above this main. */
-int main(void)
-{
-	
-	QueryDefinition queries[] = {
-    {
-        .key = 'A',
-        .label = "Address search",
-        .prompt = "Enter address fields: ",
-        .hashTable = addressTable,
-        .recordSize = sizeof(DataAddress),
-        .parse = ParseAddressQuery,
-        .findMemory = QueryAddressMemory,
-        .findDatabase = QueryAddressDatabase,
-        .print = NULL
-    },
+int main(void) {
 
-    {
-        .key = 'C',
-        .label = "County search",
-        .prompt = "Enter county fields: ",
-        .hashTable = CountyTable,
-        .recordSize = sizeof(DataCounty),
-        .parse = ParseCountyQuery,
-        .findMemory = QueryCountyMemory,
-        .findDatabase = QueryCountyDatabase,
-        .print = NULL
-    },
+  MYSQL *db = DealDB();
+  if (db == NULL) { return EXIT_FAILURE; }
 
-    {
-        .key = 'D',
-        .label = "District search",
-        .prompt = "Enter district fields: ",
-        .hashTable = DistrictTable,
-        .recordSize = sizeof(DataDistrict),
-        .parse = ParseDistrictQuery,
-        .findMemory = QueryDistrictMemory,
-        .findDatabase = QueryDistrictDatabase,
-        .print = NULL
-    },
+  int exitStatus = EXIT_FAILURE;
+  
+  size_t countAddresses = 0, CountyCount = 0, DistrictCount = 0, DistrictCycleCount = 0, 
+  				DistrictTemporalCount = 0, HouseCount = 0, VoterCount = 0, 
+  				VoterComplementInfoCount = 0, VoterIndexCount = 0;
 
-    {
-        .key = 'Y',
-        .label = "District-cycle search",
-        .prompt = "Enter district-cycle fields: ",
-        .hashTable = DistrictCycleTable,
-        .recordSize = sizeof(DataDistrictCycle),
-        .parse = ParseDistrictCycleQuery,
-        .findMemory = QueryDistrictCycleMemory,
-        .findDatabase = QueryDistrictCycleDatabase,
-        .print = NULL
-    },
+  AddressHashTable *addressTable = NULL;
+  CountyHashTable *CountyTable = NULL;
+  DistrictHashTable *DistrictTable = NULL;
+  DistrictCycleHashTable *DistrictCycleTable = NULL;
+  DistrictTemporalHashTable *DistrictTemporalTable = NULL;
+  HouseHashTable *HouseTable = NULL;
+  VoterHashTable *VoterTable = NULL;
+  VoterComplementInfoHashTable *VoterComplementInfoTable = NULL;
+  VoterIndexHashTable *VoterIndexTable = NULL;
 
-    {
-        .key = 'T',
-        .label = "District-temporal search",
-        .prompt = "Enter district-temporal fields: ",
-        .hashTable = DistrictTemporalTable,
-        .recordSize = sizeof(DataDistrictTemporal),
-        .parse = ParseDistrictTemporalQuery,
-        .findMemory = QueryDistrictTemporalMemory,
-        .findDatabase = QueryDistrictTemporalDatabase,
-        .print = NULL
-    },
+	DataAddress *addresses = NULL;
+  DataCounty *CountyRows = NULL;
+  DataDistrict *DistrictRows = NULL;
+  DataDistrictCycle *DistrictCycleRows = NULL;
+  DataDistrictTemporal *DistrictTemporalRows = NULL;
+  DataHouse *HouseRows = NULL;
+  Voter *VoterRows = NULL;
+  VoterComplementInfo *VoterComplementInfoRows = NULL;
+  VoterIndex *VoterIndexRows = NULL;
+  
+  printf("Starting to load\n");
+  double start = NowMilliseconds();
+  if (LoadAddressesIntoMemory(db, &addresses, &countAddresses) != EXIT_SUCCESS) goto cleanup;
+  addressTable = BuildAddressHashTable(addresses, countAddresses);
+  if (!addressTable) { fprintf(stderr, "Address index failed.\n"); goto cleanup; }
+  PrintModuleLoad("addresses", countAddresses, sizeof(*addresses), NowMilliseconds()-start);
+  /* The address hash owns its keys and IDs. Release the original rows. */
+  free(addresses); addresses = NULL;
 
-    {
-        .key = 'H',
-        .label = "House search",
-        .prompt = "Enter house fields: ",
-        .hashTable = HouseTable,
-        .recordSize = sizeof(DataHouse),
-        .parse = ParseHouseQuery,
-        .findMemory = QueryHouseMemory,
-        .findDatabase = QueryHouseDatabase,
-        .print = NULL
-    },
+  printf("Loading DataCounty...\n"); fflush(stdout);
+  start = NowMilliseconds();
+  if (LoadCountyIntoMemory(db, &CountyRows, &CountyCount) != EXIT_SUCCESS)  goto cleanup;
+  CountyTable = BuildCountyHashTable(CountyRows, CountyCount);
+  if (!CountyTable) { fprintf(stderr, "DataCounty index failed.\n"); goto cleanup; }
+  PrintModuleLoad("DataCounty", CountyCount, sizeof(*CountyRows), NowMilliseconds()-start);
+  free(CountyRows); CountyRows = NULL;
 
-    {
-        .key = 'V',
-        .label = "Voter search",
-        .prompt = "Enter voter fields: ",
-        .hashTable = VoterTable,
-        .recordSize = sizeof(Voter),
-        .parse = ParseVoterQuery,
-        .findMemory = QueryVoterMemory,
-        .findDatabase = QueryVoterDatabase,
-        .print = NULL
-    },
+  printf("Loading DataDistrict...\n"); fflush(stdout);
+  start = NowMilliseconds();
+  if (LoadDistrictIntoMemory(db, &DistrictRows, &DistrictCount) != EXIT_SUCCESS) goto cleanup;
+  DistrictTable = BuildDistrictHashTable(DistrictRows, DistrictCount);
+  if (!DistrictTable) { fprintf(stderr, "DataDistrict index failed.\n"); goto cleanup; }
+  PrintModuleLoad("DataDistrict", DistrictCount, sizeof(*DistrictRows), NowMilliseconds()-start);
+  free(DistrictRows); DistrictRows = NULL;
 
-    {
-        .key = 'I',
-        .label = "Voter-complement search",
-        .prompt = "Enter voter-complement fields: ",
-        .hashTable = VoterComplementInfoTable,
-        .recordSize = sizeof(VoterComplementInfo),
-        .parse = ParseVoterComplementInfoQuery,
-        .findMemory = QueryVoterComplementInfoMemory,
-        .findDatabase = QueryVoterComplementInfoDatabase,
-        .print = NULL
-    },
+  printf("Loading DataDistrictCycle...\n"); fflush(stdout);
+  start = NowMilliseconds();
+  if (LoadDistrictCycleIntoMemory(db, &DistrictCycleRows, &DistrictCycleCount) != EXIT_SUCCESS) goto cleanup;
+  DistrictCycleTable = BuildDistrictCycleHashTable(DistrictCycleRows, DistrictCycleCount);
+  if (!DistrictCycleTable) { fprintf(stderr, "DataDistrictCycle index failed.\n"); goto cleanup; }
+  PrintModuleLoad("DataDistrictCycle", DistrictCycleCount, sizeof(*DistrictCycleRows), NowMilliseconds()-start);
+  free(DistrictCycleRows); DistrictCycleRows = NULL;
 
-    {
-        .key = 'X',
-        .label = "Voter-index search",
-        .prompt = "Enter voter-index fields: ",
-        .hashTable = VoterIndexTable,
-        .recordSize = sizeof(VoterIndex),
-        .parse = ParseVoterIndexQuery,
-        .findMemory = QueryVoterIndexMemory,
-        .findDatabase = QueryVoterIndexDatabase,
-        .print = NULL
-    }
-};
+  printf("Loading DataDistrictTemporal...\n"); fflush(stdout);
+  start = NowMilliseconds();
+  if (LoadDistrictTemporalIntoMemory(db, &DistrictTemporalRows, &DistrictTemporalCount) != EXIT_SUCCESS) goto cleanup;
+  DistrictTemporalTable = BuildDistrictTemporalHashTable(DistrictTemporalRows, DistrictTemporalCount);
+  if (!DistrictTemporalTable) { fprintf(stderr, "DataDistrictTemporal index failed.\n"); goto cleanup; }
+  PrintModuleLoad("DataDistrictTemporal", DistrictTemporalCount, sizeof(*DistrictTemporalRows), NowMilliseconds()-start);
+  free(DistrictTemporalRows); DistrictTemporalRows = NULL;
 
-NameHashTable FirstNamehashTable = {0};
-NameHashTable MiddleNamehashTable = {0};
-NameHashTable LastNamehashTable = {0};
+  printf("Loading DataHouse...\n"); fflush(stdout);
+  start = NowMilliseconds();
+  if (LoadHouseIntoMemory(db, &HouseRows, &HouseCount) != EXIT_SUCCESS) goto cleanup;
+  HouseTable = BuildHouseHashTable(HouseRows, HouseCount);
+  if (!HouseTable) { fprintf(stderr, "DataHouse index failed.\n"); goto cleanup; }
+  PrintModuleLoad("DataHouse", HouseCount, sizeof(*HouseRows), NowMilliseconds()-start);
+  free(HouseRows); HouseRows = NULL;
 
-AddressHashTable *addressTable = NULL;
-CountyHashTable *CountyTable = NULL;
-DistrictHashTable *DistrictTable = NULL;
-DistrictCycleHashTable *DistrictCycleTable = NULL;
-DistrictTemporalHashTable *DistrictTemporalTable = NULL;
-HouseHashTable *HouseTable = NULL;
-VoterHashTable *VoterTable = NULL;
-VoterComplementInfoHashTable *VoterComplementInfoTable = NULL;
-VoterIndexHashTable *VoterIndexTable = NULL;
+  printf("Loading Voter...\n"); fflush(stdout);
+  start = NowMilliseconds();
+  if (LoadVoterIntoMemory(db, &VoterRows, &VoterCount) != EXIT_SUCCESS) goto cleanup;
+  VoterTable = BuildVoterHashTable(VoterRows, VoterCount);
+  if (!VoterTable) { fprintf(stderr, "Voter index failed.\n"); goto cleanup; }
+  PrintModuleLoad("Voter", VoterCount, sizeof(*VoterRows), NowMilliseconds()-start);
+  free(VoterRows); VoterRows = NULL;
 
-CountyTable =
-    BuildCountyHashTable(CountyRows, CountyCount);
+  printf("Loading VoterComplementInfo...\n"); fflush(stdout);
+  start = NowMilliseconds();
+  if (LoadVoterComplementInfoIntoMemory(db, &VoterComplementInfoRows, &VoterComplementInfoCount) != EXIT_SUCCESS) goto cleanup;
+  VoterComplementInfoTable = BuildVoterComplementInfoHashTable(VoterComplementInfoRows, VoterComplementInfoCount);
+  if (!VoterComplementInfoTable) { fprintf(stderr, "VoterComplementInfo index failed.\n"); goto cleanup; }
+  PrintModuleLoad("VoterComplementInfo", VoterComplementInfoCount, sizeof(*VoterComplementInfoRows), NowMilliseconds()-start);
+  free(VoterComplementInfoRows); VoterComplementInfoRows = NULL;
 
-DistrictTable =
-    BuildDistrictHashTable(DistrictRows, DistrictCount);
+  printf("Loading VoterIndex...\n"); fflush(stdout);
+  start = NowMilliseconds();
+  if (LoadVoterIndexIntoMemory(db, &VoterIndexRows, &VoterIndexCount) != EXIT_SUCCESS) goto cleanup;
+  VoterIndexTable = BuildVoterIndexHashTable(VoterIndexRows, VoterIndexCount);
+  if (!VoterIndexTable) { fprintf(stderr, "VoterIndex index failed.\n"); goto cleanup; }
+  PrintModuleLoad("VoterIndex", VoterIndexCount, sizeof(*VoterIndexRows), NowMilliseconds()-start);
+  free(VoterIndexRows); VoterIndexRows = NULL;
 
-DistrictCycleTable =
-    BuildDistrictCycleHashTable(
-        DistrictCycleRows,
-        DistrictCycleCount);
-
-DistrictTemporalTable =
-    BuildDistrictTemporalHashTable(
-        DistrictTemporalRows,
-        DistrictTemporalCount);
-
-HouseTable =
-    BuildHouseHashTable(HouseRows, HouseCount);
-
-VoterTable =
-    BuildVoterHashTable(VoterRows, VoterCount);
-
-VoterComplementInfoTable =
-    BuildVoterComplementInfoHashTable(
-        VoterComplementInfoRows,
-        VoterComplementInfoCount);
-
-VoterIndexTable =
-    BuildVoterIndexHashTable(
-        VoterIndexRows,
-        VoterIndexCount);
-	
-    MYSQL *db = DealDB();
-    if (!db) return EXIT_FAILURE;
-    int exitStatus = EXIT_FAILURE;
-    DataAddress *addresses = NULL;
-    size_t countAddresses = 0;
-    AddressHashTable *addressTable = NULL;
-    Person *names[3] = {NULL, NULL, NULL};
-    size_t nameCounts[3] = {0};
-    NameHashTable nameTables[3] = {0};
-    char *nameSQLTables[3] = {"DataFirstName", "DataMiddleName", "DataLastName"};
-    DataCounty *CountyRows = NULL;
-    size_t CountyCount = 0;
-    CountyHashTable *CountyTable = NULL;
-    DataDistrict *DistrictRows = NULL;
-    size_t DistrictCount = 0;
-    DistrictHashTable *DistrictTable = NULL;
-    DataDistrictCycle *DistrictCycleRows = NULL;
-    size_t DistrictCycleCount = 0;
-    DistrictCycleHashTable *DistrictCycleTable = NULL;
-    DataDistrictTemporal *DistrictTemporalRows = NULL;
-    size_t DistrictTemporalCount = 0;
-    DistrictTemporalHashTable *DistrictTemporalTable = NULL;
-    DataHouse *HouseRows = NULL;
-    size_t HouseCount = 0;
-    HouseHashTable *HouseTable = NULL;
-    Voter *VoterRows = NULL;
-    size_t VoterCount = 0;
-    VoterHashTable *VoterTable = NULL;
-    VoterComplementInfo *VoterComplementInfoRows = NULL;
-    size_t VoterComplementInfoCount = 0;
-    VoterComplementInfoHashTable *VoterComplementInfoTable = NULL;
-    VoterIndex *VoterIndexRows = NULL;
-    size_t VoterIndexCount = 0;
-    VoterIndexHashTable *VoterIndexTable = NULL;
-
-    printf("Starting to load\n");
-    double start = NowMilliseconds();
-    if (LoadAddressesIntoMemory(db, &addresses, &countAddresses) != EXIT_SUCCESS)
-        goto cleanup;
-    addressTable = BuildAddressHashTable(addresses, countAddresses);
-    if (!addressTable) { fprintf(stderr, "Address index failed.\n"); goto cleanup; }
-    PrintModuleLoad("addresses", countAddresses, sizeof(*addresses), NowMilliseconds()-start);
-    /* The address hash owns its keys and IDs. Release the original rows. */
-    free(addresses); addresses = NULL;
-
-    printf("Loading DataCounty...\n"); fflush(stdout);
-    start = NowMilliseconds();
-    if (LoadCountyIntoMemory(db, &CountyRows, &CountyCount) != EXIT_SUCCESS)
-        goto cleanup;
-    CountyTable = BuildCountyHashTable(CountyRows, CountyCount);
-    if (!CountyTable) { fprintf(stderr, "DataCounty index failed.\n"); goto cleanup; }
-    PrintModuleLoad("DataCounty", CountyCount, sizeof(*CountyRows), NowMilliseconds()-start);
-    free(CountyRows); CountyRows = NULL;
-
-    printf("Loading DataDistrict...\n"); fflush(stdout);
-    start = NowMilliseconds();
-    if (LoadDistrictIntoMemory(db, &DistrictRows, &DistrictCount) != EXIT_SUCCESS)
-        goto cleanup;
-    DistrictTable = BuildDistrictHashTable(DistrictRows, DistrictCount);
-    if (!DistrictTable) { fprintf(stderr, "DataDistrict index failed.\n"); goto cleanup; }
-    PrintModuleLoad("DataDistrict", DistrictCount, sizeof(*DistrictRows), NowMilliseconds()-start);
-    free(DistrictRows); DistrictRows = NULL;
-
-    printf("Loading DataDistrictCycle...\n"); fflush(stdout);
-    start = NowMilliseconds();
-    if (LoadDistrictCycleIntoMemory(db, &DistrictCycleRows, &DistrictCycleCount) != EXIT_SUCCESS)
-        goto cleanup;
-    DistrictCycleTable = BuildDistrictCycleHashTable(DistrictCycleRows, DistrictCycleCount);
-    if (!DistrictCycleTable) { fprintf(stderr, "DataDistrictCycle index failed.\n"); goto cleanup; }
-    PrintModuleLoad("DataDistrictCycle", DistrictCycleCount, sizeof(*DistrictCycleRows), NowMilliseconds()-start);
-    free(DistrictCycleRows); DistrictCycleRows = NULL;
-
-    printf("Loading DataDistrictTemporal...\n"); fflush(stdout);
-    start = NowMilliseconds();
-    if (LoadDistrictTemporalIntoMemory(db, &DistrictTemporalRows, &DistrictTemporalCount) != EXIT_SUCCESS)
-        goto cleanup;
-    DistrictTemporalTable = BuildDistrictTemporalHashTable(DistrictTemporalRows, DistrictTemporalCount);
-    if (!DistrictTemporalTable) { fprintf(stderr, "DataDistrictTemporal index failed.\n"); goto cleanup; }
-    PrintModuleLoad("DataDistrictTemporal", DistrictTemporalCount, sizeof(*DistrictTemporalRows), NowMilliseconds()-start);
-    free(DistrictTemporalRows); DistrictTemporalRows = NULL;
-
-    printf("Loading DataHouse...\n"); fflush(stdout);
-    start = NowMilliseconds();
-    if (LoadHouseIntoMemory(db, &HouseRows, &HouseCount) != EXIT_SUCCESS)
-        goto cleanup;
-    HouseTable = BuildHouseHashTable(HouseRows, HouseCount);
-    if (!HouseTable) { fprintf(stderr, "DataHouse index failed.\n"); goto cleanup; }
-    PrintModuleLoad("DataHouse", HouseCount, sizeof(*HouseRows), NowMilliseconds()-start);
-    free(HouseRows); HouseRows = NULL;
-
-    printf("Loading Voter...\n"); fflush(stdout);
-    start = NowMilliseconds();
-    if (LoadVoterIntoMemory(db, &VoterRows, &VoterCount) != EXIT_SUCCESS)
-        goto cleanup;
-    VoterTable = BuildVoterHashTable(VoterRows, VoterCount);
-    if (!VoterTable) { fprintf(stderr, "Voter index failed.\n"); goto cleanup; }
-    PrintModuleLoad("Voter", VoterCount, sizeof(*VoterRows), NowMilliseconds()-start);
-    free(VoterRows); VoterRows = NULL;
-
-    printf("Loading VoterComplementInfo...\n"); fflush(stdout);
-    start = NowMilliseconds();
-    if (LoadVoterComplementInfoIntoMemory(db, &VoterComplementInfoRows, &VoterComplementInfoCount) != EXIT_SUCCESS)
-        goto cleanup;
-    VoterComplementInfoTable = BuildVoterComplementInfoHashTable(VoterComplementInfoRows, VoterComplementInfoCount);
-    if (!VoterComplementInfoTable) { fprintf(stderr, "VoterComplementInfo index failed.\n"); goto cleanup; }
-    PrintModuleLoad("VoterComplementInfo", VoterComplementInfoCount, sizeof(*VoterComplementInfoRows), NowMilliseconds()-start);
-    free(VoterComplementInfoRows); VoterComplementInfoRows = NULL;
-
-    printf("Loading VoterIndex...\n"); fflush(stdout);
-    start = NowMilliseconds();
-    if (LoadVoterIndexIntoMemory(db, &VoterIndexRows, &VoterIndexCount) != EXIT_SUCCESS)
-        goto cleanup;
-    VoterIndexTable = BuildVoterIndexHashTable(VoterIndexRows, VoterIndexCount);
-    if (!VoterIndexTable) { fprintf(stderr, "VoterIndex index failed.\n"); goto cleanup; }
-    PrintModuleLoad("VoterIndex", VoterIndexCount, sizeof(*VoterIndexRows), NowMilliseconds()-start);
-    free(VoterIndexRows); VoterIndexRows = NULL;
-
-    for (size_t i=0; i<3; ++i) {
-        if (LoadDBintoMEM(db, &names[i], &nameCounts[i], nameSQLTables[i]) != EXIT_SUCCESS)
-            goto cleanup;
-        if (nameCounts[i]>1)
-            qsort(names[i], nameCounts[i], sizeof(*names[i]), CompareNameByName);
-        if (BuildNameHashTable(&nameTables[i], names[i], nameCounts[i]) != EXIT_SUCCESS)
-            goto cleanup;
-        printf("\n--- %s ---\nRows: %zu\nBuckets: %zu\nOccupied buckets: %zu\n"
-               "Collisions: %zu\nCollision rate: %.2f%%\n",
-               nameSQLTables[i], nameCounts[i], nameTables[i].bucketCount,
-               nameCounts[i]-nameTables[i].collisions, nameTables[i].collisions,
-               nameCounts[i] ? 100.0*(double)nameTables[i].collisions/nameCounts[i] : 0.0);
-    }
-    /* Existing menu: first, middle, last names and addresses. */
-    int status = RunQueryLoops(db, queries, sizeof(queries) / sizeof(queries[0]));
+	/*
+  for (size_t i=0; i<3; ++i) {
+    if (LoadDBintoMEM(db, &names[i], &nameCounts[i], nameSQLTables[i]) != EXIT_SUCCESS) goto cleanup;
+    if (nameCounts[i]>1) qsort(names[i], nameCounts[i], sizeof(*names[i]), CompareNameByName);
+    if (BuildNameHashTable(&nameTables[i], names[i], nameCounts[i]) != EXIT_SUCCESS) goto cleanup;
+    printf("\n--- %s ---\nRows: %zu\nBuckets: %zu\nOccupied buckets: %zu\n"
+           "Collisions: %zu\nCollision rate: %.2f%%\n",
+           nameSQLTables[i], nameCounts[i], nameTables[i].bucketCount,
+           nameCounts[i]-nameTables[i].collisions, nameTables[i].collisions,
+           nameCounts[i] ? 100.0*(double)nameTables[i].collisions/nameCounts[i] : 0.0);
+  }
+  */
+  /* Existing menu: first, middle, last names and addresses. */
+  
+  QueryDefinition queries[] = {
+  	{ .key = 'A', .label = "Address search", .prompt = "Enter address fields: ", .hashTable = addressTable,
+      .recordSize = sizeof(DataAddress), .parse = ParseAddressRecord, .findMemory = QueryAddressMemory,
+      .findDatabase = QueryAddressDatabase, .print = NULL },
+    { .key = 'C', .label = "County search", .prompt = "Enter county fields: ", .hashTable = CountyTable,
+      .recordSize = sizeof(DataCounty), .parse = ParseCountyQuery, .findMemory = QueryCountyMemory,
+      .findDatabase = QueryCountyDatabase, .print = NULL },
+    { .key = 'D', .label = "District search", .prompt = "Enter district fields: ", .hashTable = DistrictTable,
+      .recordSize = sizeof(DataDistrict), .parse = ParseDistrictQuery, .findMemory = QueryDistrictMemory,
+      .findDatabase = QueryDistrictDatabase, .print = NULL },
+    {.key = 'Y', .label = "District-cycle search", .prompt = "Enter district-cycle fields: ", .hashTable = DistrictCycleTable,
+      .recordSize = sizeof(DataDistrictCycle), .parse = ParseDistrictCycleQuery, .findMemory = QueryDistrictCycleMemory,
+      .findDatabase = QueryDistrictCycleDatabase, .print = NULL },
+    { .key = 'T', .label = "District-temporal search", .prompt = "Enter district-temporal fields: ", .hashTable = DistrictTemporalTable,
+      .recordSize = sizeof(DataDistrictTemporal), .parse = ParseDistrictTemporalQuery, .findMemory = QueryDistrictTemporalMemory,
+      .findDatabase = QueryDistrictTemporalDatabase, .print = NULL },
+    { .key = 'H', .label = "House search", .prompt = "Enter house fields: ", .hashTable = HouseTable, 
+    	.recordSize = sizeof(DataHouse), .parse = ParseHouseQuery, .findMemory = QueryHouseMemory, 
+      .findDatabase = QueryHouseDatabase, .print = NULL },
+    { .key = 'V', .label = "Voter search", .prompt = "Enter voter fields: ", .hashTable = VoterTable,
+      .recordSize = sizeof(Voter), .parse = ParseVoterQuery, .findMemory = QueryVoterMemory,
+      .findDatabase = QueryVoterDatabase, .print = NULL },
+    { .key = 'I', .label = "Voter-complement search", .prompt = "Enter voter-complement fields: ", .hashTable = VoterComplementInfoTable,
+      .recordSize = sizeof(VoterComplementInfo), .parse = ParseVoterComplementInfoQuery, .findMemory = QueryVoterComplementInfoMemory,
+      .findDatabase = QueryVoterComplementInfoDatabase, .print = NULL },
+    { .key = 'X', .label = "Voter-index search", .prompt = "Enter voter-index fields: ", .hashTable = VoterIndexTable,
+      .recordSize = sizeof(VoterIndex), .parse = ParseVoterIndexQuery, .findMemory = QueryVoterIndexMemory,
+      .findDatabase = QueryVoterIndexDatabase, .print = NULL }
+	};
+	  
+  int status = RunQueryLoops(db, queries, sizeof(queries) / sizeof(queries[0]));
 
 cleanup:
     FreeAddressHashTable(addressTable);
-    free(addresses);
     FreeCountyHashTable(CountyTable);
-    free(CountyRows);
     FreeDistrictHashTable(DistrictTable);
-    free(DistrictRows);
     FreeDistrictCycleHashTable(DistrictCycleTable);
-    free(DistrictCycleRows);
     FreeDistrictTemporalHashTable(DistrictTemporalTable);
-    free(DistrictTemporalRows);
     FreeHouseHashTable(HouseTable);
-    free(HouseRows);
     FreeVoterHashTable(VoterTable);
-    free(VoterRows);
     FreeVoterComplementInfoHashTable(VoterComplementInfoTable);
-    free(VoterComplementInfoRows);
     FreeVoterIndexHashTable(VoterIndexTable);
+
+    free(addresses);
+    free(CountyRows);
+    free(DistrictRows);
+    free(DistrictCycleRows);
+    free(DistrictTemporalRows);
+    free(HouseRows);
+    free(VoterRows);
+    free(VoterComplementInfoRows);
     free(VoterIndexRows);
+
+	/*
     for (size_t i=0; i<3; ++i) {
         FreeNameHashTable(&nameTables[i]);
         free(names[i]);
     }
+    */
+    
     mysql_close(db);
     return exitStatus;
 }
@@ -707,255 +585,92 @@ static int ReadQueryLine(const char *prompt, char *buffer, size_t capacity) {
   return 1;
 }
 
-static int ParseAddressQuery(char *line, DataAddress *address) {
-  char *fields[11];
-  size_t fieldCount = 1;
+static int RunQueryLoops(MYSQL *db, const QueryDefinition *queries, size_t queryCount) {
+  char line[4096];
 
-  fields[0] = line;
+  while (1) {
+    int status = ReadQueryLine(
+        "\nQuery type: "
+        "(F)irst, (M)iddle, (L)ast, "
+        "(A)ddress, (C)ounty, (D)istrict, "
+        "(Y)District cycle, (T)emporal, "
+        "(H)ouse, (V)oter, (I)nfo, "
+        "(X)ndex, (Q)uit: ",
+        line,
+        sizeof(line)
+    );
 
-  /*
-   * Unlike strtok(), this preserves empty fields between commas.
-   */
-  for (char *p = line; *p != '\0'; ++p) {
-    if (*p == ',') {
-      if (fieldCount == 11) {
-        fprintf(stderr, "Too many fields: expected 11.\n");
-        return EXIT_FAILURE;
-      }
+    if (status == 0)  {return EXIT_SUCCESS; }
+    if (status == -2) { return EXIT_FAILURE; }
+    if (status == -1 || line[0] == '\0') { continue; }
 
-      *p = '\0';
-      fields[fieldCount++] = p + 1;
-    }
-  }
+    char choice = (char)toupper((unsigned char)line[0]);
 
-  if (fieldCount != 11) {
-    fprintf(stderr, "Expected 11 fields; received %zu.\n", fieldCount);
-    return EXIT_FAILURE;
-  }
-
-  *address = (DataAddress){0};
-
-  /* Field zero is database column one: HouseNumber. */
-  for (size_t i = 0; i < 11; ++i) {
-    if (fields[i][0] == '\0') {
-	    address->nullFields |= (uint16_t)(1u << (i + 1));
-    }
-  }
-
-  const size_t textIndexes[] = {0, 1, 2, 4, 7, 8};
-
-  char *destinations[] = {
-    address->HouseNumber,
-    address->FracAddress,
-    address->PreStreet,
-    address->PostStreet,
-    address->zipcode,
-    address->zip4
-  };
-
-  const size_t capacities[] = {
-    sizeof(address->HouseNumber),
-    sizeof(address->FracAddress),
-    sizeof(address->PreStreet),
-    sizeof(address->PostStreet),
-    sizeof(address->zipcode),
-    sizeof(address->zip4)
-  };
-
-  for (size_t i = 0; i < 6; ++i) {
-    const char *value = fields[textIndexes[i]];
-    size_t length = strlen(value);
-
-    if (length >= capacities[i]) {
-      fprintf(stderr, "Address field %zu is too long.\n",  textIndexes[i] + 1);
-      return EXIT_FAILURE;
+    if (line[1] != '\0' && line[1] != '\n') {
+      printf("Enter one query letter.\n");
+      continue;
     }
 
-    memcpy(destinations[i], value, length + 1);
-	}
+    if (choice == 'Q') { return EXIT_SUCCESS; }
 
-  const size_t numericIndexes[] = {3, 5, 6, 9};
+    const QueryDefinition *query = NULL;
 
-  uint32_t *numericDestinations[] = {
-    &address->DataStreet_ID,
-    &address->DataCity_ID,
-    &address->DataCounty_ID,
-    &address->Cordinate_ID
-  };
-
-  for (size_t i = 0; i < 4; ++i) {
-    const char *value = fields[numericIndexes[i]];
-
-    if (*value == '\0') {
-	    continue; /* SQL NULL */
-    }
-
-    if (strspn(value, "0123456789") != strlen(value)) {
-      fprintf(stderr, "Field %zu must be an unsigned integer.\n", numericIndexes[i] + 1);
-      return EXIT_FAILURE;
+    for (size_t i = 0; i < queryCount; ++i) {
+      if (queries[i].key == choice) {
+        query = &queries[i];
+        break;
+    	}
   	}
 
-    char *end;
-    errno = 0;
-    uintmax_t number = strtoumax(value, &end, 10);
-
-    if (errno != 0 || *end != '\0' || number > UINT32_MAX) {
-      fprintf(stderr, "Field %zu is outside the uint32_t range.\n", numericIndexes[i] + 1);
-      return EXIT_FAILURE;
-  	}
-
-    *numericDestinations[i] = (uint32_t)number;
-  }
-
-  if (fields[10][0] != '\0') {
-    const char *value = fields[10];
-    const char *digits = (*value == '-') ? value + 1 : value;
-
-    if (*digits == '\0' || strspn(digits, "0123456789") != strlen(digits)) {
-      fprintf(stderr, "OSM ID must be a signed integer.\n");
-      return EXIT_FAILURE;
+    if (query == NULL) {
+      printf("Unknown query type.\n");
+      continue;
     }
 
-    char *end;
-    errno = 0;
-    intmax_t number = strtoimax(value, &end, 10);
-
-    if (errno != 0 || *end != '\0' ||  number < INT64_MIN || number > INT64_MAX) {
-      fprintf(stderr, "OSM ID is outside the int64_t range.\n");
-      return EXIT_FAILURE;
-    }
-
-    address->PG_OSM_osmid = (int64_t)number;
-  }
-
-  return EXIT_SUCCESS;
-}
-
-static int RunQueryLoops(
-    MYSQL *db,
-    const QueryDefinition *queries,
-    size_t queryCount)
-{
-    char line[4096];
+    printf("\n%s\n", query->label);
+    printf("Empty line returns to the menu. Ctrl+D quits.\n");
 
     while (1) {
-        int status = ReadQueryLine(
-            "\nQuery type: "
-            "(F)irst, (M)iddle, (L)ast, "
-            "(A)ddress, (C)ounty, (D)istrict, "
-            "(Y)District cycle, (T)emporal, "
-            "(H)ouse, (V)oter, (I)nfo, "
-            "(X)ndex, (Q)uit: ",
-            line,
-            sizeof(line));
+      status = ReadQueryLine(query->prompt, line, sizeof(line));
 
-        if (status == 0) {
-            return EXIT_SUCCESS;
-        }
+	    if (status == 0) { return EXIT_SUCCESS; }
+	    if (status == -2) { return EXIT_FAILURE; }
+	    if (status == -1) { continue;}
+	    if (line[0] == '\0') { break; }
+	    void *record = calloc(1, query->recordSize);
 
-        if (status == -2) {
-            return EXIT_FAILURE;
-        }
+	    if (record == NULL) {
+        fprintf(stderr, "Memory allocation failed.\n");
+        return EXIT_FAILURE;
+	    }
 
-        if (status == -1 || line[0] == '\0') {
-            continue;
-        }
+	    if (query->parse(line, record) != EXIT_SUCCESS) {
+        free(record);
+        continue;
+	    }
 
-        char choice = (char)toupper((unsigned char)line[0]);
+	    double start = NowMilliseconds();
+	    int memoryStatus = query->findMemory(query->hashTable, record);
+	    double memoryMs = NowMilliseconds() - start;
+	    printf("\n--- Memory hash search ---\n");
 
-        if (line[1] != '\0' && line[1] != '\n') {
-            printf("Enter one query letter.\n");
-            continue;
-        }
+	    if (memoryStatus == 0) {
+        printf("No memory match found.\n");
+	    } else if (query->print != NULL) {
+        query->print(record);
+	    }
 
-        if (choice == 'Q') {
-            return EXIT_SUCCESS;
-        }
-
-        const QueryDefinition *query = NULL;
-
-        for (size_t i = 0; i < queryCount; ++i) {
-            if (queries[i].key == choice) {
-                query = &queries[i];
-                break;
-            }
-        }
-
-        if (query == NULL) {
-            printf("Unknown query type.\n");
-            continue;
-        }
-
-        printf("\n%s\n", query->label);
-        printf("Empty line returns to the menu. Ctrl+D quits.\n");
-
-        while (1) {
-            status = ReadQueryLine(
-                query->prompt,
-                line,
-                sizeof(line));
-
-            if (status == 0) {
-                return EXIT_SUCCESS;
-            }
-
-            if (status == -2) {
-                return EXIT_FAILURE;
-            }
-
-            if (status == -1) {
-                continue;
-            }
-
-            if (line[0] == '\0') {
-                break;
-            }
-
-            void *record = calloc(1, query->recordSize);
-
-            if (record == NULL) {
-                fprintf(stderr, "Memory allocation failed.\n");
-                return EXIT_FAILURE;
-            }
-
-            if (query->parse(line, record) != EXIT_SUCCESS) {
-                free(record);
-                continue;
-            }
-
-            double start = NowMilliseconds();
-
-            int memoryStatus =
-                query->findMemory(query->hashTable, record);
-
-            double memoryMs = NowMilliseconds() - start;
-
-            printf("\n--- Memory hash search ---\n");
-
-            if (memoryStatus == 0) {
-                printf("No memory match found.\n");
-            } else if (query->print != NULL) {
-                query->print(record);
-            }
-
-            printf("Memory search: %.6f ms\n", memoryMs);
-
-            printf("\n--- Database search ---\n");
-
-            start = NowMilliseconds();
-
-            int databaseStatus =
-                query->findDatabase(db, record);
-
-            double databaseMs = NowMilliseconds() - start;
-
-            printf("Database search: %.6f ms\n", databaseMs);
-
-            if (databaseStatus != EXIT_SUCCESS) {
-                fprintf(stderr, "Database search failed.\n");
-            }
-
-            free(record);
-        }
+	    printf("Memory search: %.6f ms\n", memoryMs);
+	    printf("\n--- Database search ---\n");
+	    start = NowMilliseconds();
+	    int databaseStatus = query->findDatabase(db, record);
+	    double databaseMs = NowMilliseconds() - start;
+      printf("Database search: %.6f ms\n", databaseMs);
+      if (databaseStatus != EXIT_SUCCESS) {
+        fprintf(stderr, "Database search failed.\n");
+      }
+      free(record);
     }
+	}
 }
+

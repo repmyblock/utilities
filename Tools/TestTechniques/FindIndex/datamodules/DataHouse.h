@@ -40,13 +40,8 @@ void FreeHouseHashTable(HouseHashTable *);
 int LoadHouseIntoMemory(MYSQL *, DataHouse **, size_t *);
 
 
-int QueryDistrictTemporalMemory(
-    const void *hashTable,
-    const void *record);
-
-int QueryDistrictTemporalDatabase(
-    MYSQL *db,
-    const void *record);
+int QueryHouseMemory(const void *hashTable,const void *record);
+int QueryHouseDatabase(MYSQL *db,const void *record);
 #endif
 
 

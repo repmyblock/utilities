@@ -1,7 +1,7 @@
 #ifndef VOTER_COMPLEMENT_INFO_H
 #define VOTER_COMPLEMENT_INFO_H
 #include "RecordHash.h"
-#include <mysql/mysql.h>
+
 typedef struct {
     uint32_t ID;
     /* Bit N: SQL NULL in field N below, counting ID as column zero. */

@@ -1,7 +1,7 @@
 #ifndef DATA_DISTRICT_H
 #define DATA_DISTRICT_H
 #include "RecordHash.h"
-#include <mysql/mysql.h>
+
 typedef struct {
     uint32_t ID;
     /* Bit N: SQL NULL in field N below, counting ID as column zero. */
@@ -51,14 +51,8 @@ void FreeDistrictHashTable(DistrictHashTable *);
 /* Caller owns the array; NULL fields are recorded in nullFields. */
 int LoadDistrictIntoMemory(MYSQL *, DataDistrict **, size_t *);
 
-
-int QueryCountyMemory(
-    const void *hashTable,
-    const void *record);
-
-int QueryCountyDatabase(
-    MYSQL *db,
-    const void *record);
-
+int QueryDistrictMemory(const void *hashTable,const void *record);
+int QueryDistrictDatabase(MYSQL *db,const void *record);
+static int ParseDistrictQuery(char *line, void *record);
 
 #endif
