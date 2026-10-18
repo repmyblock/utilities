@@ -37,7 +37,7 @@ $(GENERATED_HEADER): FORCE $(MODULE_HEADERS)
 
 FindMultiIndex.o: FindMultiIndex.h $(GENERATED_HEADER)
 
-FindMultiIndex: $(MULTI_OBJECTS)
+FindMultiIndex: $(MULTI_OBJECTS) 
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 FindIndexCode: $(INDEX_OBJECTS)

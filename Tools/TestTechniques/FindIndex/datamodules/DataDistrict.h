@@ -3,34 +3,36 @@
 #include "RecordHash.h"
 
 typedef struct {
-    uint32_t ID;
-    /* Bit N: SQL NULL in field N below, counting ID as column zero. */
-    uint32_t nullFields;
-    char ZipCode[21];
-    char DBTable[401];
-    char DBTableValue[401];
-    uint32_t DataCounty_ID;
-    uint32_t DataDistrictTown_ID;
-    uint16_t Electoral;
-    uint16_t StateAssembly;
-    uint8_t  StateSenate;
-    uint16_t Legislative;
-    char Ward[13];
-    uint8_t Congress;
+  uint32_t ID;
+  /* Bit N: SQL NULL in field N below, counting ID as column zero. */
+  uint32_t nullFields;
+  char ZipCode[21];
+  char DBTable[401];
+  char DBTableValue[401];
+  uint32_t DataCounty_ID;
+  uint32_t DataDistrictTown_ID;
+  uint16_t Electoral;
+  uint16_t StateAssembly;
+  uint8_t  StateSenate;
+  uint16_t Legislative;
+  char Ward[13];
+  uint8_t Congress;
 } DataDistrict;
+
 enum {
-    DISTRICT_FIELD_ZIPCODE = 1,
-    DISTRICT_FIELD_DBTABLE = 2,
-    DISTRICT_FIELD_DBTABLEVALUE = 3,
-    DISTRICT_FIELD_DATACOUNTY_ID = 4,
-    DISTRICT_FIELD_DATADISTRICTTOWN_ID = 5,
-    DISTRICT_FIELD_ELECTORAL = 6,
-    DISTRICT_FIELD_STATEASSEMBLY = 7,
-    DISTRICT_FIELD_STATESENATE = 8,
-    DISTRICT_FIELD_LEGISLATIVE = 9,
-    DISTRICT_FIELD_WARD = 10,
-    DISTRICT_FIELD_CONGRESS = 11
+  DISTRICT_FIELD_ZIPCODE = 1,
+  DISTRICT_FIELD_DBTABLE = 2,
+  DISTRICT_FIELD_DBTABLEVALUE = 3,
+  DISTRICT_FIELD_DATACOUNTY_ID = 4,
+  DISTRICT_FIELD_DATADISTRICTTOWN_ID = 5,
+  DISTRICT_FIELD_ELECTORAL = 6,
+  DISTRICT_FIELD_STATEASSEMBLY = 7,
+  DISTRICT_FIELD_STATESENATE = 8,
+  DISTRICT_FIELD_LEGISLATIVE = 9,
+  DISTRICT_FIELD_WARD = 10,
+  DISTRICT_FIELD_CONGRESS = 11
 };
+
 typedef struct DistrictHashTable DistrictHashTable;
 typedef RecordLookupResult DistrictLookupResult;
 typedef RecordMatch DistrictMatch;

@@ -70,7 +70,7 @@ void PrintHashMatches(
 
 void FreeNameHashTable(NameHashTable *);
 
-static int ParseAddressRecord(char *line, void *record);
+int ParseAddressRecord(char *line, void *record);
 
 /*
 	int RunQueryLoops(MYSQL *, const QueryDefinition *, size_t);

@@ -7,20 +7,20 @@ static double NowMilliseconds(void);
 static int ReadQueryLine(const char *, char *, size_t);
 static int RunQueryLoops(MYSQL *, const QueryDefinition *, size_t);
 
-static int ParseAddressQuery(char *, DataAddress *);
+// int ParseAddressQuery(char *, DataAddress *);
 
-static int ParseCountyQuery(char *, void *);
-static int ParseAddressRecord(char *, void *);
-static int ParseDistrictQuery(char *, void *);
-static int ParseDistrictCycleQuery(char *, void *);
-static int ParseDistrictTemporalQuery(char *, void *);
-static int ParseHouseQuery(char *, void *);
-static int ParseVoterComplementInfoQuery(char *, void *);
-static int ParseVoterIndexQuery(char *, void *);
-static int ParseVoterQuery(char *, void *);
+int ParseCountyQuery(char *, void *);
+int ParseDistrictQuery(char *, void *);
+int ParseDistrictCycleQuery(char *, void *);
+int ParseDistrictTemporalQuery(char *, void *);
+int ParseHouseQuery(char *, void *);
+int ParseVoterComplementInfoQuery(char *, void *);
+int ParseVoterIndexQuery(char *, void *);
+int ParseVoterQuery(char *, void *);
+int IsValidISODate(const char *);
 
 static uint64_t HashName(const char *);
-static int IsValidISODate(const char *);
+
 
 static void PrintModuleLoad(const char *label, size_t count, size_t recordSize, double elapsedMs) {
   uint64_t totalMs=(uint64_t)(elapsedMs+0.5);
@@ -63,6 +63,23 @@ int main(void) {
   Voter *VoterRows = NULL;
   VoterComplementInfo *VoterComplementInfoRows = NULL;
   VoterIndex *VoterIndexRows = NULL;
+  
+
+	/*  
+  int status = LoadMemory( "RepMyBlock.memory", &addresses, &countAddresses, &CountyRows, &CountyCount,
+    &DistrictRows, &DistrictCount, &DistrictCycleRows, &DistrictCycleCount, &DistrictTemporalRows,
+    &DistrictTemporalCount, &HouseRows, &HouseCount, &VoterRows, &VoterCount, &VoterComplementInfoRows,
+    &VoterComplementInfoCount, &VoterIndexRows, &VoterIndexCount, &FirstName, &countFirstName, &MiddleName,
+    &countMiddleName, &LastName, &countLastName);
+	*/
+	
+	if (status != EXIT_SUCCESS) {
+	    fprintf(stderr, "Could not load memory snapshot.\n");
+	    return EXIT_FAILURE;
+	}
+  
+  
+  
   
   printf("Starting to load\n");
   double start = NowMilliseconds();
@@ -136,6 +153,15 @@ int main(void) {
   if (!VoterIndexTable) { fprintf(stderr, "VoterIndex index failed.\n"); goto cleanup; }
   PrintModuleLoad("VoterIndex", VoterIndexCount, sizeof(*VoterIndexRows), NowMilliseconds()-start);
   free(VoterIndexRows); VoterIndexRows = NULL;
+
+	if (SaveMemory("RepMyBlock.memory", addresses, countAddresses, CountyRows, CountyCount,
+					        DistrictRows, DistrictCount, DistrictCycleRows, DistrictCycleCount,
+					        DistrictTemporalRows, DistrictTemporalCount, HouseRows, HouseCount,
+					        VoterRows, VoterCount, VoterComplementInfoRows, VoterComplementInfoCount,
+					        VoterIndexRows, VoterIndexCount, FirstName, countFirstName, MiddleName,
+					        countMiddleName, LastName, countLastName) != EXIT_SUCCESS) {
+	    fprintf(stderr, "Could not save memory snapshot.\n");
+	}
 
 	/*
   for (size_t i=0; i<3; ++i) {
@@ -672,4 +698,67 @@ static int RunQueryLoops(MYSQL *db, const QueryDefinition *queries, size_t query
       free(record);
     }
 	}
+	
+	
+}
+
+
+int IsValidISODate(const char *date)
+{
+    if (date == NULL || strlen(date) != 10) {
+        return 0;
+    }
+
+    if (date[4] != '-' || date[7] != '-') {
+        return 0;
+    }
+
+    for (size_t i = 0; i < 10; ++i) {
+        if (i == 4 || i == 7) {
+            continue;
+        }
+
+        if (!isdigit((unsigned char)date[i])) {
+            return 0;
+        }
+    }
+
+    int year =
+        (date[0] - '0') * 1000 +
+        (date[1] - '0') * 100 +
+        (date[2] - '0') * 10 +
+        (date[3] - '0');
+
+    int month =
+        (date[5] - '0') * 10 +
+        (date[6] - '0');
+
+    int day =
+        (date[8] - '0') * 10 +
+        (date[9] - '0');
+
+    if (month < 1 || month > 12) {
+        return 0;
+    }
+
+    static const int daysInMonth[12] = {
+        31, 28, 31, 30, 31, 30,
+        31, 31, 30, 31, 30, 31
+    };
+
+    int maxDay = daysInMonth[month - 1];
+
+    int leapYear =
+        (year % 400 == 0) ||
+        (year % 4 == 0 && year % 100 != 0);
+
+    if (month == 2 && leapYear) {
+        maxDay = 29;
+    }
+
+    if (day < 1 || day > maxDay) {
+        return 0;
+    }
+
+    return 1;
 }

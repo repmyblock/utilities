@@ -46,7 +46,7 @@ void FreeAddressMatch(AddressMatch *match) {
   };
 }
 
-static int ParseAddressQuery(char *line, DataAddress *address) {
+int ParseAddressQuery(char *line, DataAddress *address) {
   char *fields[11];
   size_t fieldCount = 1;
 
@@ -170,8 +170,7 @@ static int ParseAddressQuery(char *line, DataAddress *address) {
   return EXIT_SUCCESS;
 }
 
-
-static int ParseAddressRecord(char *line, void *record) {
+int ParseAddressRecord(char *line, void *record) {
   if (line == NULL || record == NULL) {
   	return EXIT_FAILURE;
   }

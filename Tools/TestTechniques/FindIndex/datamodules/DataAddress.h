@@ -78,8 +78,8 @@ void FreeAddressHashTable(AddressHashTable *);
 int FindAddressInDB(MYSQL *, const DataAddress *);
 int QueryAddressMemory(const void *hashTable, const void *record);
 int QueryAddressDatabase(MYSQL *db,const void *record);
-static int ParseAddressQuery(char *,DataAddress *);
-static int ParseAddressRecord(char *,void *);
+int ParseAddressQuery(char *,DataAddress *);
+int ParseAddressRecord(char *,void *);
 int ParseAddressRecord(char *line, void *record);
 
 #endif

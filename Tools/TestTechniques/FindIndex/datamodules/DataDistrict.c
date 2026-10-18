@@ -85,7 +85,7 @@ int QueryDistrictMemory(const void *hashTable, const void *record) {
   return result;
 }
 
-static int ParseDistrictQuery(char *line, void *output) {
+int ParseDistrictQuery(char *line, void *output) {
   if (line == NULL || output == NULL) {
   	return EXIT_FAILURE;
   }
@@ -190,108 +190,3 @@ static int ParseDistrictQuery(char *line, void *output) {
   return EXIT_SUCCESS;
 }
 
-int ParseDistrictQuery(char *line, void *record)
-{
-    if (line == NULL || record == NULL) {
-        fprintf(stderr, "Invalid district query.\n");
-        return EXIT_FAILURE;
-    }
-
-    DataDistrict *district = record;
-    memset(district, 0, sizeof(*district));
-
-    char *field[11] = {0};
-    char *cursor = line;
-
-    for (size_t i = 0; i < 11; ++i) {
-        field[i] = cursor;
-
-        if (cursor == NULL) {
-            field[i] = (char *)"";
-            continue;
-        }
-
-        char *comma = strchr(cursor, ',');
-
-        if (comma != NULL) {
-            *comma = '\0';
-            cursor = comma + 1;
-        } else {
-            cursor = NULL;
-        }
-    }
-
-    if (cursor != NULL) {
-        fprintf(stderr, "Expected 11 district fields.\n");
-        return EXIT_FAILURE;
-    }
-
-#define EMPTY(n) (field[n] == NULL || field[n][0] == '\0')
-
-#define TEXT_FIELD(n, member, bit)                         \
-    do {                                                    \
-        if (EMPTY(n)) {                                     \
-            district->nullFields |= (uint16_t)(1u << bit);  \
-        } else {                                            \
-            snprintf(district->member,                    \
-                     sizeof(district->member),             \
-                     "%s", field[n]);                      \
-        }                                                   \
-    } while (0)
-
-#define U32_FIELD(n, member, bit)                           \
-    do {                                                    \
-        if (EMPTY(n)) {                                     \
-            district->nullFields |= (uint16_t)(1u << bit);  \
-        } else if (sscanf(field[n], "%" SCNu32,             \
-                          &district->member) != 1) {        \
-            fprintf(stderr, "Invalid numeric field: %s\n", field[n]); \
-            return EXIT_FAILURE;                            \
-        }                                                   \
-    } while (0)
-
-#define U16_FIELD(n, member, bit)                           \
-    do {                                                    \
-        if (EMPTY(n)) {                                     \
-            district->nullFields |= (uint16_t)(1u << bit);  \
-        } else if (sscanf(field[n], "%" SCNu16,             \
-                          &district->member) != 1) {        \
-            fprintf(stderr, "Invalid numeric field: %s\n", field[n]); \
-            return EXIT_FAILURE;                            \
-        }                                                   \
-    } while (0)
-
-#define U8_FIELD(n, member, bit)                            \
-    do {                                                    \
-        unsigned int value;                                 \
-        if (EMPTY(n)) {                                     \
-            district->nullFields |= (uint16_t)(1u << bit);  \
-        } else if (sscanf(field[n], "%u", &value) != 1 ||  \
-                   value > UINT8_MAX) {                     \
-            fprintf(stderr, "Invalid numeric field: %s\n", field[n]); \
-            return EXIT_FAILURE;                            \
-        } else {                                            \
-            district->member = (uint8_t)value;              \
-        }                                                   \
-    } while (0)
-
-    TEXT_FIELD(0, ZipCode, 0);
-    TEXT_FIELD(1, DBTable, 1);
-    TEXT_FIELD(2, DBTableValue, 2);
-    U32_FIELD(3, DataCounty_ID, 3);
-    U32_FIELD(4, DataDistrictTown_ID, 4);
-    U16_FIELD(5, Electoral, 5);
-    U16_FIELD(6, StateAssembly, 6);
-    U8_FIELD(7, StateSenate, 7);
-    U16_FIELD(8, Legislative, 8);
-    TEXT_FIELD(9, Ward, 9);
-    U8_FIELD(10, Congress, 10);
-
-#undef EMPTY
-#undef TEXT_FIELD
-#undef U32_FIELD
-#undef U16_FIELD
-#undef U8_FIELD
-
-    return EXIT_SUCCESS;
-}
