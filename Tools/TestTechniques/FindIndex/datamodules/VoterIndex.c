@@ -38,18 +38,38 @@ void FreeVoterIndexHashTable(VoterIndexHashTable *table) {
 	} 
 }
 
-int LoadVoterIndexIntoMemory(MYSQL *db, VoterIndex **rows, size_t *count) {
-  if (!rows || !count) return EXIT_FAILURE;
-  *rows = NULL; *count = 0;
+int LoadVoterIndexIntoMemory(MYSQL *db, VoterIndex **rows, size_t *count, size_t limit) {
+  if (rows == NULL || count == NULL) return EXIT_FAILURE;
+  *rows = NULL;
+  *count = 0;
+
+  if (db == NULL) return EXIT_FAILURE;
+
+  const char *select = "SELECT VotersIndexes_ID, DataLastName_ID, DataFirstName_ID, DataMiddleName_ID, "
+								        "VotersIndexes_Suffix, VotersIndexes_DOB, DataState_ID, VotersIndexes_UniqStateVoterID "
+								        "FROM VotersIndexes";
+  char query[512];
+  int queryLength;
+  if (limit == 0) queryLength = snprintf(query, sizeof(query), "%s", select);
+  else queryLength = snprintf(query, sizeof(query), "%s LIMIT %zu", select, limit);
+
+  if (queryLength < 0 || (size_t)queryLength >= sizeof(query)) {
+    fprintf(stderr, "Voter-index query is too long.\n");
+    return EXIT_FAILURE;
+  }
+
   void *data = NULL;
-  int status = LoadRecordArray(db,
-    "SELECT `VotersIndexes_ID`, `DataLastName_ID`, `DataFirstName_ID`, `DataMiddleName_ID`, " 
-    "`VotersIndexes_Suffix`, `VotersIndexes_DOB`, `DataState_ID`, `VotersIndexes_UniqStateVoterID` " 
-    "FROM `VotersIndexes`",
-    sizeof(VoterIndex), offsetof(VoterIndex, ID), offsetof(VoterIndex, nullFields),
-    fields, sizeof(fields)/sizeof(fields[0]), &data, count);
+  int status = LoadRecordArray(db, query, sizeof(VoterIndex), offsetof(VoterIndex, ID), offsetof(VoterIndex, nullFields),
+     														fields, sizeof(fields) / sizeof(fields[0]), &data, count);
+
+  if (status != EXIT_SUCCESS) {
+    free(data);
+    *count = 0;
+    return status;
+  }
+
   *rows = data;
-	return status;
+  return EXIT_SUCCESS;
 }
 
 int QueryVoterIndexMemory(const void *hashTable, const void *record) {
@@ -100,8 +120,7 @@ int ParseVoterIndexQuery(char *line, void *output) {
         return EXIT_FAILURE;
     }
 
-    VoterIndex *index =
-        (VoterIndex *)output;
+    VoterIndex *index = (VoterIndex *)output;
 
     memset(index, 0, sizeof(*index));
 

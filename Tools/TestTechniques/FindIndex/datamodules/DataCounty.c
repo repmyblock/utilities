@@ -86,7 +86,7 @@ int QueryCountyDatabase(MYSQL *db, const void *record) {
   input[0].buffer = (void *)&county->DataState_ID;
 
   input[1].buffer_type = MYSQL_TYPE_STRING;
-  input[1].buffer = county->Name;
+  // input[1].buffer = county->Name;
   input[1].buffer_length = sizeof(county->Name);
   input[1].length = &nameLength;
 

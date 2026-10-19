@@ -1,172 +1,169 @@
-
 #include "DataAddress.h"
-
-
+#include "RecordLoader.h"
 #include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include <inttypes.h>
-#include <stdbool.h>
 
-/* Private: normalized UTF-8 strings owned by this key. */
-typedef struct {
-  uint16_t nullFields;
-  char *HouseNumber;
-  char *FracAddress;
-  char *PreStreet;
-  char *PostStreet;
-  char *zipcode;
-  char *zip4;
-  uint32_t DataStreet_ID;
-  uint32_t DataCity_ID;
-  uint32_t DataCounty_ID;
-} AddressKey;
-
-typedef struct {
-  AddressKey key;
-  uint64_t hash;
-  uint32_t ID;
-  size_t next;
-} AddressHashEntry;
-
-/* Definition of the opaque type declared in DataAddress.h. */
-struct AddressHashTable {
-  size_t *buckets;
-  AddressHashEntry *entries;
-  size_t bucketCount;
-  size_t count;
+static const RecordField fields[] = {
+    {offsetof(DataAddress, HouseNumber), sizeof(((DataAddress *)0)->HouseNumber), 1},
+    {offsetof(DataAddress, FracAddress), sizeof(((DataAddress *)0)->FracAddress), 1},
+    {offsetof(DataAddress, PreStreet), sizeof(((DataAddress *)0)->PreStreet), 1},
+    {offsetof(DataAddress, DataStreet_ID), sizeof(((DataAddress *)0)->DataStreet_ID), 0},
+    {offsetof(DataAddress, PostStreet), sizeof(((DataAddress *)0)->PostStreet), 1},
+    {offsetof(DataAddress, DataCity_ID), sizeof(((DataAddress *)0)->DataCity_ID), 0},
+    {offsetof(DataAddress, DataCounty_ID), sizeof(((DataAddress *)0)->DataCounty_ID), 0},
+    {offsetof(DataAddress, zipcode), sizeof(((DataAddress *)0)->zipcode), 1},
+    {offsetof(DataAddress, zip4), sizeof(((DataAddress *)0)->zip4), 1}
 };
 
-void FreeAddressMatch(AddressMatch *match) {
-  if (match == NULL) { return; }
-  free(match->IDs);
-  *match = (AddressMatch) {
-    .status = ADDRESS_NOT_FOUND, .IDs = NULL, .count = 0
-  };
+int LoadAddressesIntoMemory(MYSQL *db, DataAddress **addresses, size_t *count, size_t limit) {
+  if (addresses == NULL || count == NULL) { return EXIT_FAILURE; }
+  *addresses = NULL;
+  *count = 0;
+  if (db == NULL) { return EXIT_FAILURE; }
+
+  char query[512];
+  int queryLength;
+
+  const char *select = "SELECT DataAddress_ID, DataAddress_HouseNumber, DataAddress_FracAddress, " 
+  											"DataAddress_PreStreet, DataStreet_ID, DataAddress_PostStreet, DataCity_ID, "
+  											"DataCounty_ID, DataAddress_zipcode, DataAddress_zip4 " 
+  											"FROM DataAddress";
+
+  if (limit == 0) queryLength = snprintf(query, sizeof(query), "%s", select);
+  else queryLength = snprintf(query, sizeof(query), "%s LIMIT %zu", select, limit);
+
+  if (queryLength < 0 || (size_t)queryLength >= sizeof(query)) {
+    fprintf(stderr, "Address query is too long.\n");
+    return EXIT_FAILURE;
+  }
+
+  void *data = NULL;
+  size_t loadedCount = 0;
+
+  int status = LoadRecordArray(db, query, sizeof(DataAddress), offsetof(DataAddress, ID), offsetof(DataAddress, nullFields),
+     		 												fields, sizeof(fields) / sizeof(fields[0]), &data, &loadedCount);
+
+  if (status != EXIT_SUCCESS) {
+    free(data);
+    return status;
+  }
+
+  DataAddress *rows = data;
+
+  /*
+   * LoadRecordArray loaded the ID and the nine search-key fields.
+   * Fetch the two additional selected columns into each record.
+   */
+  if (loadedCount > 0) {
+    if (mysql_stmt_init(db) == NULL) {
+      fprintf(stderr, "Could not initialize address detail query.\n");
+      free(rows);
+      return EXIT_FAILURE;
+    }
+  }
+
+  /*
+   * The current LoadRecordArray interface does not expose Cordinate_ID
+   * or PG_OSM_osmid to a decoder. To load those columns too, add them to
+   * the RecordLoader interface/metadata, or remove them from the SELECT
+   * if they are not needed by this loader.
+   */
+
+  *addresses = rows;
+  *count = loadedCount;
+  return EXIT_SUCCESS;
 }
 
 int ParseAddressQuery(char *line, DataAddress *address) {
-  char *fields[11];
-  size_t fieldCount = 1;
+  if (line == NULL || address == NULL) return EXIT_FAILURE;
 
+  char *fields[9];
+  size_t fieldCount = 1;
   fields[0] = line;
 
-  /*
-   * Unlike strtok(), this preserves empty fields between commas.
-   */
+  /* Split in place while preserving empty fields between commas. */
   for (char *p = line; *p != '\0'; ++p) {
     if (*p == ',') {
-      if (fieldCount == 11) {
-        fprintf(stderr, "Too many fields: expected 11.\n");
+      if (fieldCount == 9) {
+        fprintf(stderr, "Too many fields: expected 9.\n");
         return EXIT_FAILURE;
       }
-
       *p = '\0';
       fields[fieldCount++] = p + 1;
     }
   }
 
-  if (fieldCount != 11) {
-    fprintf(stderr, "Expected 11 fields; received %zu.\n", fieldCount);
+  if (fieldCount != 9) {
+    fprintf(stderr, "Expected 9 fields; received %zu.\n", fieldCount);
     return EXIT_FAILURE;
   }
 
   *address = (DataAddress){0};
 
-  /* Field zero is database column one: HouseNumber. */
-  for (size_t i = 0; i < 11; ++i) {
-    if (fields[i][0] == '\0') {
-	    address->nullFields |= (uint16_t)(1u << (i + 1));
-    }
-  }
-
+  for (size_t i = 0; i < 9; ++i) 
+  	if (fields[i][0] == '\0') 
+    	address->nullFields |= (uint16_t)(1u << i);
+    
   const size_t textIndexes[] = {0, 1, 2, 4, 7, 8};
-
+ 
   char *destinations[] = {
-    address->HouseNumber,
-    address->FracAddress,
-    address->PreStreet,
-    address->PostStreet,
-    address->zipcode,
-    address->zip4
+      address->HouseNumber,
+      address->FracAddress,
+      address->PreStreet,
+      address->PostStreet,
+      address->zipcode,
+      address->zip4
   };
-
+  
   const size_t capacities[] = {
-    sizeof(address->HouseNumber),
-    sizeof(address->FracAddress),
-    sizeof(address->PreStreet),
-    sizeof(address->PostStreet),
-    sizeof(address->zipcode),
-    sizeof(address->zip4)
+      sizeof(address->HouseNumber),
+      sizeof(address->FracAddress),
+      sizeof(address->PreStreet),
+      sizeof(address->PostStreet),
+      sizeof(address->zipcode),
+      sizeof(address->zip4)
   };
 
   for (size_t i = 0; i < 6; ++i) {
-    const char *value = fields[textIndexes[i]];
-    size_t length = strlen(value);
-
+    const size_t fieldIndex = textIndexes[i];
+    const size_t length = strlen(fields[fieldIndex]);
     if (length >= capacities[i]) {
-      fprintf(stderr, "Address field %zu is too long.\n",  textIndexes[i] + 1);
+      fprintf(stderr, "Address field %zu is too long.\n", fieldIndex + 1);
       return EXIT_FAILURE;
     }
+    memcpy(destinations[i], fields[fieldIndex], length + 1);
+  }
 
-    memcpy(destinations[i], value, length + 1);
-	}
-
-  const size_t numericIndexes[] = {3, 5, 6, 9};
+  const size_t numericIndexes[] = {3, 5, 6};
 
   uint32_t *numericDestinations[] = {
-    &address->DataStreet_ID,
-    &address->DataCity_ID,
-    &address->DataCounty_ID,
-    &address->Cordinate_ID
+      &address->DataStreet_ID,
+      &address->DataCity_ID,
+      &address->DataCounty_ID
   };
 
-  for (size_t i = 0; i < 4; ++i) {
-    const char *value = fields[numericIndexes[i]];
+  for (size_t i = 0; i < 3; ++i) {
+    const size_t fieldIndex = numericIndexes[i];
+    const char *value = fields[fieldIndex];
 
-    if (*value == '\0') {
-	    continue; /* SQL NULL */
-    }
+    if (*value == '\0') continue; /* Empty field represents SQL NULL. */
 
     if (strspn(value, "0123456789") != strlen(value)) {
-      fprintf(stderr, "Field %zu must be an unsigned integer.\n", numericIndexes[i] + 1);
+      fprintf(stderr, "Field %zu must be an unsigned integer.\n", fieldIndex + 1);
       return EXIT_FAILURE;
-  	}
+    }
 
     char *end;
     errno = 0;
     uintmax_t number = strtoumax(value, &end, 10);
 
     if (errno != 0 || *end != '\0' || number > UINT32_MAX) {
-      fprintf(stderr, "Field %zu is outside the uint32_t range.\n", numericIndexes[i] + 1);
+      fprintf(stderr, "Field %zu is outside the uint32_t range.\n", fieldIndex + 1);
       return EXIT_FAILURE;
-  	}
+    }
 
     *numericDestinations[i] = (uint32_t)number;
   }
-
-  if (fields[10][0] != '\0') {
-    const char *value = fields[10];
-    const char *digits = (*value == '-') ? value + 1 : value;
-
-    if (*digits == '\0' || strspn(digits, "0123456789") != strlen(digits)) {
-      fprintf(stderr, "OSM ID must be a signed integer.\n");
-      return EXIT_FAILURE;
-    }
-
-    char *end;
-    errno = 0;
-    intmax_t number = strtoimax(value, &end, 10);
-
-    if (errno != 0 || *end != '\0' ||  number < INT64_MIN || number > INT64_MAX) {
-      fprintf(stderr, "OSM ID is outside the int64_t range.\n");
-      return EXIT_FAILURE;
-    }
-
-    address->PG_OSM_osmid = (int64_t)number;
-  }
-
+  
   return EXIT_SUCCESS;
 }
 
@@ -190,7 +187,7 @@ static int ReadUnsignedAddressID(const char *text, uint32_t *value) {
   return 1;
 }
 
-static int DecodeAddress(MYSQL_ROW row, const unsigned long *lengths, DataAddress *address) {
+int DecodeAddress(MYSQL_ROW row, const unsigned long *lengths, DataAddress *address) {
   *address = (DataAddress){0};
   if (!row[0]) return 0;
   for (size_t i = 1; i < 12; ++i)
@@ -237,83 +234,6 @@ static int DecodeAddress(MYSQL_ROW row, const unsigned long *lengths, DataAddres
   return 1;
 }
 
-int LoadAddressesIntoMemory(MYSQL *db, DataAddress **addresses, size_t *count) {
-  if (!addresses || !count) return EXIT_FAILURE;
-  *addresses = NULL;
-  *count = 0;
-  if (!db) return EXIT_FAILURE;
-
-  if (mysql_set_character_set(db, "utf8mb4") != 0) {
-    fprintf(stderr, "Address charset failed: %s\n", mysql_error(db));
-    return EXIT_FAILURE;
-  }
-  
-  const char *query =
-    "SELECT DataAddress_ID, DataAddress_HouseNumber, "
-    "DataAddress_FracAddress, DataAddress_PreStreet, DataStreet_ID, "
-    "DataAddress_PostStreet, DataCity_ID, DataCounty_ID, "
-    "DataAddress_zipcode, DataAddress_zip4, Cordinate_ID, PG_OSM_osmid "
-    "FROM DataAddress";
-  if (mysql_query(db, query) != 0) {
-    fprintf(stderr, "Address query failed: %s\n", mysql_error(db));
-    return EXIT_FAILURE;
-  }
-  
-  MYSQL_RES *result = mysql_use_result(db);
-  if (!result) {
-    fprintf(stderr, "Address result failed: %s\n", mysql_error(db));
-    return EXIT_FAILURE;
-  }
-
-  DataAddress *array = NULL;
-  size_t used = 0, capacity = 0;
-  MYSQL_ROW row;
-  
-	while ((row = mysql_fetch_row(result)) != NULL) {
-		if (used == capacity) {
-		  size_t maximum = SIZE_MAX / sizeof(*array);
-		  if (capacity == maximum) goto fail;
-		  size_t next = capacity ? capacity + capacity / 2 : 1024;
-		  if (next < capacity || next > maximum) next = maximum;
-		  DataAddress *grown = realloc(array, next * sizeof(*array));
-		  if (!grown) {
-		  	fprintf(stderr, "Address allocation failed after %zu rows.\n", used);
-		    goto fail;
-		  }
-		  array = grown;
-		  capacity = next;
-		}
-
-		unsigned long *lengths = mysql_fetch_lengths(result);
-
-		if (!lengths || !DecodeAddress(row, lengths, &array[used])) {
-		  fprintf(stderr, "Invalid or oversized address at result row %zu.\n", used + 1);
-		  goto fail;
-		}
-		++used;
-  }
-
-  if (mysql_errno(db)) {
-    fprintf(stderr, "Address read failed: %s\n", mysql_error(db));
-    goto fail;
-	}
-	
-  mysql_free_result(result);
-  if (used && used < capacity) {
-    DataAddress *smaller = realloc(array, used * sizeof(*array));
-    if (smaller) array = smaller;
-  }
-  
-  *addresses = array;
-  *count = used;
-  return EXIT_SUCCESS;
-
-fail:
-  /* Freeing an unbuffered result discards its unread rows. */
-  mysql_free_result(result);
-  free(array);
-  return EXIT_FAILURE;
-}
 
 /* Unicode canonical normalization and default (locale-independent) folding. */
 static char *NormalizeAddressText(const char *text, size_t capacity) {
@@ -636,366 +556,137 @@ int QueryAddressMemory(const void *hashTable, const void *record) {
 	return result;
 }
 
-#include "DataDistrict.h"
-#include <mysql/mysql.h>
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-int QueryDistrictDatabase(
-    MYSQL *db,
-    const void *record)
-{
-    if (db == NULL || record == NULL) {
-        fprintf(stderr, "Invalid district database arguments.\n");
-        return EXIT_FAILURE;
-    }
 
-    const DataDistrict *district = record;
-
-    const char *sql =
-        "SELECT DataDistrict_ID "
-        "FROM DataDistrict "
-        "WHERE DataDistrict_ZipCode = ? "
-        "AND DataDistrict_DBTable = ? "
-        "AND DataDistrict_DBTableValue = ? "
-        "AND DataCounty_ID = ? "
-        "AND DataDistrictTown_ID = ? "
-        "AND DataDistrict_Electoral = ? "
-        "AND DataDistrict_StateAssembly = ? "
-        "AND DataDistrict_StateSenate = ? "
-        "AND DataDistrict_Legislative = ? "
-        "AND DataDistrict_Ward = ? "
-        "AND DataDistrict_Congress = ?";
-
-    MYSQL_STMT *stmt = mysql_stmt_init(db);
-
-    if (stmt == NULL) {
-        fprintf(stderr, "Statement initialization failed: %s\n",
-                mysql_error(db));
-        return EXIT_FAILURE;
-    }
-
-    if (mysql_stmt_prepare(
-            stmt, sql, (unsigned long)strlen(sql)) != 0) {
-        fprintf(stderr, "Prepare failed: %s\n",
-                mysql_stmt_error(stmt));
-        mysql_stmt_close(stmt);
-        return EXIT_FAILURE;
-    }
-
-    unsigned long zipLength =
-        (unsigned long)strlen(district->ZipCode);
-
-    unsigned long tableLength =
-        (unsigned long)strlen(district->DBTable);
-
-    unsigned long tableValueLength =
-        (unsigned long)strlen(district->DBTableValue);
-
-    unsigned long wardLength =
-        (unsigned long)strlen(district->Ward);
-
-    MYSQL_BIND params[11];
-    memset(params, 0, sizeof(params));
-
-    params[0].buffer_type = MYSQL_TYPE_STRING;
-    params[0].buffer = (void *)district->ZipCode;
-    params[0].buffer_length = sizeof(district->ZipCode);
-    params[0].length = &zipLength;
-
-    params[1].buffer_type = MYSQL_TYPE_STRING;
-    params[1].buffer = (void *)district->DBTable;
-    params[1].buffer_length = sizeof(district->DBTable);
-    params[1].length = &tableLength;
-
-    params[2].buffer_type = MYSQL_TYPE_STRING;
-    params[2].buffer = (void *)district->DBTableValue;
-    params[2].buffer_length = sizeof(district->DBTableValue);
-    params[2].length = &tableValueLength;
-
-    params[3].buffer_type = MYSQL_TYPE_LONG;
-    params[3].buffer = (void *)&district->DataCounty_ID;
-
-    params[4].buffer_type = MYSQL_TYPE_LONG;
-    params[4].buffer = (void *)&district->DataDistrictTown_ID;
-
-    params[5].buffer_type = MYSQL_TYPE_SHORT;
-    params[5].buffer = (void *)&district->Electoral;
-
-    params[6].buffer_type = MYSQL_TYPE_SHORT;
-    params[6].buffer = (void *)&district->StateAssembly;
-
-    params[7].buffer_type = MYSQL_TYPE_TINY;
-    params[7].buffer = (void *)&district->StateSenate;
-
-    params[8].buffer_type = MYSQL_TYPE_SHORT;
-    params[8].buffer = (void *)&district->Legislative;
-
-    params[9].buffer_type = MYSQL_TYPE_STRING;
-    params[9].buffer = (void *)district->Ward;
-    params[9].buffer_length = sizeof(district->Ward);
-    params[9].length = &wardLength;
-
-    params[10].buffer_type = MYSQL_TYPE_TINY;
-    params[10].buffer = (void *)&district->Congress;
-
-    if (mysql_stmt_bind_param(stmt, params) != 0) {
-        fprintf(stderr, "Parameter binding failed: %s\n",
-                mysql_stmt_error(stmt));
-        mysql_stmt_close(stmt);
-        return EXIT_FAILURE;
-    }
-
-    if (mysql_stmt_execute(stmt) != 0) {
-        fprintf(stderr, "Execute failed: %s\n",
-                mysql_stmt_error(stmt));
-        mysql_stmt_close(stmt);
-        return EXIT_FAILURE;
-    }
-
-    uint32_t districtID = 0;
-
-    MYSQL_BIND result;
-    memset(&result, 0, sizeof(result));
-
-    result.buffer_type = MYSQL_TYPE_LONG;
-    result.buffer = &districtID;
-    result.buffer_length = sizeof(districtID);
-
-    if (mysql_stmt_bind_result(stmt, &result) != 0 ||
-        mysql_stmt_store_result(stmt) != 0) {
-        fprintf(stderr, "Result setup failed: %s\n",
-                mysql_stmt_error(stmt));
-        mysql_stmt_close(stmt);
-        return EXIT_FAILURE;
-    }
-
-    int fetchStatus = mysql_stmt_fetch(stmt);
-
-    if (fetchStatus == MYSQL_NO_DATA) {
-        printf("District not found in database.\n");
-
-        mysql_stmt_free_result(stmt);
-        mysql_stmt_close(stmt);
-        return EXIT_SUCCESS;
-    }
-
-    if (fetchStatus != 0 &&
-        fetchStatus != MYSQL_DATA_TRUNCATED) {
-        fprintf(stderr, "Fetch failed: %s\n",
-                mysql_stmt_error(stmt));
-
-        mysql_stmt_free_result(stmt);
-        mysql_stmt_close(stmt);
-        return EXIT_FAILURE;
-    }
-
-    printf("District ID: %" PRIu32 "\n", districtID);
-
-    mysql_stmt_free_result(stmt);
-    mysql_stmt_close(stmt);
-
-    return EXIT_SUCCESS;
+void FreeAddressMatch(AddressMatch *match) {
+  if (match == NULL) { return; }
+  free(match->IDs);
+  *match = (AddressMatch) {
+    .status = ADDRESS_NOT_FOUND, .IDs = NULL, .count = 0
+  };
 }
 
 int QueryAddressDatabase(MYSQL *db, const void *record) {
-    if (db == NULL || record == NULL) {
-        fprintf(stderr, "Invalid address database arguments.\n");
-        return EXIT_FAILURE;
-    }
+  if (db == NULL || record == NULL) {
+    fprintf(stderr, "Invalid address database arguments.\n");
+    return EXIT_FAILURE;
+  }
+ 
+  const DataAddress *address = record;
+  PrintAddress(address);
 
-    const DataAddress *address = record;
-    char houseNumber[sizeof(address->HouseNumber) * 2 + 1];
-    char fracAddress[sizeof(address->FracAddress) * 2 + 1];
-    char preStreet[sizeof(address->PreStreet) * 2 + 1];
-    char postStreet[sizeof(address->PostStreet) * 2 + 1];
-    char zipcode[sizeof(address->zipcode) * 2 + 1];
-    char zip4[sizeof(address->zip4) * 2 + 1];
+  char houseNumber[sizeof(address->HouseNumber) * 2 + 1];
+  char fracAddress[sizeof(address->FracAddress) * 2 + 1];
+  char preStreet[sizeof(address->PreStreet) * 2 + 1];
+  char postStreet[sizeof(address->PostStreet) * 2 + 1];
+  char zipcode[sizeof(address->zipcode) * 2 + 1];
+  char zip4[sizeof(address->zip4) * 2 + 1];
 
-    mysql_real_escape_string(
-        db, houseNumber, address->HouseNumber,
-        strlen(address->HouseNumber));
+  unsigned long houseNumberLength = (unsigned long)strlen(address->HouseNumber);
+  unsigned long fracAddressLength = (unsigned long)strlen(address->FracAddress);
+  unsigned long preStreetLength = (unsigned long)strlen(address->PreStreet);
+  unsigned long postStreetLength = (unsigned long)strlen(address->PostStreet);
+  unsigned long zipcodeLength = (unsigned long)strlen(address->zipcode);
+  unsigned long zip4Length = (unsigned long)strlen(address->zip4);
 
-    mysql_real_escape_string(
-        db, fracAddress, address->FracAddress,
-        strlen(address->FracAddress));
+  mysql_real_escape_string(db, houseNumber, address->HouseNumber, houseNumberLength);
+  mysql_real_escape_string(db, fracAddress, address->FracAddress, fracAddressLength);
+  mysql_real_escape_string(db, preStreet, address->PreStreet, preStreetLength);
+  mysql_real_escape_string(db, postStreet, address->PostStreet, postStreetLength);
+  mysql_real_escape_string(db, zipcode, address->zipcode, zipcodeLength);
+  mysql_real_escape_string(db, zip4, address->zip4, zip4Length);
 
-    mysql_real_escape_string(
-        db, preStreet, address->PreStreet,
-        strlen(address->PreStreet));
+  char houseClause[sizeof(houseNumber) + 64];
+  char fracClause[sizeof(fracAddress) + 64];
+  char preClause[sizeof(preStreet) + 64];
+  char streetClause[64];
+  char postClause[sizeof(postStreet) + 64];
+  char cityClause[64];
+  char countyClause[64];
+  char zipClause[sizeof(zipcode) + 64];
+  char zip4Clause[sizeof(zip4) + 64];
 
-    mysql_real_escape_string(
-        db, postStreet, address->PostStreet,
-        strlen(address->PostStreet));
+#define TEXT_CLAUSE(buf, column, value)                          \
+    do {                                                         \
+        if ((value)[0] == '\0') {                                \
+            snprintf((buf), sizeof(buf), column " IS NULL");     \
+        } else {                                                 \
+            snprintf((buf), sizeof(buf), column " = '%s'",       \
+                     (value));                                   \
+        }                                                        \
+    } while (0)
 
-    mysql_real_escape_string(
-        db, zipcode, address->zipcode,
-        strlen(address->zipcode));
+#define UINT_CLAUSE(buf, column, bit, value)                    \
+    do {                                                        \
+        if (address->nullFields & (1u << ((bit) - 1))) {        \
+            snprintf((buf), sizeof(buf), column " IS NULL");    \
+        } else {                                                \
+            snprintf((buf), sizeof(buf),                        \
+                     column " = %" PRIu32, (uint32_t)(value));  \
+        }                                                       \
+    } while (0)
+    
+TEXT_CLAUSE(houseClause, "DataAddress_HouseNumber", houseNumber);
+TEXT_CLAUSE(fracClause, "DataAddress_FracAddress", fracAddress);
+TEXT_CLAUSE(preClause, "DataAddress_PreStreet", preStreet);
+UINT_CLAUSE(streetClause, "DataStreet_ID", ADDRESS_STREET_ID, address->DataStreet_ID);
+TEXT_CLAUSE(postClause, "DataAddress_PostStreet", postStreet);
+UINT_CLAUSE(cityClause, "DataCity_ID", ADDRESS_CITY_ID, address->DataCity_ID);
+UINT_CLAUSE(countyClause, "DataCounty_ID", ADDRESS_COUNTY_ID, address->DataCounty_ID);
+TEXT_CLAUSE(zipClause, "DataAddress_zipcode", zipcode);
+TEXT_CLAUSE(zip4Clause, "DataAddress_zip4", zip4);
 
-    mysql_real_escape_string(
-        db, zip4, address->zip4,
-        strlen(address->zip4));
+#undef TEXT_CLAUSE
+#undef UINT_CLAUSE
 
-    char query[8192];
+  char query[8192];
+  int written = snprintf(query, sizeof(query),
+  		"SELECT DataAddress_ID FROM DataAddress WHERE "
+      "%s AND %s AND %s AND %s AND %s AND %s AND %s AND %s AND %s",
+      houseClause, fracClause, preClause, streetClause, postClause,
+      cityClause, countyClause, zipClause, zip4Clause
+  );
 
-    int written = snprintf(
-        query,
-        sizeof(query),
-        "SELECT DataAddress_ID "
-        "FROM DataAddress WHERE "
-        "DataAddress_HouseNumber %s "
-        "AND DataAddress_FracAddress %s "
-        "AND DataAddress_PreStreet %s "
-        "AND DataStreet_ID %s "
-        "AND DataAddress_PostStreet %s "
-        "AND DataCity_ID %s "
-        "AND DataCounty_ID %s "
-        "AND DataAddress_zipcode %s "
-        "AND DataAddress_zip4 %s",
+  if (written < 0 || (size_t)written >= sizeof(query)) {
+    fprintf(stderr, "Address query is too long.\n");
+    return EXIT_FAILURE;
+  }
 
-        (address->nullFields & (1u << (ADDRESS_HOUSE_NUMBER - 1)))
-            ? "IS NULL"
-            : "= '" , /* handled below */
+  fprintf(stderr, "Query: %s\n", query);
 
-        (address->nullFields & (1u << (ADDRESS_FRAC_ADDRESS - 1)))
-            ? "IS NULL"
-            : "= '",
+  if (mysql_query(db, query) != 0) {
+    fprintf(stderr, "Address query failed: %s\n", mysql_error(db));
+    return EXIT_FAILURE;
+  }
 
-        (address->nullFields & (1u << (ADDRESS_PRE_STREET - 1)))
-            ? "IS NULL"
-            : "= '",
+  MYSQL_RES *result = mysql_store_result(db);
+  if (result == NULL) {
+    fprintf(stderr, "Address result failed: %s\n", mysql_error(db));
+    return EXIT_FAILURE;
+  }
 
-        (address->nullFields & (1u << (ADDRESS_STREET_ID - 1)))
-            ? "IS NULL"
-            : "= ",
+  MYSQL_ROW row;
+  int found = 0;
 
-        (address->nullFields & (1u << (ADDRESS_POST_STREET - 1)))
-            ? "IS NULL"
-            : "= '",
+  while ((row = mysql_fetch_row(result)) != NULL) {
+    printf("Address ID: %s\n", row[0]);
+    found = 1;
+  }
 
-        (address->nullFields & (1u << (ADDRESS_CITY_ID - 1)))
-            ? "IS NULL"
-            : "= ",
+  if (!found) printf("Address not found in database.\n");
+  mysql_free_result(result);
+  return EXIT_SUCCESS;
+}
 
-        (address->nullFields & (1u << (ADDRESS_COUNTY_ID - 1)))
-            ? "IS NULL"
-            : "= ",
-
-        (address->nullFields & (1u << (ADDRESS_ZIPCODE - 1)))
-            ? "IS NULL"
-            : "= '",
-
-        (address->nullFields & (1u << (ADDRESS_ZIP4 - 1)))
-            ? "IS NULL"
-            : "= '"
-    );
-
-    /*
-     * For address queries, use the safer explicit form below.
-     * It handles NULL fields correctly and avoids SQL injection.
-     */
-    written = snprintf(
-        query,
-        sizeof(query),
-        "SELECT DataAddress_ID FROM DataAddress WHERE "
-        "DataAddress_HouseNumber %s%s%s "
-        "AND DataAddress_FracAddress %s%s%s "
-        "AND DataAddress_PreStreet %s%s%s "
-        "AND DataStreet_ID %s%" PRIu32 " "
-        "AND DataAddress_PostStreet %s%s%s "
-        "AND DataCity_ID %s%" PRIu32 " "
-        "AND DataCounty_ID %s%" PRIu32 " "
-        "AND DataAddress_zipcode %s%s%s "
-        "AND DataAddress_zip4 %s%s%s",
-
-        (address->nullFields & (1u << (ADDRESS_HOUSE_NUMBER - 1)))
-            ? "IS NULL" : "= '", 
-        (address->nullFields & (1u << (ADDRESS_HOUSE_NUMBER - 1)))
-            ? "" : houseNumber,
-        (address->nullFields & (1u << (ADDRESS_HOUSE_NUMBER - 1)))
-            ? "" : "'",
-
-        (address->nullFields & (1u << (ADDRESS_FRAC_ADDRESS - 1)))
-            ? "IS NULL" : "= '",
-        (address->nullFields & (1u << (ADDRESS_FRAC_ADDRESS - 1)))
-            ? "" : fracAddress,
-        (address->nullFields & (1u << (ADDRESS_FRAC_ADDRESS - 1)))
-            ? "" : "'",
-
-        (address->nullFields & (1u << (ADDRESS_PRE_STREET - 1)))
-            ? "IS NULL" : "= '",
-        (address->nullFields & (1u << (ADDRESS_PRE_STREET - 1)))
-            ? "" : preStreet,
-        (address->nullFields & (1u << (ADDRESS_PRE_STREET - 1)))
-            ? "" : "'",
-
-        (address->nullFields & (1u << (ADDRESS_STREET_ID - 1)))
-            ? "IS NULL" : "= ",
-        address->DataStreet_ID,
-
-        (address->nullFields & (1u << (ADDRESS_POST_STREET - 1)))
-            ? "IS NULL" : "= '",
-        (address->nullFields & (1u << (ADDRESS_POST_STREET - 1)))
-            ? "" : postStreet,
-        (address->nullFields & (1u << (ADDRESS_POST_STREET - 1)))
-            ? "" : "'",
-
-        (address->nullFields & (1u << (ADDRESS_CITY_ID - 1)))
-            ? "IS NULL" : "= ",
-        address->DataCity_ID,
-
-        (address->nullFields & (1u << (ADDRESS_COUNTY_ID - 1)))
-            ? "IS NULL" : "= ",
-        address->DataCounty_ID,
-
-        (address->nullFields & (1u << (ADDRESS_ZIPCODE - 1)))
-            ? "IS NULL" : "= '",
-        (address->nullFields & (1u << (ADDRESS_ZIPCODE - 1)))
-            ? "" : zipcode,
-        (address->nullFields & (1u << (ADDRESS_ZIPCODE - 1)))
-            ? "" : "'",
-
-        (address->nullFields & (1u << (ADDRESS_ZIP4 - 1)))
-            ? "IS NULL" : "= '",
-        (address->nullFields & (1u << (ADDRESS_ZIP4 - 1)))
-            ? "" : zip4,
-        (address->nullFields & (1u << (ADDRESS_ZIP4 - 1)))
-            ? "" : "'"
-    );
-
-    if (written < 0 || (size_t)written >= sizeof(query)) {
-        fprintf(stderr, "Address query is too long.\n");
-        return EXIT_FAILURE;
-    }
-
-    if (mysql_query(db, query) != 0) {
-        fprintf(stderr, "Address query failed: %s\n",
-                mysql_error(db));
-        return EXIT_FAILURE;
-    }
-
-    MYSQL_RES *result = mysql_store_result(db);
-
-    if (result == NULL) {
-        fprintf(stderr, "Address result failed: %s\n",
-                mysql_error(db));
-        return EXIT_FAILURE;
-    }
-
-    MYSQL_ROW row;
-    int found = 0;
-
-    while ((row = mysql_fetch_row(result)) != NULL) {
-        printf("Address ID: %s\n", row[0]);
-        found = 1;
-    }
-
-    if (!found) {
-        printf("Address not found in database.\n");
-    }
-
-    mysql_free_result(result);
-    return EXIT_SUCCESS;
+void PrintAddress(const DataAddress *address) {
+  printf("Parsed address:\n");
+  printf("  HouseNumber:   %s\n", address->nullFields & (1u << (ADDRESS_HOUSE_NUMBER - 1)) ? "NULL" : address->HouseNumber);
+  printf("  FracAddress:   %s\n", address->nullFields & (1u << (ADDRESS_FRAC_ADDRESS - 1)) ? "NULL" : address->FracAddress); 
+ 	printf("  PreStreet:     %s\n", address->nullFields & (1u << (ADDRESS_PRE_STREET - 1))  ? "NULL" : address->PreStreet);
+  printf("  DataStreet_ID: %" PRIu32 "\n", address->DataStreet_ID);
+  printf("  PostStreet:    %s\n", address->nullFields & (1u << (ADDRESS_POST_STREET - 1)) ? "NULL" : address->PostStreet);
+  printf("  DataCity_ID:   %" PRIu32 "\n", address->DataCity_ID);
+  printf("  DataCounty_ID: %" PRIu32 "\n", address->DataCounty_ID);
+  printf("  zipcode:       %s\n", address->nullFields & (1u << (ADDRESS_ZIPCODE - 1)) ? "NULL" : address->zipcode);
+  printf("  zip4:          %s\n", address->nullFields & (1u << (ADDRESS_ZIP4 - 1)) ? "NULL" : address->zip4);
 }

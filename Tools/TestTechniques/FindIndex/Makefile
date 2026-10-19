@@ -1,15 +1,23 @@
 CC = gcc
 
 CPPFLAGS += -Idatamodules $(shell mysql_config --cflags)
-CFLAGS = -O2 -std=c11 -Wall -Wextra -MMD -MP
+#CFLAGS = -O2 -std=c11 -Wall -Wextra -MMD -MP
+CFLAGS = -O0 -g3 -std=c11 -Wall -Wextra -MMD -MP -fno-omit-frame-pointer
 LDLIBS += $(shell mysql_config --libs) -licuuc -licudata
 
-TARGETS = FindMultiIndex FindIndexCode
+TARGETS = FindMultiIndex FindIndexCode CheckDataAddressModule
 
 MODULE_SOURCES = $(wildcard datamodules/*.c)
 MODULE_OBJECTS = $(MODULE_SOURCES:.c=.o)
 
-MULTI_OBJECTS = FindMultiIndex.o $(MODULE_OBJECTS)
+ADDRESS_OBJECTS = CheckDataAddressModule.o \
+									CommonFiles.o \
+                  datamodules/DataAddress.o \
+                  datamodules/RecordHash.o \
+                  datamodules/RecordLoader.o
+
+
+MULTI_OBJECTS = FindMultiIndex.o SaveMemory.o CommonFiles.o $(MODULE_OBJECTS)
 INDEX_OBJECTS = FindIndexCode.o
 
 OBJECTS = $(MULTI_OBJECTS) $(INDEX_OBJECTS)
@@ -41,6 +49,9 @@ FindMultiIndex: $(MULTI_OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 FindIndexCode: $(INDEX_OBJECTS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+CheckDataAddressModule: $(ADDRESS_OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 %.o: %.c

@@ -1,5 +1,7 @@
 #include "Voter.h"
+#include "RecordLoader.h"
 #include <stdlib.h>
+
 struct VoterHashTable { RecordHashTable *records; };
 
 static const RecordField fields[] = {
@@ -24,6 +26,50 @@ static const RecordField fields[] = {
   {offsetof(Voter, RecLastSeen), sizeof(((Voter *)0)->RecLastSeen), 1}
 };
 
+
+int LoadVoterIntoMemory(MYSQL *db, Voter **rows, size_t *count, size_t limit) {
+  if (!rows || !count) return EXIT_FAILURE;
+  *rows = NULL;
+  *count = 0;
+
+  if (!db) return EXIT_FAILURE;
+
+  char query[1024];
+  int queryLength;
+
+  const char *select =
+      "SELECT Voters_ID, VotersIndexes_ID, DataHouse_ID, Voters_Gender, Voters_UniqStateVoterID, DataState_ID, Voters_RegParty, "
+      "Voters_ReasonCode, Voters_Status, VotersMailingAddress_ID, Voters_IDRequired, Voters_IDMet, Voters_ApplyDate, "
+      "Voters_RegSource, Voters_DateInactive, Voters_DatePurged, Voters_CountyVoterNumber, Voters_RMBActive, "
+      "Voters_RecFirstSeen, Voters_RecLastSeen FROM Voters";
+
+  if (limit == 0) {
+    queryLength = snprintf(query, sizeof(query), "%s", select);
+  } else {
+    queryLength = snprintf(query, sizeof(query), "%s LIMIT %zu", select, limit);
+  }
+
+  if (queryLength < 0 || (size_t)queryLength >= sizeof(query)) {
+    fprintf(stderr, "Voter query is too long.\n");
+    return EXIT_FAILURE;
+  }
+
+  void *data = NULL;
+  int status = LoadRecordArray(db, query,sizeof(Voter), offsetof(Voter, ID),  offsetof(Voter, nullFields),  fields,
+  														 sizeof(fields) / sizeof(fields[0]),  &data, count);
+ 
+  if (status != EXIT_SUCCESS) {
+    free(data);
+    *count = 0;
+    return status;
+  }
+
+  *rows = data;
+  return EXIT_SUCCESS;
+}
+
+
+
 VoterHashTable *BuildVoterHashTable(const Voter *rows, size_t count) {
   VoterHashTable *table = malloc(sizeof(*table));
   if (!table) return NULL;
@@ -43,23 +89,8 @@ void FreeVoterHashTable(VoterHashTable *table) {
 	if (table) { FreeRecordHashTable(table->records); free(table); } 
 }
 
-#include "RecordLoader.h"
-int LoadVoterIntoMemory(MYSQL *db, Voter **rows, size_t *count) {
-  if (!rows || !count) return EXIT_FAILURE;
-  *rows = NULL; *count = 0;
-  void *data = NULL;
-  int status = LoadRecordArray(db,
-      "SELECT `Voters_ID`, `VotersIndexes_ID`, `DataHouse_ID`, `Voters_Gender`, " 
-      "`Voters_UniqStateVoterID`, `DataState_ID`, `Voters_RegParty`, " 
-      "`Voters_ReasonCode`, `Voters_Status`, `VotersMailingAddress_ID`, `Voters_IDRequired`, " 
-      "`Voters_IDMet`, `Voters_ApplyDate`, `Voters_RegSource`, `Voters_DateInactive`, " 
-      "`Voters_DatePurged`, `Voters_CountyVoterNumber`, `Voters_RMBActive`, " 
-      "`Voters_RecFirstSeen`, `Voters_RecLastSeen` FROM `Voters`",
-      sizeof(Voter), offsetof(Voter, ID), offsetof(Voter, nullFields),
-      fields, sizeof(fields)/sizeof(fields[0]), &data, count);
-  *rows = data;
-  return status;
-}
+
+
 
 /* Voter.c */
 

@@ -3,7 +3,6 @@
 #include "FindMultiIndex.h"
 #include "DataModules.h"
 
-static double NowMilliseconds(void);
 static int ReadQueryLine(const char *, char *, size_t);
 static int RunQueryLoops(MYSQL *, const QueryDefinition *, size_t);
 
@@ -22,15 +21,6 @@ int IsValidISODate(const char *);
 static uint64_t HashName(const char *);
 
 
-static void PrintModuleLoad(const char *label, size_t count, size_t recordSize, double elapsedMs) {
-  uint64_t totalMs=(uint64_t)(elapsedMs+0.5);
-  printf("Loaded and indexed %zu %s in %.3f ms (or %" PRIu64 " hours %" PRIu64
-         " minutes and %" PRIu64 " seconds and %" PRIu64
-         " ms) - %.2f MiB of source records (hash memory additional)\n",
-         count, label, elapsedMs, totalMs/3600000, (totalMs/60000)%60,
-         (totalMs/1000)%60, totalMs%1000,
-         (double)count*recordSize/(1024.0*1024.0));
-}
 
 /* Include DataModules.h (or the eight module headers) above this main. */
 int main(void) {
@@ -86,16 +76,15 @@ int main(void) {
 	if (LoadDBintoMEM(db, &FirstName, &countFirstName, "DataFirstName") != EXIT_SUCCESS) goto cleanup;
 	if (LoadDBintoMEM(db, &MiddleName, &countMiddleName, "DataMiddleName") != EXIT_SUCCESS)  goto cleanup;
 	if (LoadDBintoMEM(db, &LastName, &countLastName, "DataLastName") != EXIT_SUCCESS) goto cleanup;
-		
   
-  printf("Starting to load\n");
+  printf("Starting to load \n");
   double start = NowMilliseconds();
-  if (LoadAddressesIntoMemory(db, &addresses, &countAddresses) != EXIT_SUCCESS) goto cleanup;
+  
+  printf("Loading DataAddress...\n"); fflush(stdout);
+  if (LoadAddressesIntoMemory(db, &addresses, &countAddresses, 30672) != EXIT_SUCCESS) goto cleanup;
   addressTable = BuildAddressHashTable(addresses, countAddresses);
   if (!addressTable) { fprintf(stderr, "Address index failed.\n"); goto cleanup; }
-  PrintModuleLoad("addresses", countAddresses, sizeof(*addresses), NowMilliseconds()-start);
-  /* The address hash owns its keys and IDs. Release the original rows. */
-  free(addresses); addresses = NULL;
+  PrintModuleLoad("DataAddress", countAddresses, sizeof(*addresses), NowMilliseconds()-start);
 
   printf("Loading DataCounty...\n"); fflush(stdout);
   start = NowMilliseconds();
@@ -103,7 +92,6 @@ int main(void) {
   CountyTable = BuildCountyHashTable(CountyRows, CountyCount);
   if (!CountyTable) { fprintf(stderr, "DataCounty index failed.\n"); goto cleanup; }
   PrintModuleLoad("DataCounty", CountyCount, sizeof(*CountyRows), NowMilliseconds()-start);
-  free(CountyRows); CountyRows = NULL;
 
   printf("Loading DataDistrict...\n"); fflush(stdout);
   start = NowMilliseconds();
@@ -111,7 +99,7 @@ int main(void) {
   DistrictTable = BuildDistrictHashTable(DistrictRows, DistrictCount);
   if (!DistrictTable) { fprintf(stderr, "DataDistrict index failed.\n"); goto cleanup; }
   PrintModuleLoad("DataDistrict", DistrictCount, sizeof(*DistrictRows), NowMilliseconds()-start);
-  free(DistrictRows); DistrictRows = NULL;
+
 
   printf("Loading DataDistrictCycle...\n"); fflush(stdout);
   start = NowMilliseconds();
@@ -119,7 +107,7 @@ int main(void) {
   DistrictCycleTable = BuildDistrictCycleHashTable(DistrictCycleRows, DistrictCycleCount);
   if (!DistrictCycleTable) { fprintf(stderr, "DataDistrictCycle index failed.\n"); goto cleanup; }
   PrintModuleLoad("DataDistrictCycle", DistrictCycleCount, sizeof(*DistrictCycleRows), NowMilliseconds()-start);
-  free(DistrictCycleRows); DistrictCycleRows = NULL;
+
 
   printf("Loading DataDistrictTemporal...\n"); fflush(stdout);
   start = NowMilliseconds();
@@ -127,7 +115,7 @@ int main(void) {
   DistrictTemporalTable = BuildDistrictTemporalHashTable(DistrictTemporalRows, DistrictTemporalCount);
   if (!DistrictTemporalTable) { fprintf(stderr, "DataDistrictTemporal index failed.\n"); goto cleanup; }
   PrintModuleLoad("DataDistrictTemporal", DistrictTemporalCount, sizeof(*DistrictTemporalRows), NowMilliseconds()-start);
-  free(DistrictTemporalRows); DistrictTemporalRows = NULL;
+
 
   printf("Loading DataHouse...\n"); fflush(stdout);
   start = NowMilliseconds();
@@ -135,15 +123,15 @@ int main(void) {
   HouseTable = BuildHouseHashTable(HouseRows, HouseCount);
   if (!HouseTable) { fprintf(stderr, "DataHouse index failed.\n"); goto cleanup; }
   PrintModuleLoad("DataHouse", HouseCount, sizeof(*HouseRows), NowMilliseconds()-start);
-  free(HouseRows); HouseRows = NULL;
+
 
   printf("Loading Voter...\n"); fflush(stdout);
   start = NowMilliseconds();
-  if (LoadVoterIntoMemory(db, &VoterRows, &VoterCount) != EXIT_SUCCESS) goto cleanup;
+  if (LoadVoterIntoMemory(db, &VoterRows, &VoterCount, 100000) != EXIT_SUCCESS) goto cleanup;
   VoterTable = BuildVoterHashTable(VoterRows, VoterCount);
   if (!VoterTable) { fprintf(stderr, "Voter index failed.\n"); goto cleanup; }
   PrintModuleLoad("Voter", VoterCount, sizeof(*VoterRows), NowMilliseconds()-start);
-  free(VoterRows); VoterRows = NULL;
+
 
   printf("Loading VoterComplementInfo...\n"); fflush(stdout);
   start = NowMilliseconds();
@@ -151,15 +139,14 @@ int main(void) {
   VoterComplementInfoTable = BuildVoterComplementInfoHashTable(VoterComplementInfoRows, VoterComplementInfoCount);
   if (!VoterComplementInfoTable) { fprintf(stderr, "VoterComplementInfo index failed.\n"); goto cleanup; }
   PrintModuleLoad("VoterComplementInfo", VoterComplementInfoCount, sizeof(*VoterComplementInfoRows), NowMilliseconds()-start);
-  free(VoterComplementInfoRows); VoterComplementInfoRows = NULL;
 
   printf("Loading VoterIndex...\n"); fflush(stdout);
   start = NowMilliseconds();
-  if (LoadVoterIndexIntoMemory(db, &VoterIndexRows, &VoterIndexCount) != EXIT_SUCCESS) goto cleanup;
+  if (LoadVoterIndexIntoMemory(db, &VoterIndexRows, &VoterIndexCount, 10000) != EXIT_SUCCESS) goto cleanup;
   VoterIndexTable = BuildVoterIndexHashTable(VoterIndexRows, VoterIndexCount);
   if (!VoterIndexTable) { fprintf(stderr, "VoterIndex index failed.\n"); goto cleanup; }
   PrintModuleLoad("VoterIndex", VoterIndexCount, sizeof(*VoterIndexRows), NowMilliseconds()-start);
-  free(VoterIndexRows); VoterIndexRows = NULL;
+
 
 	if (SaveMemory("RepMyBlock.memory", addresses, countAddresses, CountyRows, CountyCount,
 					        DistrictRows, DistrictCount, DistrictCycleRows, DistrictCycleCount,
@@ -169,6 +156,19 @@ int main(void) {
 					        countMiddleName, LastName, countLastName) != EXIT_SUCCESS) {
 	    fprintf(stderr, "Could not save memory snapshot.\n");
 	}
+
+
+  /* The address hash owns its keys and IDs. Release the original rows. */
+  free(addresses); addresses = NULL;
+  free(CountyRows); CountyRows = NULL;
+  free(DistrictRows); DistrictRows = NULL;
+  free(DistrictCycleRows); DistrictCycleRows = NULL;
+  free(DistrictTemporalRows); DistrictTemporalRows = NULL;
+  free(HouseRows); HouseRows = NULL;
+  free(VoterRows); VoterRows = NULL;
+  free(VoterComplementInfoRows); VoterComplementInfoRows = NULL;
+  free(VoterIndexRows); VoterIndexRows = NULL;
+
 
 	/*
   for (size_t i=0; i<3; ++i) {
@@ -194,7 +194,7 @@ int main(void) {
     { .key = 'D', .label = "District search", .prompt = "Enter district fields: ", .hashTable = DistrictTable,
       .recordSize = sizeof(DataDistrict), .parse = ParseDistrictQuery, .findMemory = QueryDistrictMemory,
       .findDatabase = QueryDistrictDatabase, .print = NULL },
-    {.key = 'Y', .label = "District-cycle search", .prompt = "Enter district-cycle fields: ", .hashTable = DistrictCycleTable,
+    {	.key = 'Y', .label = "District-cycle search", .prompt = "Enter district-cycle fields: ", .hashTable = DistrictCycleTable,
       .recordSize = sizeof(DataDistrictCycle), .parse = ParseDistrictCycleQuery, .findMemory = QueryDistrictCycleMemory,
       .findDatabase = QueryDistrictCycleDatabase, .print = NULL },
     { .key = 'T', .label = "District-temporal search", .prompt = "Enter district-temporal fields: ", .hashTable = DistrictTemporalTable,
@@ -214,8 +214,9 @@ int main(void) {
       .findDatabase = QueryVoterIndexDatabase, .print = NULL }
 	};
 	  
-  int status = RunQueryLoops(db, queries, sizeof(queries) / sizeof(queries[0]));
-
+  //int status = 
+  RunQueryLoops(db, queries, sizeof(queries) / sizeof(queries[0]));
+  
 cleanup:
     FreeAddressHashTable(addressTable);
     FreeCountyHashTable(CountyTable);
@@ -248,32 +249,6 @@ cleanup:
     return exitStatus;
 }
 
-MYSQL *DealDB(void) {
-  MYSQL *db = mysql_init(NULL);
-
-  if (db == NULL) {
-    fprintf(stderr, "MySQL initialization failed.\n");
-    return NULL;
-  }
-
-  if (mysql_options(db, MYSQL_READ_DEFAULT_GROUP, "RepMyBlockDev") != 0) {
-    fprintf(stderr, "Could not configure login group: %s\n", mysql_error(db));
-    mysql_close(db);
-    return NULL;
-  }
-
-  /*
-   * NULL credentials and port 0 allow the option-file
-   * settings to supply host, user, password, and port.
-   */
-  if (mysql_real_connect(db, NULL, NULL, NULL, "RepMyBlock", 0, NULL, 0) == NULL) {
-    fprintf(stderr, "Connection failed: %s\n", mysql_error(db));
-    mysql_close(db);
-    return NULL;
-  }
-
-  return db;
-}
 
 int LoadDBintoMEM(MYSQL *db, Person **FirstName, size_t *count, char *TableName) {
   *FirstName = NULL;
@@ -462,14 +437,7 @@ int FindNameInMEM(const Person *FirstName, size_t count, const char *searchName)
   return found;
 }
 
-static double NowMilliseconds(void) {
-  struct timespec ts;
-  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-    perror("clock_gettime");
-    exit(EXIT_FAILURE);
-  }
-  return (double)ts.tv_sec * 1000.0  + (double)ts.tv_nsec / 1000000.0;
-}
+
 
 int CompareNameByName(const void *a, const void *b) {
   const Person *personA = a;

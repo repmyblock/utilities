@@ -190,3 +190,167 @@ int ParseDistrictQuery(char *line, void *output) {
   return EXIT_SUCCESS;
 }
 
+
+#include "DataDistrict.h"
+#include <mysql/mysql.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int QueryDistrictDatabase(
+    MYSQL *db,
+    const void *record)
+{
+    if (db == NULL || record == NULL) {
+        fprintf(stderr, "Invalid district database arguments.\n");
+        return EXIT_FAILURE;
+    }
+
+    const DataDistrict *district = record;
+
+    const char *sql =
+        "SELECT DataDistrict_ID "
+        "FROM DataDistrict "
+        "WHERE DataDistrict_ZipCode = ? "
+        "AND DataDistrict_DBTable = ? "
+        "AND DataDistrict_DBTableValue = ? "
+        "AND DataCounty_ID = ? "
+        "AND DataDistrictTown_ID = ? "
+        "AND DataDistrict_Electoral = ? "
+        "AND DataDistrict_StateAssembly = ? "
+        "AND DataDistrict_StateSenate = ? "
+        "AND DataDistrict_Legislative = ? "
+        "AND DataDistrict_Ward = ? "
+        "AND DataDistrict_Congress = ?";
+
+    MYSQL_STMT *stmt = mysql_stmt_init(db);
+
+    if (stmt == NULL) {
+        fprintf(stderr, "Statement initialization failed: %s\n",
+                mysql_error(db));
+        return EXIT_FAILURE;
+    }
+
+    if (mysql_stmt_prepare(
+            stmt, sql, (unsigned long)strlen(sql)) != 0) {
+        fprintf(stderr, "Prepare failed: %s\n",
+                mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return EXIT_FAILURE;
+    }
+
+    unsigned long zipLength =
+        (unsigned long)strlen(district->ZipCode);
+
+    unsigned long tableLength =
+        (unsigned long)strlen(district->DBTable);
+
+    unsigned long tableValueLength =
+        (unsigned long)strlen(district->DBTableValue);
+
+    unsigned long wardLength =
+        (unsigned long)strlen(district->Ward);
+
+    MYSQL_BIND params[11];
+    memset(params, 0, sizeof(params));
+
+    params[0].buffer_type = MYSQL_TYPE_STRING;
+    params[0].buffer = (void *)district->ZipCode;
+    params[0].buffer_length = sizeof(district->ZipCode);
+    params[0].length = &zipLength;
+
+    params[1].buffer_type = MYSQL_TYPE_STRING;
+    params[1].buffer = (void *)district->DBTable;
+    params[1].buffer_length = sizeof(district->DBTable);
+    params[1].length = &tableLength;
+
+    params[2].buffer_type = MYSQL_TYPE_STRING;
+    params[2].buffer = (void *)district->DBTableValue;
+    params[2].buffer_length = sizeof(district->DBTableValue);
+    params[2].length = &tableValueLength;
+
+    params[3].buffer_type = MYSQL_TYPE_LONG;
+    params[3].buffer = (void *)&district->DataCounty_ID;
+
+    params[4].buffer_type = MYSQL_TYPE_LONG;
+    params[4].buffer = (void *)&district->DataDistrictTown_ID;
+
+    params[5].buffer_type = MYSQL_TYPE_SHORT;
+    params[5].buffer = (void *)&district->Electoral;
+
+    params[6].buffer_type = MYSQL_TYPE_SHORT;
+    params[6].buffer = (void *)&district->StateAssembly;
+
+    params[7].buffer_type = MYSQL_TYPE_TINY;
+    params[7].buffer = (void *)&district->StateSenate;
+
+    params[8].buffer_type = MYSQL_TYPE_SHORT;
+    params[8].buffer = (void *)&district->Legislative;
+
+    params[9].buffer_type = MYSQL_TYPE_STRING;
+    params[9].buffer = (void *)district->Ward;
+    params[9].buffer_length = sizeof(district->Ward);
+    params[9].length = &wardLength;
+
+    params[10].buffer_type = MYSQL_TYPE_TINY;
+    params[10].buffer = (void *)&district->Congress;
+
+    if (mysql_stmt_bind_param(stmt, params) != 0) {
+        fprintf(stderr, "Parameter binding failed: %s\n",
+                mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return EXIT_FAILURE;
+    }
+
+    if (mysql_stmt_execute(stmt) != 0) {
+        fprintf(stderr, "Execute failed: %s\n",
+                mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return EXIT_FAILURE;
+    }
+
+    uint32_t districtID = 0;
+
+    MYSQL_BIND result;
+    memset(&result, 0, sizeof(result));
+
+    result.buffer_type = MYSQL_TYPE_LONG;
+    result.buffer = &districtID;
+    result.buffer_length = sizeof(districtID);
+
+    if (mysql_stmt_bind_result(stmt, &result) != 0 ||
+        mysql_stmt_store_result(stmt) != 0) {
+        fprintf(stderr, "Result setup failed: %s\n",
+                mysql_stmt_error(stmt));
+        mysql_stmt_close(stmt);
+        return EXIT_FAILURE;
+    }
+
+    int fetchStatus = mysql_stmt_fetch(stmt);
+
+    if (fetchStatus == MYSQL_NO_DATA) {
+        printf("District not found in database.\n");
+
+        mysql_stmt_free_result(stmt);
+        mysql_stmt_close(stmt);
+        return EXIT_SUCCESS;
+    }
+
+    if (fetchStatus != 0 &&
+        fetchStatus != MYSQL_DATA_TRUNCATED) {
+        fprintf(stderr, "Fetch failed: %s\n",
+                mysql_stmt_error(stmt));
+
+        mysql_stmt_free_result(stmt);
+        mysql_stmt_close(stmt);
+        return EXIT_FAILURE;
+    }
+
+    printf("District ID: %" PRIu32 "\n", districtID);
+
+    mysql_stmt_free_result(stmt);
+    mysql_stmt_close(stmt);
+
+    return EXIT_SUCCESS;
+}

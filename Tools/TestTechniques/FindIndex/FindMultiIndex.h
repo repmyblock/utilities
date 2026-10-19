@@ -2,6 +2,7 @@
 #define FIND_MULTIPLE_INDEX_H
 
 #include "datamodules/RecordLoader.h"
+#include "CommonFiles.h"
 #include "DataModules.h"
 #include "SaveMemory.h"
 #include "Person.h"

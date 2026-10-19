@@ -41,7 +41,7 @@ VoterIndexMatch FindVoterIndexID(const VoterIndexHashTable *, const VoterIndex *
 void FreeVoterIndexMatch(VoterIndexMatch *);
 void FreeVoterIndexHashTable(VoterIndexHashTable *);
 /* Caller owns the array; NULL fields are recorded in nullFields. */
-int LoadVoterIndexIntoMemory(MYSQL *, VoterIndex **, size_t *);
+int LoadVoterIndexIntoMemory(MYSQL *, VoterIndex **, size_t *, size_t);
 
 int QueryVoterIndexMemory(
     const void *hashTable,

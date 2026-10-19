@@ -3,6 +3,36 @@
 #define DATA_ADDRESS_H
 #include "RecordHash.h"
 
+/* Private: normalized UTF-8 strings owned by this key. */
+typedef struct {
+  uint16_t nullFields;
+  char *HouseNumber;
+  char *FracAddress;
+  char *PreStreet;
+  char *PostStreet;
+  char *zipcode;
+  char *zip4;
+  uint32_t DataStreet_ID;
+  uint32_t DataCity_ID;
+  uint32_t DataCounty_ID;
+} AddressKey;
+
+typedef struct {
+  AddressKey key;
+  uint64_t hash;
+  uint32_t ID;
+  size_t next;
+} AddressHashEntry;
+
+/* Definition of the opaque type declared in DataAddress.h. */
+struct AddressHashTable {
+  size_t *buckets;
+  AddressHashEntry *entries;
+  size_t bucketCount;
+  size_t count;
+};
+
+
 typedef struct {
     uint32_t ID;
     /* Bit N corresponds to SELECT column N below; set means SQL NULL. */
@@ -39,7 +69,7 @@ typedef enum {
  * Caller owns the returned array and must free it. Connection stays open.
  * Values are UTF-8; NULL fields have zero/empty storage and a nullFields bit.
  */
-int LoadAddressesIntoMemory(MYSQL *db, DataAddress **addresses, size_t *count);
+int LoadAddressesIntoMemory(MYSQL *db, DataAddress **addresses, size_t *count, size_t);
 
 /* Hide hash table internals from other source files. */
 typedef struct AddressHashTable AddressHashTable;
@@ -80,8 +110,7 @@ int QueryAddressMemory(const void *hashTable, const void *record);
 int QueryAddressDatabase(MYSQL *db,const void *record);
 int ParseAddressQuery(char *,DataAddress *);
 int ParseAddressRecord(char *,void *);
-int ParseAddressRecord(char *line, void *record);
-
+void PrintAddress(const DataAddress *);
 #endif
 
 

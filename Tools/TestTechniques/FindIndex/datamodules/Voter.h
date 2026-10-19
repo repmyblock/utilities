@@ -65,7 +65,7 @@ VoterMatch FindVoterID(const VoterHashTable *, const Voter *);
 void FreeVoterMatch(VoterMatch *);
 void FreeVoterHashTable(VoterHashTable *);
 /* Caller owns the array; NULL fields are recorded in nullFields. */
-int LoadVoterIntoMemory(MYSQL *, Voter **, size_t *);
+int LoadVoterIntoMemory(MYSQL *, Voter **, size_t *, size_t);
 
 
 int QueryVoterMemory(
