@@ -49,9 +49,9 @@ int SaveMemory(const char *filename,
 							  const Voter *voters, size_t voterCount,
 							  const VoterComplementInfo *complementInfo, size_t complementInfoCount,
 							  const VoterIndex *voterIndexes, size_t voterIndexCount,
-							  const SaveMemoryPerson *firstNames, size_t firstNameCount,
-							  const SaveMemoryPerson *middleNames, size_t middleNameCount,
-							  const SaveMemoryPerson *lastNames, size_t lastNameCount) {
+							  const Person *firstNames, size_t firstNameCount,
+							  const Person *middleNames, size_t middleNameCount,
+							  const Person *lastNames, size_t lastNameCount) {
   if (filename == NULL) {
      return EXIT_FAILURE;
   }
@@ -106,34 +106,6 @@ int SaveMemory(const char *filename,
   return EXIT_SUCCESS;
 }
 
-#include "SaveMemory.h"
-
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define SAVE_MAGIC   "RMBMEM01"
-#define SAVE_VERSION 1u
-
-typedef struct {
-    char magic[8];
-    uint32_t version;
-    uint32_t reserved;
-
-    uint64_t addressCount;
-    uint64_t countyCount;
-    uint64_t districtCount;
-    uint64_t districtCycleCount;
-    uint64_t districtTemporalCount;
-    uint64_t houseCount;
-    uint64_t voterCount;
-    uint64_t complementInfoCount;
-    uint64_t voterIndexCount;
-    uint64_t firstNameCount;
-    uint64_t middleNameCount;
-    uint64_t lastNameCount;
-} SaveHeader;
 
 #define LOAD_ARRAY(file, array, count)                                \
     do {                                                              \

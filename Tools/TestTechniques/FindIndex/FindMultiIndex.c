@@ -63,23 +63,30 @@ int main(void) {
   Voter *VoterRows = NULL;
   VoterComplementInfo *VoterComplementInfoRows = NULL;
   VoterIndex *VoterIndexRows = NULL;
-  
-
+ 
 	/*  
   int status = LoadMemory( "RepMyBlock.memory", &addresses, &countAddresses, &CountyRows, &CountyCount,
     &DistrictRows, &DistrictCount, &DistrictCycleRows, &DistrictCycleCount, &DistrictTemporalRows,
     &DistrictTemporalCount, &HouseRows, &HouseCount, &VoterRows, &VoterCount, &VoterComplementInfoRows,
     &VoterComplementInfoCount, &VoterIndexRows, &VoterIndexCount, &FirstName, &countFirstName, &MiddleName,
     &countMiddleName, &LastName, &countLastName);
-	*/
+	
 	
 	if (status != EXIT_SUCCESS) {
 	    fprintf(stderr, "Could not load memory snapshot.\n");
 	    return EXIT_FAILURE;
 	}
-  
-  
-  
+	*/
+	
+	
+	Person *FirstName = NULL, *MiddleName = NULL, *LastName = NULL;
+	size_t countFirstName = 0, countMiddleName = 0, countLastName = 0;
+
+	/* Load these before SaveMemory. */
+	if (LoadDBintoMEM(db, &FirstName, &countFirstName, "DataFirstName") != EXIT_SUCCESS) goto cleanup;
+	if (LoadDBintoMEM(db, &MiddleName, &countMiddleName, "DataMiddleName") != EXIT_SUCCESS)  goto cleanup;
+	if (LoadDBintoMEM(db, &LastName, &countLastName, "DataLastName") != EXIT_SUCCESS) goto cleanup;
+		
   
   printf("Starting to load\n");
   double start = NowMilliseconds();
