@@ -6,6 +6,7 @@ static int TestRandomAddresses(MYSQL *, const AddressHashTable *);
 
 int main(int argc, char **argv) {
 	
+	PrintWallClockTime("Program started");
 	size_t limit = 0;  /* Default: load everything */
 	
 	if (argc > 1) {
@@ -44,11 +45,43 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
   
+  PrintWallClockTime("Program loaded");
   PrintModuleLoad("DataAddress", addressCount, sizeof(*addresses), NowMilliseconds()-startMs);
   TestRandomAddresses(db, addressTable);
+  
+  
+  printf("\n============================= MATCH ADDRESS MEMORY ==========================\n");
+  size_t toPrint = addressCount < 10 ? addressCount : 10;
+	size_t StartingPoint = 100000;
+	for (size_t i = StartingPoint; i < StartingPoint + toPrint; ++i) {
+	    printf("\nAddress %zu (ID %" PRIu32 "):\n", i, addresses[i].ID);
+	    PrintAddress(&addresses[i]);
+	}
+	
+	
   printf("DataAddress module test passed.\n\n");
   
-  printf("Enter 9 comma-separated fields in this order:\n");
+  if (addressCount == 0) {
+    printf("No address rows loaded.\n");
+	
+	} else {
+		
+    size_t i = 0;  /* Try another index, such as addressCount / 2 */
+    AddressMatch match = FindAddressID(addressTable, &addresses[i]);
+    printf("Testing loaded row %zu (ID %" PRIu32 "): ", i, addresses[i].ID);
+
+    if (match.status == ADDRESS_FOUND || match.status == ADDRESS_DUPLICATE) {
+      printf("hash found %zu matching ID(s).\n", match.count);
+    } else if (match.status == ADDRESS_NOT_FOUND) {
+      printf("NOT FOUND.\n");
+    } else {
+      printf("hash lookup error.\n");
+    }
+
+    FreeAddressMatch(&match);
+	}
+  
+  printf("\n\nEnter 9 comma-separated fields in this order:\n");
   printf("HouseNumber, FracAddress, PreStreet, DataStreet_ID, PostStreet, DataCity_ID, DataCounty_ID, zipcode, zip4\n");
   printf("Press Enter on an empty line to quit.\n");
 
@@ -81,9 +114,12 @@ int main(int argc, char **argv) {
   status = EXIT_SUCCESS;
 
 cleanup:
+	PrintWallClockTime("Beging ending of program");
   FreeAddressHashTable(addressTable);
   free(addresses);
   mysql_close(db);
+
+  PrintWallClockTime("Program ended");
   return status;
 }
 
@@ -143,6 +179,8 @@ static int TestRandomAddresses(MYSQL *db, const AddressHashTable *addressTable) 
 		  status = EXIT_FAILURE;
 		  continue;
 		}
+		
+		PrintAddress(&address);
 
 		printf("In-memory lookup: ");
 		QueryAddressMemory(addressTable, &address);
