@@ -14,7 +14,7 @@ usage(0) if $help;
 $root //= shift @ARGV;
 usage(2) unless defined($root) && !@ARGV;
 $root =~ s{/$}{} unless $root eq '/';
-my $module_dir = "$root/datamodules";
+my $module_dir = "$root/../src/datamodules";
 make_path($module_dir) unless -d $module_dir;
 
 my $sql;
