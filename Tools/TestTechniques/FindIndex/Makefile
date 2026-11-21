@@ -5,31 +5,27 @@ CPPFLAGS += -Idatamodules $(shell mysql_config --cflags)
 CFLAGS = -O0 -g3 -std=c11 -Wall -Wextra -MMD -MP -fno-omit-frame-pointer
 LDLIBS += $(shell mysql_config --libs) -licuuc -licudata
 
-TARGETS = FindMultiIndex FindIndexCode CheckDataAddressModule
-
 MODULE_SOURCES = $(wildcard datamodules/*.c)
 MODULE_OBJECTS = $(MODULE_SOURCES:.c=.o)
+MODULE_HEADERS = $(wildcard datamodules/*.h)
 
-ADDRESS_OBJECTS = CheckDataAddressModule.o \
-									CommonFiles.o \
-                  datamodules/DataAddress.o \
-                  datamodules/RecordHash.o \
-                  datamodules/RecordLoader.o
-
-
-MULTI_OBJECTS = FindMultiIndex.o SaveMemory.o CommonFiles.o $(MODULE_OBJECTS)
+COMMON_OBJECTS = CommonFiles.o RecordHash.o RecordLoader.o
+MULTI_OBJECTS = $(MODULE_OBJECTS) FindMultiIndex.o SaveMemory.o $(COMMON_OBJECTS)
 INDEX_OBJECTS = FindIndexCode.o
 
-OBJECTS = $(MULTI_OBJECTS) $(INDEX_OBJECTS)
+# Build a test executable for each generated Check*.c source.
+CHECK_SOURCES = $(wildcard Check*.c)
+CHECK_TARGETS = $(CHECK_SOURCES:.c=)
+CHECK_OBJECTS = $(CHECK_SOURCES:.c=.o)
+
+TARGETS = FindMultiIndex FindIndexCode $(CHECK_TARGETS)
+OBJECTS = $(MULTI_OBJECTS) $(INDEX_OBJECTS) $(CHECK_OBJECTS)
 DEPS = $(OBJECTS:.o=.d)
 
 .PHONY: all clean rebuild
-
 all: $(TARGETS)
 
-MODULE_HEADERS = $(wildcard datamodules/*.h)
 GENERATED_HEADER = DataModules.h
-
 .PHONY: FORCE
 FORCE:
 
@@ -44,26 +40,36 @@ $(GENERATED_HEADER): FORCE $(MODULE_HEADERS)
 	@cmp -s $@.tmp $@ && rm -f $@.tmp || mv -f $@.tmp $@
 
 FindMultiIndex.o: FindMultiIndex.h $(GENERATED_HEADER)
+$(CHECK_OBJECTS): $(GENERATED_HEADER)
 
-FindMultiIndex: $(MULTI_OBJECTS) 
+FindMultiIndex: $(MULTI_OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 FindIndexCode: $(INDEX_OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-CheckDataAddressModule: $(ADDRESS_OBJECTS)
+# The Module-suffixed checker sources use the same-named module without the
+# suffix; the regular Check<Type>.c sources use the same rule without stripping.
+Check%Module: $(COMMON_OBJECTS) Check%Module.o datamodules/%.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+Check%: $(COMMON_OBJECTS) Check%.o datamodules/%.o
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGETS) $(OBJECTS) $(DEPS) $(GENERATED_HEADER)
+	rm -f $(TARGETS) $(OBJECTS) $(DEPS) Check*.o Check*.d \
+	      datamodules/*.o datamodules/*.d $(GENERATED_HEADER) $(GENERATED_HEADER).tmp
+
+superclean:
+	rm -f $(TARGETS) $(OBJECTS) $(DEPS) Check*.? \
+	      datamodules/*.? $(GENERATED_HEADER) $(GENERATED_HEADER).tmp
 
 rebuild:
 	$(MAKE) clean
 	$(MAKE) all
 
 -include $(DEPS)
-
 
