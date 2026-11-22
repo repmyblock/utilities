@@ -16,6 +16,13 @@ COMMON_OBJECTS := \
 	$(SRC_DIR)/RecordHash.o \
 	$(SRC_DIR)/RecordLoader.o
 
+.PHONY: all build clean superclean rebuild generate FORCE
+
+# Generate sources, then start a fresh Make process to discover and build them.
+all: generate
+	+$(MAKE) build
+
+# These wildcards are expanded by the second Make process, after generation.
 MODULE_SOURCES := $(wildcard $(MODULE_DIR)/*.c)
 MODULE_OBJECTS := $(MODULE_SOURCES:.c=.o)
 MODULE_HEADERS := $(wildcard $(MODULE_DIR)/*.h)
@@ -35,31 +42,29 @@ TARGETS := FindMultiIndex FindIndexCode $(CHECK_TARGETS)
 OBJECTS := $(MULTI_OBJECTS) $(INDEX_OBJECTS) $(CHECK_OBJECTS)
 DEPS := $(OBJECTS:.o=.d)
 
+# FindMultiIndex.c includes DataModules.h from src/.
 GENERATED_HEADER := $(MODULE_DIR)/DataModules.h
 
-.PHONY: all clean superclean rebuild generate FORCE
-all: generate $(TARGETS)
-
-# Generate the module and checker source files.
 generate:
 	./$(GENERATOR) --root ./$(GENERATED_DIR) --schema $(SCHEMA) --force
 
 .PHONY: FORCE
 FORCE:
 
-# Create src/DataModules.h with paths relative to src/.
+# Create the aggregate header beside the module headers.
 $(GENERATED_HEADER): FORCE $(MODULE_HEADERS)
 	@{ \
 	    printf '%s\n' '#ifndef DATA_MODULES_H' '#define DATA_MODULES_H'; \
 	    for header in $(notdir $(MODULE_HEADERS)); do \
-	        printf '#include "datamodules/%s"\n' "$$header"; \
+	        printf '#include "%s"\n' "$$header"; \
 	    done; \
 	    printf '%s\n' '#endif'; \
 	} > $@.tmp
 	@cmp -s $@.tmp $@ && rm -f $@.tmp || mv -f $@.tmp $@
 
+build: $(TARGETS)
+
 $(SRC_DIR)/FindMultiIndex.o: $(SRC_DIR)/FindMultiIndex.h $(GENERATED_HEADER)
-$(CHECK_OBJECTS): $(GENERATED_HEADER)
 
 # Main executables are created in the project root.
 FindMultiIndex: $(MULTI_OBJECTS)
@@ -75,15 +80,13 @@ Check%Module: $(COMMON_OBJECTS) $(GENERATED_DIR)/Check%Module.o $(MODULE_DIR)/%.
 Check%: $(COMMON_OBJECTS) $(GENERATED_DIR)/Check%.o $(MODULE_DIR)/%.o
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-# Compile sources under src/.
+# Compile source files.
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-# Compile generated checker sources.
 $(GENERATED_DIR)/%.o: $(GENERATED_DIR)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-# Compile module sources.
 $(MODULE_DIR)/%.o: $(MODULE_DIR)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
@@ -95,7 +98,6 @@ clean:
 	rm -f $(GENERATED_HEADER) $(GENERATED_HEADER).tmp
 
 # Remove executables, build files, and generated sources.
-.PHONY: superclean
 superclean: clean
 	rm -f $(MODULE_DIR)/*
 	rm -rf $(GENERATED_DIR)/*
