@@ -35,7 +35,7 @@ TARGETS := FindMultiIndex FindIndexCode $(CHECK_TARGETS)
 OBJECTS := $(MULTI_OBJECTS) $(INDEX_OBJECTS) $(CHECK_OBJECTS)
 DEPS := $(OBJECTS:.o=.d)
 
-GENERATED_HEADER := $(SRC_DIR)/DataModules.h
+GENERATED_HEADER := $(MODULE_DIR)/DataModules.h
 
 .PHONY: all clean superclean rebuild generate FORCE
 all: generate $(TARGETS)
@@ -47,12 +47,12 @@ generate:
 .PHONY: FORCE
 FORCE:
 
-# Create an aggregate header containing all generated module headers.
+# Create src/DataModules.h with paths relative to src/.
 $(GENERATED_HEADER): FORCE $(MODULE_HEADERS)
 	@{ \
 	    printf '%s\n' '#ifndef DATA_MODULES_H' '#define DATA_MODULES_H'; \
-	    for header in $(MODULE_HEADERS); do \
-	        printf '#include "%s"\n' "$$header"; \
+	    for header in $(notdir $(MODULE_HEADERS)); do \
+	        printf '#include "datamodules/%s"\n' "$$header"; \
 	    done; \
 	    printf '%s\n' '#endif'; \
 	} > $@.tmp
