@@ -124,7 +124,7 @@ sub update_makefile {
     my $rules = <<'MAKE';
 define CHECK_MODULE_template
 Check$(1)Module: $(COMMON_OBJECTS) Check$(1)Module.o datamodules/$(1).o
-	$$(CC) $$(LDFLAGS) -o $$@ $$^ $$(LDLIBS)
+  $$(CC) $$(LDFLAGS) -o $$@ $$^ $$(LDLIBS)
 endef
 $(foreach module,$(CHECK_MODULES),$(eval $(call CHECK_MODULE_template,$(module))))
 
@@ -397,39 +397,139 @@ sub render_check {
 static int TestRandom${api}(MYSQL *, const ${api}HashTable *);
 
 int main(int argc, char **argv) {
-    PrintWallClockTime("Program started");
-    size_t limit = 0;
-    if (argc > 1) {
-        char *end = NULL; errno = 0; uintmax_t value = strtoumax(argv[1], &end, 10);
-        if (errno || end == argv[1] || *end || value > SIZE_MAX) { fprintf(stderr, "Invalid row limit: %s\\n", argv[1]); return EXIT_FAILURE; }
-        limit = (size_t)value;
+  PrintWallClockTime("Program started");
+  size_t limit = 0;
+
+  if (argc > 1) {
+    char *end = NULL; errno = 0; uintmax_t value = strtoumax(argv[1], &end, 10);
+    if (errno || end == argv[1] || *end || value > SIZE_MAX) { 
+      fprintf(stderr, "Invalid row limit: %s\\n", argv[1]); 
+      return EXIT_FAILURE;
     }
-    MYSQL *db = DealDB(); if (!db) return EXIT_FAILURE;
-    $base *rows = NULL; size_t count = 0; ${api}HashTable *table = NULL; int status = EXIT_FAILURE; char line[8192];
-    double startMs = NowMilliseconds();
-    if (Load${loader}IntoMemory(db, &rows, &count, limit) != EXIT_SUCCESS) { fprintf(stderr, "Could not load $table rows.\\n"); goto cleanup; }
-    table = Build${api}HashTable(rows, count); if (!table) { fprintf(stderr, "Could not build $table hash table.\\n"); goto cleanup; }
-    PrintWallClockTime("Program loaded"); PrintModuleLoad("$table", count, sizeof(*rows), NowMilliseconds()-startMs);
-    TestRandom${api}(db, table);
-    printf("\\n============================= MATCH $api MEMORY ==========================\\n");
-    size_t start = count > 10 ? count - 10 : 0;
-    for (size_t i=start; i<count; ++i) { printf("\\nRecord %zu (ID %" PRIu32 "):\\n", i, rows[i].ID); Print$api(&rows[i]); }
-    printf("$table module test passed.\\n\\n");
-    if (count) { ${api}Match match = Find${api}ID(table, &rows[0]); printf("Testing loaded row 0 (ID %" PRIu32 "): ", rows[0].ID); if (match.status == RECORD_FOUND || match.status == RECORD_DUPLICATE) printf("hash found %zu matching ID(s).\\n", match.count); else if (match.status == RECORD_NOT_FOUND) puts("NOT FOUND."); else puts("hash lookup error."); Free${api}Match(&match); }
-    printf("\\nEnter $input_count comma-separated fields in this order:\\n$labels\\nPress Enter on an empty line to quit.\\n");
-    while (1) { printf("\\nRecord: "); fflush(stdout); if (!fgets(line,sizeof line,stdin)) { if(ferror(stdin)){perror("fgets");goto cleanup;} break; } line[strcspn(line,"\\r\\n")]='\\0'; if(!line[0]) break; $base query={0}; if(Parse${api}Query(line,&query)!=EXIT_SUCCESS) continue; printf("\\n--- In-memory hash lookup ---\\n"); Query${api}Memory(table,&query); printf("\\n--- Database lookup ---\\n"); if(Query${api}Database(db,&query)!=EXIT_SUCCESS) fprintf(stderr,"Database lookup failed.\\n"); }
-    status = EXIT_SUCCESS;
+    limit = (size_t)value;
+  }
+
+  MYSQL *db = DealDB(); 
+  if (!db) return EXIT_FAILURE;
+  
+  $base *rows = NULL; 
+  size_t count = 0; 
+  ${api}HashTable *table = NULL; 
+  int status = EXIT_FAILURE; 
+  char line[8192];
+  double startMs = NowMilliseconds();
+  
+  if (Load${loader}IntoMemory(db, &rows, &count, limit) != EXIT_SUCCESS) { 
+    fprintf(stderr, "Could not load $table rows.\\n"); 
+    goto cleanup; 
+  }
+  
+  table = Build${api}HashTable(rows, count); 
+  if (!table) { 
+    fprintf(stderr, "Could not build $table hash table.\\n"); 
+    goto cleanup; 
+  }
+  
+  PrintWallClockTime("Program loaded"); 
+  PrintModuleLoad("$table", count, sizeof(*rows), NowMilliseconds()-startMs);
+  TestRandom${api}(db, table);
+ 
+  printf("\\n============================= MATCH $api MEMORY ==========================\\n");
+  size_t start = count > 10 ? count - 10 : 0;
+  for (size_t i=start; i<count; ++i) { 
+    printf("\\nRecord %zu (ID %" PRIu32 "):\\n", i, rows[i].ID); 
+    Print$api(&rows[i]); 
+  }
+  printf("$table module test passed.\\n\\n");
+  
+  if (count) {
+    ${api}Match match = Find${api}ID(table, &rows[0]); 
+    printf("Testing loaded row 0 (ID %" PRIu32 "): ", rows[0].ID); 
+    if (match.status == RECORD_FOUND || match.status == RECORD_DUPLICATE) printf("hash found %zu matching ID(s).\\n", match.count); 
+    else if (match.status == RECORD_NOT_FOUND) puts("NOT FOUND."); 
+    else puts("hash lookup error."); 
+    Free${api}Match(&match); 
+  }
+  
+  printf("\\nEnter $input_count comma-separated fields in this order:\\n$labels\\nPress Enter on an empty line to quit.\\n");
+  while (1) { 
+    printf("\\nRecord: "); fflush(stdout); 
+    if (!fgets(line,sizeof line,stdin)) { 
+      if(ferror(stdin)){
+        perror("fgets");
+        goto cleanup;
+      } 
+      break; 
+    } 
+    line[strcspn(line,"\\r\\n")]='\\0'; 
+    if(!line[0]) break; 
+    $base query={0}; 
+    
+    if(Parse${api}Query(line,&query)!=EXIT_SUCCESS) continue; 
+    printf("\\n--- In-memory hash lookup ---\\n"); 
+    Query${api}Memory(table,&query); 
+    printf("\\n--- Database lookup ---\\n"); 
+    if(Query${api}Database(db,&query)!=EXIT_SUCCESS) fprintf(stderr,"Database lookup failed.\\n"); 
+  }
+  status = EXIT_SUCCESS;
 cleanup:
-    PrintWallClockTime("Beginning program cleanup"); Free${api}HashTable(table); free(rows); mysql_close(db); PrintWallClockTime("Program ended"); return status;
+  PrintWallClockTime("Beginning program cleanup"); 
+  Free${api}HashTable(table); 
+  free(rows); 
+  mysql_close(db); 
+  PrintWallClockTime("Program ended"); 
+  return status;
 }
 
 static int TestRandom${api}(MYSQL *db, const ${api}HashTable *table) {
-    const char *query = "$escaped_query";
-    if (mysql_query(db,query)!=0) { fprintf(stderr,"Random row query failed: %s\\n",mysql_error(db)); return EXIT_FAILURE; }
-    MYSQL_RES *result=mysql_store_result(db); if(!result) { fprintf(stderr,"Could not retrieve random rows: %s\\n",mysql_error(db)); return EXIT_FAILURE; }
-    MYSQL_ROW row; size_t testNumber=0; int status=EXIT_SUCCESS;
-    while((row=mysql_fetch_row(result))!=NULL) { if(!row[0]) { fprintf(stderr,"Random row query returned NULL.\\n"); status=EXIT_FAILURE; continue; } ++testNumber; printf("\\n--- Random $api test %zu ---\\n%s\\n",testNumber,row[0]); char input[8192]; int n=snprintf(input,sizeof input,"%s",row[0]); if(n<0||(size_t)n>=sizeof input){fprintf(stderr,"Random row too long.\\n");status=EXIT_FAILURE;continue;} $base record={0}; if(Parse${api}Query(input,&record)!=EXIT_SUCCESS){status=EXIT_FAILURE;continue;} Print$api(&record); printf("In-memory lookup: "); Query${api}Memory(table,&record); printf("Database lookup: "); if(Query${api}Database(db,&record)!=EXIT_SUCCESS)status=EXIT_FAILURE; }
-    if(mysql_errno(db)){fprintf(stderr,"Reading random rows failed: %s\\n",mysql_error(db));status=EXIT_FAILURE;} mysql_free_result(result); return status;
+  const char *query = "$escaped_query";
+  if (mysql_query(db,query)!=0) { 
+    fprintf(stderr,"Random row query failed: %s\\n",mysql_error(db)); 
+    return EXIT_FAILURE; 
+  }
+  MYSQL_RES *result=mysql_store_result(db); 
+  if(!result) { 
+    fprintf(stderr,"Could not retrieve random rows: %s\\n",mysql_error(db)); 
+    return EXIT_FAILURE; 
+  }
+  MYSQL_ROW row; size_t testNumber=0; 
+  int status=EXIT_SUCCESS;
+  while((row=mysql_fetch_row(result))!=NULL) { 
+    if(!row[0]) { 
+      fprintf(stderr,"Random row query returned NULL.\\n"); 
+      status=EXIT_FAILURE; 
+      continue; 
+    } 
+  
+    testNumber++; 
+    printf("\\n--- Random $api test %zu ---\\n%s\\n",testNumber,row[0]); 
+    char input[8192]; 
+    int n=snprintf(input,sizeof input,"%s",row[0]); 
+    if(n<0||(size_t)n>=sizeof input) {
+      fprintf(stderr,"Random row too long.\\n");
+      status=EXIT_FAILURE;
+      continue;
+    } 
+    
+    $base record={0}; 
+    if(Parse${api}Query(input,&record)!=EXIT_SUCCESS) {
+      status=EXIT_FAILURE;
+      continue;
+    } 
+    Print$api(&record); 
+    printf("In-memory lookup: "); 
+    Query${api}Memory(table,&record); 
+    printf("Database lookup: "); 
+    
+    if(Query${api}Database(db,&record)!=EXIT_SUCCESS) status=EXIT_FAILURE; 
+  }
+  
+  if(mysql_errno(db)) {
+    fprintf(stderr,"Reading random rows failed: %s\\n",mysql_error(db));
+    status=EXIT_FAILURE;
+  } 
+  mysql_free_result(result); 
+  return status;
 }
 C
 }
