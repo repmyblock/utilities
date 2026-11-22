@@ -32,6 +32,7 @@ if (defined $schema_file) {
 
 my @tables = parse_schema($sql);
 die "No Data*/Voter* tables found in the schema.\n" unless @tables;
+
 my ($written, $skipped) = (0, 0);
 for my $t (@tables) {
   my ($module, $type) = module_names($t->{table});
@@ -65,8 +66,8 @@ print "Generated $written file(s); skipped $skipped existing file(s).\n";
 update_makefile($root, \@tables) if -f "$root/Makefile";
 
 sub usage {
-    my ($code) = @_;
-    print STDERR <<'USAGE';
+  my ($code) = @_;
+  print STDERR <<'USAGE';
 Usage: ./GenerateTest.pl --root <PATH> [--schema <schema.sql>] [--force]
 
 Reads Data* and Voter(s)* tables from a MySQL schema and generates each
@@ -80,7 +81,7 @@ Existing outputs are skipped by default. --force replaces each output after
 creating a .pre-GenerateTest.bak copy if one does not already exist.
 The Makefile is also backed up before the generator changes it.
 USAGE
-    exit $code;
+	exit $code;
 }
 
 sub update_makefile {
@@ -317,7 +318,7 @@ sub render_source {
     my $flag = $col->{text} ? 1 : 0;
     $s .= "  {offsetof($base, $m), sizeof((($base *)0)->$m), $flag},\n";
   }
-  $s .= "};\n";
+  $s .= "};\n\n";
   $s .= "static const RecordField keyFields[] = {\n";
   for my $col (@keys) {
     my $m = member_name($t->{table}, $col->{name});
