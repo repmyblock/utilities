@@ -650,12 +650,18 @@ int main(int argc, char **argv) {
     line[strcspn(line,"\\r\\n")]='\\0'; 
     if(!line[0]) break; 
     $base query={0}; 
-    
+     
     if(Parse${api}Query(line,&query)!=EXIT_SUCCESS) continue; 
     printf("\\n--- In-memory hash lookup ---\\n"); 
+  
+    double memoryStartMs = NowMilliseconds();
     Query${api}Memory(table,&query); 
+    printf("In-memory lookup took %.3f ms\\n", NowMilliseconds() - memoryStartMs);
+    
     printf("\\n--- Database lookup ---\\n"); 
+    double databaseStartMs = NowMilliseconds();
     if(Query${api}Database(db,&query)!=EXIT_SUCCESS) fprintf(stderr,"Database lookup failed.\\n"); 
+    printf("Database lookup took %.3f ms\\n", NowMilliseconds() - databaseStartMs);
   }
   status = EXIT_SUCCESS;
   
@@ -704,11 +710,16 @@ static int TestRandom${api}(MYSQL *db, const ${api}HashTable *table) {
       continue;
     } 
     Print$api(&record); 
-    printf("In-memory lookup: "); 
-    Query${api}Memory(table,&record); 
-    printf("Database lookup: "); 
     
+    printf("In-memory lookup: ");
+    double memoryStartMs = NowMilliseconds();
+    Query${api}Memory(table,&record); 
+    printf("In-memory lookup took %.3f ms\\n", NowMilliseconds() - memoryStartMs);
+
+    printf("Database lookup: ");
+    double databaseStartMs = NowMilliseconds();
     if(Query${api}Database(db,&record)!=EXIT_SUCCESS) status=EXIT_FAILURE; 
+    printf("Database lookup took %.3f ms\\n", NowMilliseconds() - databaseStartMs);
   }
   
   if(mysql_errno(db)) {
